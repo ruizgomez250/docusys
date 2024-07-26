@@ -1,0 +1,733 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\ArchivosDocumento;
+use TCPDF;
+use App\Models\Destino;
+use App\Models\Firmante;
+use App\Models\MapaRecorrido;
+use App\Models\MesaEntrada;
+use App\Models\MesaEntradaFirmante;
+use App\Models\Origen;
+use App\Models\RecorridoDoc;
+use App\Models\TipoDoc;
+use App\Models\UserDestino;
+use Illuminate\Http\Request;
+use Exception;
+use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\DB;
+
+class MesaEntradaController extends Controller
+{
+    public function __construct()
+    {
+        $this->middleware('permission:Mesa de Entrada', ['only' => ['index', 'show']]);
+        $this->middleware('permission:Mesa de Entrada', ['only' => ['store', 'create']]);
+        $this->middleware('permission:Mesa de Entrada', ['only' => ['update', 'edit']]);
+        $this->middleware('permission:Mesa de Entrada', ['only' => ['destroy']]);
+    }
+    public function index()
+    {
+        $heads = [
+            'ID', 'Nro MEntrada', 'Año', 'Fecha Recepción', 'Origen', 'Tipo Doc', 'Destino', 'Observación', 'Estado', 'Usuario', 'Acción', 'Tiene Documentos'
+        ];
+
+        // Obtener todas las entradas de mesa junto con la información de si tienen documentos o no
+        $mesasEntrada = MesaEntrada::with('documentos')->get()->map(function ($mesaEntrada) {
+            $mesaEntrada->tiene_documentos = $mesaEntrada->documentos->isNotEmpty();
+            return $mesaEntrada;
+        });
+
+        return view('mesa_entrada.index', ['mesasEntrada' => $mesasEntrada, 'heads' => $heads]);
+    }
+    public function recepcionado()
+    {
+        $heads = [
+            'ID', 'Nro MEntrada', 'Año', 'Fecha Recepción', 'Origen', 'Tipo Doc', 'Observación', 'Estado', 'Usuario', 'Acción'
+        ];
+        $userId = auth()->id();
+        $userDestino = UserDestino::where('user_id', $userId)->first();
+        $iddest = $userDestino->destino_id;
+        $destinos = Destino::all();
+        $mesasEntrada = MesaEntrada::join('mapa_recorrido', 'mesa_entrada.id', '=', 'mapa_recorrido.id_mentrada')
+            ->where('mapa_recorrido.estado', '>', 0)
+            ->where('mapa_recorrido.id_actual', $iddest)
+            ->select('mesa_entrada.*', 'mapa_recorrido.estado as mapa_estado', 'mapa_recorrido.observacion as mapa_observacion', 'mapa_recorrido.id_actual as origeninterno', 'mapa_recorrido.id_destino as destinointerno')
+            ->with('documentos') // Cargar la relación documentos
+            ->get()
+            ->map(function ($mesaEntrada) {
+                $mesaEntrada->tiene_documentos = $mesaEntrada->documentos->isNotEmpty();
+                return $mesaEntrada;
+            });
+        return view('mesa_entrada.recepcionado', ['mesasEntrada' => $mesasEntrada, 'destinos' => $destinos, 'heads' => $heads]);
+    }
+    public function reenviado()
+    {
+        $heads = [
+            'ID', 'Nro MEntrada', 'Año', 'Fecha Recepción', 'Origen', 'Tipo Doc', 'Destino', 'Observación', 'Estado', 'Usuario', 'Acción'
+        ];
+        $userId = auth()->id();
+        $userDestino = UserDestino::where('user_id', $userId)->first();
+        $iddest = $userDestino->destino_id;
+        $destinos = Destino::all();
+        $mesasEntrada = MesaEntrada::whereIn('id', function ($query) use ($iddest) {
+            $query->select('me.id')
+                ->from('mesa_entrada as me')
+                ->join('mapa_recorrido as mr', 'mr.id_mentrada', '=', 'me.id')
+                ->where('mr.id_actual', $iddest)
+                ->where('mr.estado', 0)
+                ->distinct();
+        })
+            ->with('documentos') // Cargar la relación documentos
+            ->get()
+            ->map(function ($mesaEntrada) {
+                $mesaEntrada->tiene_documentos = $mesaEntrada->documentos->isNotEmpty();
+                return $mesaEntrada;
+            });
+        return view('mesa_entrada.reenviado', ['mesasEntrada' => $mesasEntrada, 'destinos' => $destinos, 'heads' => $heads]);
+    }
+    public function finalizado()
+    {
+        $heads = [
+            'ID', 'Nro MEntrada', 'Año', 'Fecha Recepción', 'Origen', 'Tipo Doc', 'Destino', 'Observación', 'Estado', 'Usuario', 'Acción'
+        ];
+        $userId = auth()->id();
+        $userDestino = UserDestino::where('user_id', $userId)->first();
+        $iddest = $userDestino->destino_id;
+        $destinos = Destino::all();
+        $mesasEntrada = MesaEntrada::join('mapa_recorrido', 'mesa_entrada.id', '=', 'mapa_recorrido.id_mentrada')
+            ->where('mapa_recorrido.estado', '=', 0)
+            ->where('mapa_recorrido.id_actual', $iddest)
+            ->select('mesa_entrada.*', 'mapa_recorrido.estado as mapa_estado', 'mapa_recorrido.observacion as mapa_observacion', 'mapa_recorrido.id_destino as destinointerno')
+            ->get();
+        return view('mesa_entrada.finalizado', ['mesasEntrada' => $mesasEntrada, 'destinos' => $destinos, 'heads' => $heads]);
+    }
+    /**
+     * Show the form for creating a new resource.
+     */
+    public function create(): View
+    {
+        $origenes = Origen::all();
+        $tiposdoc = TipoDoc::all();
+        $destinos = Destino::all();
+        return view('mesa_entrada.create', ['origenes' => $origenes, 'tiposDoc' => $tiposdoc, 'destinos' => $destinos]);
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(Request $request)
+    {
+        try {
+            DB::transaction(function () use ($request) {
+                $validatedData = $request->validate([
+                    'id_origen' => 'required|integer',
+                    'id_tipo_doc' => 'required|integer',
+                    'id_destino' => 'required|integer',
+                    'observacion' => 'nullable|string',
+                    'idfirmante' => 'required|array',
+                    'cedula' => 'required|array',
+                    'nombre' => 'required|array',
+                    'telefono' => 'required|array',
+                    'email.*' => 'nullable|email',
+                ]);
+                //dd('s');
+                //dd($request->input());
+                $anho = date('Y');
+
+                // Obtener el mayor número de 'nro_mentrada' para el año especificado
+                $maxNroMentrada = MesaEntrada::where('anho', $anho)->max('nro_mentrada');
+
+                // Si no se encuentra ningún registro, establecer el número como 0
+                if (is_null($maxNroMentrada)) {
+                    $maxNroMentrada = 1;
+                } else {
+                    $maxNroMentrada++;
+                }
+
+                $fechaAct = date('Y-m-d');
+                $userId = auth()->id();
+                $destinoactual = UserDestino::where('user_id', $userId)->first();
+
+                // Crear una nueva instancia del modelo MesaEntrada
+                $mesaEntrada = new MesaEntrada();
+
+                // Asignar cada campo individualmente
+                $mesaEntrada->nro_mentrada = $maxNroMentrada;
+                $mesaEntrada->anho = $anho;
+                $mesaEntrada->fecha_recepcion = $request->input('fechaemision');
+                $mesaEntrada->id_origen = $request->input('id_origen');
+                $mesaEntrada->id_tipo_doc = $request->input('id_tipo_doc');
+                $mesaEntrada->id_destino = $request->input('id_destino');
+                $mesaEntrada->observacion = $request->input('observacion');
+                $mesaEntrada->estado = 1;
+                $mesaEntrada->id_usuario = $userId;
+
+                // Guardar el nuevo registro en la base de datos
+                $mesaEntrada->save();
+
+
+                if ($request->hasFile('documento')) {
+                    $file = $request->file('documento');
+
+                    // Crear nuevo nombre de archivo
+                    $descripcion = substr($request->input('descripcion'), 0, 15);
+                    $descripcionSinEspacios = str_replace(' ', '_', $descripcion);
+                    $fechaHora = date('Ymd_His');
+                    $extension = $file->getClientOriginalExtension();
+                    $nombreNuevo = $descripcionSinEspacios . '_' . $fechaHora . '.' . $extension;
+
+                    // Mover archivo a la carpeta 'documentos'
+                    $rutaDocumento = $file->move(public_path('documentos'), $nombreNuevo);
+
+                    // Crear registro en la base de datos
+                    ArchivosDocumento::create([
+                        'id_mentrada' => $mesaEntrada->id,
+                        'nombre_archivo' => $nombreNuevo,
+                        'ruta_archivo' => 'documentos/' . $nombreNuevo,
+                    ]);
+                }
+
+
+                if ($request->hasFile('archivo')) {
+                    $archivo = $request->file('archivo');
+
+                    // Crear nuevo nombre de archivo
+                    $descripcion = substr($request->input('descripcion'), 0, 15);
+                    $descripcionSinEspacios = str_replace(' ', '_', $descripcion);
+                    $fechaHora = date('Ymd_His');
+                    $extension = $archivo->getClientOriginalExtension();
+                    $nombreNuevoArchivo = $descripcionSinEspacios . '_' . $fechaHora . '.' . $extension;
+
+                    // Mover archivo a la carpeta 'archivos'
+                    $rutaArchivo = $archivo->move(public_path('archivos'), $nombreNuevoArchivo);
+
+                    // Crear registro en la base de datos
+                    ArchivosDocumento::create([
+                        'id_mentrada' => $mesaEntrada->id,
+                        'nombre_archivo' => $nombreNuevoArchivo,
+                        'ruta_archivo' => 'archivos/' . $nombreNuevoArchivo,
+                    ]);
+                }
+                $mapaRecorrido = new MapaRecorrido();
+                $mapaRecorrido->id_mentrada = $mesaEntrada->id;
+                $mapaRecorrido->fecha_recepcion = $fechaAct;
+                $mapaRecorrido->id_actual = $destinoactual->destino_id;
+                $mapaRecorrido->id_destino =  $request->input('id_destino');
+                $mapaRecorrido->observacion = $request->input('observacion');
+                $mapaRecorrido->estado = 1;
+                //dd('a');
+                // Guardar el nuevo registro en la base de datos
+                $mapaRecorrido->save();
+
+                date_default_timezone_set('America/Asuncion'); // Cambia 'America/Asuncion' por tu zona horaria
+
+                // Obtener la fecha y hora actual en el formato deseado
+                $destino = Destino::find($destinoactual->destino_id);
+
+                $fechaHoraActual = date('Y-m-d H:i:s');
+                $recorridodoc = new RecorridoDoc();
+                $recorridodoc->id_mentrada = $mesaEntrada->id;
+                $recorridodoc->fecha = $fechaHoraActual;
+                $recorridodoc->descripcion = 'Recepcionado: ' . $destino->nombre;
+
+                // Guardar el nuevo registro en la base de datos
+                $recorridodoc->save();
+
+                foreach ($validatedData['idfirmante'] as $index => $idfirmante) {
+                    // Si el idfirmante es 0, crear un nuevo registro de Firmante
+
+                    if ($idfirmante == 0) {
+                        $firmanteData = [
+                            'nombre' => $validatedData['nombre'][$index],
+                            'cedula' => $validatedData['cedula'][$index],
+                            'telefono' => $validatedData['telefono'][$index],
+                        ];
+
+                        // Agregar el correo electrónico si está presente y no es null
+                        if (isset($validatedData['email'][$index])) {
+                            $firmanteData['correo'] = $validatedData['email'][$index];
+                        }
+
+                        $firmante = Firmante::create($firmanteData);
+                    } else {
+                        // Buscar el firmante en la base de datos y actualizar si existe
+                        $firmante = Firmante::find($idfirmante);
+                        if ($firmante) {
+                            $firmante->update([
+                                'nombre' => $validatedData['nombre'][$index],
+                                'cedula' => $validatedData['cedula'][$index],
+                                'telefono' => $validatedData['telefono'][$index],
+                                'correo' => $validatedData['email'][$index] ?? null, // Actualizar el correo solo si está presente
+                            ]);
+                        }
+                    }
+
+                    // Guardar en mesa_entrada_firmante
+                    if ($firmante) {
+                        MesaEntradaFirmante::updateOrCreate(
+                            ['id_mentrada' => $mesaEntrada->id, 'id_firmante' => $firmante->id],
+                            ['created_at' => now(), 'updated_at' => now()]
+                        );
+                    }
+                }
+            });
+
+            return redirect()->route('mesaentrada.create')->with('success', 'Operación exitosa');
+        } catch (Exception $e) {
+            return redirect()->route('mesaentrada.create')->with('error', 'Hubo un problema con la operación. Por favor, inténtelo de nuevo.');
+        }
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit($id)
+    {
+        try {
+            $mesaEntrada = MesaEntrada::findOrFail($id);
+            $origenes = Origen::all();
+            $tiposdoc = TipoDoc::all();
+            $destinos = Destino::all();
+            $firmantes = MesaEntradaFirmante::where('id_mentrada', $id)
+                ->with('firmante')
+                ->get()
+                ->pluck('firmante');
+            return view('mesa_entrada.edit', ['origenes' => $origenes, 'tiposDoc' => $tiposdoc, 'destinos' => $destinos, 'mesaEntrada' => $mesaEntrada, 'firmantes' => $firmantes]);
+        } catch (Exception $e) {
+            return redirect()->route('mesaentrada.index')->with('error', 'No se pudo completar la operación.');
+        }
+    }
+
+    public function update(Request $request, $id)
+    {
+        try {
+            DB::transaction(function () use ($request, $id) {
+                $validatedData = $request->validate([
+                    'id_origen' => 'required|integer',
+                    'id_tipo_doc' => 'required|integer',
+                    'id_destino' => 'required|integer',
+                    'observacion' => 'nullable|string',
+                    'idfirmante' => 'required|array',
+                    'cedula' => 'required|array',
+                    'nombre' => 'required|array',
+                    'telefono' => 'required|array',
+                    'email.*' => 'nullable|email',
+                ]);
+
+                $mesaEntrada = MesaEntrada::findOrFail($id);
+
+                // Actualizar los campos de MesaEntrada
+                $mesaEntrada->update([
+                    'id_origen' => $validatedData['id_origen'],
+                    'id_tipo_doc' => $validatedData['id_tipo_doc'],
+                    'id_destino' => $validatedData['id_destino'],
+                    'observacion' => $validatedData['observacion'],
+                ]);
+
+                $fechaAct = date('Y-m-d');
+                $userId = auth()->id();
+                $destinoactual = UserDestino::where('user_id', $userId)->first();
+
+                // Actualizar MapaRecorrido
+                $mapaRecorrido = MapaRecorrido::where('id_mentrada', $id)->first();
+                if ($mapaRecorrido) {
+                    $mapaRecorrido->update([
+                        'fecha_recepcion' => $fechaAct,
+                        'id_actual' => $destinoactual->destino_id,
+                        'id_destino' => $validatedData['id_destino'],
+                        'observacion' => $validatedData['observacion'],
+                        'estado' => 1,
+                    ]);
+                } else {
+                    // Crear nuevo MapaRecorrido si no existe
+                    MapaRecorrido::create([
+                        'id_mentrada' => $id,
+                        'fecha_recepcion' => $fechaAct,
+                        'id_actual' => $destinoactual->destino_id,
+                        'id_destino' => $validatedData['id_destino'],
+                        'observacion' => $validatedData['observacion'],
+                        'estado' => 1,
+                    ]);
+                }
+
+                date_default_timezone_set('America/Asuncion'); // Cambia 'America/Asuncion' por tu zona horaria
+
+                // Obtener la fecha y hora actual en el formato deseado
+                $destino = Destino::find($destinoactual->destino_id);
+                $fechaHoraActual = date('Y-m-d H:i:s');
+
+                // Actualizar RecorridoDoc
+                $recorridodoc = RecorridoDoc::where('id_mentrada', $id)->first();
+                if ($recorridodoc) {
+                    $recorridodoc->update([
+                        'fecha' => $fechaHoraActual,
+                        'descripcion' => 'Actualizado: ' . $destino->nombre,
+                    ]);
+                } else {
+                    // Crear nuevo RecorridoDoc si no existe
+                    RecorridoDoc::create([
+                        'id_mentrada' => $id,
+                        'fecha' => $fechaHoraActual,
+                        'descripcion' => 'Actualizado: ' . $destino->nombre,
+                    ]);
+                }
+
+                foreach ($validatedData['idfirmante'] as $index => $idfirmante) {
+                    // Si el idfirmante es 0, crear un nuevo registro de Firmante
+                    if ($idfirmante == 0) {
+                        $firmanteData = [
+                            'nombre' => $validatedData['nombre'][$index],
+                            'cedula' => $validatedData['cedula'][$index],
+                            'telefono' => $validatedData['telefono'][$index],
+                        ];
+
+                        // Agregar el correo electrónico si está presente y no es null
+                        if (isset($validatedData['email'][$index])) {
+                            $firmanteData['correo'] = $validatedData['email'][$index];
+                        }
+
+                        $firmante = Firmante::create($firmanteData);
+                    } else {
+                        // Buscar el firmante en la base de datos y actualizar si existe
+                        $firmante = Firmante::find($idfirmante);
+                        if ($firmante) {
+                            $firmante->update([
+                                'nombre' => $validatedData['nombre'][$index],
+                                'cedula' => $validatedData['cedula'][$index],
+                                'telefono' => $validatedData['telefono'][$index],
+                                'correo' => $validatedData['email'][$index] ?? null, // Actualizar el correo solo si está presente
+                            ]);
+                        }
+                    }
+
+                    // Guardar en mesa_entrada_firmante
+                    if ($firmante) {
+                        MesaEntradaFirmante::updateOrCreate(
+                            ['id_mentrada' => $mesaEntrada->id, 'id_firmante' => $firmante->id],
+                            ['created_at' => now(), 'updated_at' => now()]
+                        );
+                    }
+                }
+            });
+
+            return redirect()->route('mesaentrada.index')->with('success', 'Mesa de Entrada actualizada exitosamente.');
+        } catch (Exception $e) {
+            return redirect()->route('mesaentrada.index')->with('error', 'No se pudo completar la operación.');
+        }
+    }
+
+
+
+    /**
+     * Display the specified resource.
+     */
+    public function show(MesaEntrada $mesaEntrada)
+    {
+        return response()->json($mesaEntrada);
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy(Request $request)
+    {
+
+        try {
+            $mesaEntrada = MesaEntrada::find($request->input('id_mentrada'));
+            DB::transaction(function () use ($mesaEntrada) {
+                $documentos = ArchivosDocumento::where('id_mentrada', $mesaEntrada->id)->get();
+
+                foreach ($documentos as $documento) {
+                    // Eliminar el archivo del sistema de archivos
+                    $rutaArchivo = public_path($documento->ruta_archivo);
+                    if (file_exists($rutaArchivo)) {
+                        unlink($rutaArchivo);
+                    }
+
+                    // Eliminar el registro de la base de datos
+                    $documento->delete();
+                }
+
+                // Eliminar todos los registros relacionados en mesa_entrada_firmante
+                MesaEntradaFirmante::where('id_mentrada', $mesaEntrada->id)->delete();
+
+                // Eliminar todos los registros relacionados en RecorridoDoc
+                RecorridoDoc::where('id_mentrada', $mesaEntrada->id)->delete();
+
+                // Eliminar todos los registros relacionados en MapaRecorrido
+                MapaRecorrido::where('id_mentrada', $mesaEntrada->id)->delete();
+
+                // Eliminar el registro principal en la tabla MesaEntrada
+                $mesaEntrada->delete();
+            });
+
+            return redirect()->route('mesaentrada.index')->with('success', 'Operación exitosa');
+        } catch (Exception $e) {
+            return redirect()->route('mesaentrada.create')->with('error', 'Vuelva a intentarlo');
+        }
+    }
+
+    public function enviar($id)
+    {
+        DB::beginTransaction();
+
+        try {
+            $mapaRecorrido = MapaRecorrido::where('id_mentrada', $id)
+                ->where('estado', '>', 0)
+                ->first();
+
+            if ($mapaRecorrido) {
+                $mapaRecorrido->estado = 0;
+                $mapaRecorrido->save();
+
+                // Obtener el id_destino del registro encontrado
+                $idDestino = $mapaRecorrido->id_destino;
+
+                // Crear un nuevo registro en MapaRecorrido
+                $nuevoMapaRecorrido = MapaRecorrido::create([
+                    'id_mentrada' => $id,
+                    'fecha_recepcion' => now(),
+                    'id_actual' => $idDestino,
+                    'id_destino' => null,
+                    'observacion' => 'Nuevo recorrido creado',
+                    'estado' => 1,
+                ]);
+                $mesaEntrada = MesaEntrada::findOrFail($id);
+                $mesaEntrada->estado = 2;
+                $mesaEntrada->save();
+
+                date_default_timezone_set('America/Asuncion'); // Cambia 'America/Asuncion' por tu zona horaria
+
+                // Obtener la fecha y hora actual en el formato deseado
+                $destino = Destino::find($idDestino,);
+
+                $fechaHoraActual = date('Y-m-d H:i:s');
+                $recorridodoc = new RecorridoDoc();
+                $recorridodoc->id_mentrada = $mesaEntrada->id;
+                $recorridodoc->fecha = $fechaHoraActual;
+                $recorridodoc->descripcion = 'Enviado: ' . $destino->nombre;
+
+                // Guardar el nuevo registro en la base de datos
+                $recorridodoc->save();
+                //dd($nuevoMapaRecorrido);
+                DB::commit();
+
+                return redirect()->route('mesaentrada.index')->with('success', 'Mesa de Entrada actualizada exitosamente.');
+            } else {
+                DB::rollBack();
+                return redirect()->route('mesaentrada.index')->with('error', 'Mesa de Entrada no se pudo actualizar.');
+            }
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->route('mesaentrada.index')->with('error', 'Mesa de Entrada no se pudo actualizar.');
+        }
+    }
+    public function aceptar($id)
+    {
+        DB::beginTransaction();
+
+        try {
+            // Buscar el mapa de recorrido por id_mentrada
+            $mapaRecorrido = MapaRecorrido::where('id_mentrada', $id)
+                ->where('estado', 1)
+                ->first();
+
+
+            if ($mapaRecorrido) {
+
+                $mesaEntrada = MesaEntrada::findOrFail($id);
+                $mesaEntrada->estado = 3;
+                $mesaEntrada->save();
+                date_default_timezone_set('America/Asuncion'); // Cambia 'America/Asuncion' por tu zona horaria
+
+                // Obtener la fecha y hora actual en el formato deseado
+                $destino = Destino::find($mapaRecorrido->id_actual);
+
+                $fechaHoraActual = date('Y-m-d H:i:s');
+                $recorridodoc = new RecorridoDoc();
+                $recorridodoc->id_mentrada = $mapaRecorrido->id_mentrada;
+                $recorridodoc->fecha = $fechaHoraActual;
+                $recorridodoc->descripcion = 'Confirmado Recepcion: ' . $destino->nombre;
+
+                // Guardar el nuevo registro en la base de datos
+                $recorridodoc->save();
+                //dd($nuevoMapaRecorrido);
+                //$destinos = Destino::all();
+                //return view('mesa_entrada.create', ['origenes' => $origenes, 'tiposDoc' => $tiposdoc, 'destinos' => $destinos]);
+                DB::commit();
+                return redirect()->route('recepciondoc')->with('success', 'Mesa de Entrada actualizada exitosamente.');
+            } else {
+                DB::rollBack();
+                return redirect()->route('recepciondoc')->with('error', 'Mesa de Entrada no se pudo actualizar.');
+            }
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->route('recepciondoc')->with('error', 'Mesa de Entrada no se pudo actualizar.');
+        }
+    }
+    public function finalizar($id)
+    {
+        DB::beginTransaction();
+
+        try {
+            // Buscar el mapa de recorrido por id_mentrada
+            $mapaRecorrido = MapaRecorrido::where('id_mentrada', $id)
+                ->where('estado', 1)
+                ->first();
+
+
+            if ($mapaRecorrido) {
+                $mapaRecorrido->estado = 0;
+                $mapaRecorrido->save();
+
+                $mesaEntrada = MesaEntrada::findOrFail($id);
+                $mesaEntrada->estado = 0;
+                $mesaEntrada->save();
+                date_default_timezone_set('America/Asuncion'); // Cambia 'America/Asuncion' por tu zona horaria
+
+                // Obtener la fecha y hora actual en el formato deseado
+                $destino = Destino::find($mapaRecorrido->id_actual);
+
+                $fechaHoraActual = date('Y-m-d H:i:s');
+                $recorridodoc = new RecorridoDoc();
+                $recorridodoc->id_mentrada = $mapaRecorrido->id_mentrada;
+                $recorridodoc->fecha = $fechaHoraActual;
+                $recorridodoc->descripcion = 'Trámite  Documental Finalizado: ' . $destino->nombre;
+
+                // Guardar el nuevo registro en la base de datos
+                $recorridodoc->save();
+                //dd($nuevoMapaRecorrido);
+                //$destinos = Destino::all();
+                //return view('mesa_entrada.create', ['origenes' => $origenes, 'tiposDoc' => $tiposdoc, 'destinos' => $destinos]);
+                DB::commit();
+                return redirect()->route('recepciondoc')->with('success', 'Mesa de Entrada actualizada exitosamente.');
+            } else {
+                DB::rollBack();
+                return redirect()->route('recepciondoc')->with('error', 'Mesa de Entrada no se pudo actualizar.');
+            }
+        } catch (\Exception $e) {
+            dd($e);
+            DB::rollBack();
+            return redirect()->route('recepciondoc')->with('error', 'Mesa de Entrada no se pudo actualizar.');
+        }
+    }
+    public function reenviardoc(Request $request)
+    {
+
+        DB::beginTransaction();
+
+        try {
+            // Buscar el mapa de recorrido por id_mentrada
+            $id = $request->post('idmentrada');
+            $mapaRecorrido = MapaRecorrido::where('id_mentrada', $id)
+                ->where('estado', 1)
+                ->first();
+
+            if ($mapaRecorrido) {
+
+                $mapaRecorrido->id_destino = $request->post('id_destino');
+                $mapaRecorrido->estado = 0;
+                $mapaRecorrido->save();
+
+                MapaRecorrido::create([
+                    'id_mentrada' => $id,
+                    'fecha_recepcion' => now(),
+                    'id_actual' => $request->post('id_destino'),
+                    'id_destino' => null,
+                    'observacion' => 'Nuevo recorrido creado',
+                    'estado' => 1,
+                ]);
+
+                date_default_timezone_set('America/Asuncion'); // Cambia 'America/Asuncion' por tu zona horaria
+
+                // Obtener la fecha y hora actual en el formato deseado
+                $destino = Destino::find($request->post('id_destino'));
+
+                $fechaHoraActual = date('Y-m-d H:i:s');
+                $recorridodoc = new RecorridoDoc();
+                $recorridodoc->id_mentrada = $mapaRecorrido->id_mentrada;
+                $recorridodoc->fecha = $fechaHoraActual;
+                $recorridodoc->descripcion = 'Enviado: ' . $destino->nombre;
+
+                // Guardar el nuevo registro en la base de datos
+                $recorridodoc->save();
+                $mesaEntrada = MesaEntrada::findOrFail($id);
+                $mesaEntrada->estado = 2;
+                $mesaEntrada->save();
+                //dd($nuevoMapaRecorrido);
+                DB::commit();
+                return redirect()->route('recepciondoc')->with('success', 'Mesa de Entrada actualizada exitosamente.');
+            } else {
+                DB::rollBack();
+                return redirect()->route('recepciondoc')->with('error', 'Mesa de Entrada no se pudo actualizar.');
+            }
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->route('recepciondoc')->with('error', 'Mesa de Entrada no se pudo actualizar.');
+        }
+    }
+    function recorrido(MesaEntrada $row)
+    {
+        $recorridos = RecorridoDoc::where('id_mentrada', $row->id)->get();
+        $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
+        $pdf->SetPrintHeader(false); // Deshabilita la impresión del encabezado
+        $pdf->SetFont('helvetica', 'B', 14);
+        $pdf->AddPage();
+        $pdf->SetLeftMargin(12); // Ajusta el margen izquierdo a 12 mm
+        $pdf->Ln(25);
+
+        // Establecer título del documento
+        $pdf->SetTextColor(0, 0, 0);
+        $pdf->SetTitle('Recorrido del Documento');
+        $pdf->Cell(0, 10, 'Mapa Recorrido', 0, 1, 'C'); // Celda centrada con el título
+        $pdf->SetFont('helvetica', '', 10);
+
+        $pdf->Ln(10); // Espacio antes de comenzar el diagrama
+
+        // Variables para controlar la posición en el PDF
+        $yPosition = $pdf->GetY();
+        $xPosition = 20;
+        $stateNumber = 1;
+
+        // Iterar sobre los recorridos y dibujar el diagrama
+        foreach ($recorridos as $recorrido) {
+            // Dibujar el círculo
+            $pdf->SetXY($xPosition, $yPosition);
+            $pdf->Circle($xPosition, $yPosition, 5);
+
+            // Escribir el número del estado
+            $pdf->SetXY($xPosition - 2.5, $yPosition - 2.5);
+            $pdf->Cell(5, 5, $stateNumber, 0, 1, 'C');
+
+            // Escribir la descripción en negrita
+            $pdf->SetXY($xPosition + 10, $yPosition - 3);
+            $pdf->SetFont('helvetica', 'B', 10);
+            $pdf->Write(0, $recorrido->descripcion, '', 0, 'L', true, 0, false, false, 0);
+
+            // Escribir la fecha debajo de la descripción
+            $pdf->SetXY($xPosition + 10, $yPosition + 7); // Ajustar posición para la fecha
+            $pdf->SetFont('helvetica', '', 10);
+            $fecha = \Carbon\Carbon::parse($recorrido->fecha)->format('d/m/Y H:i');
+            $pdf->Write(0, "Fecha: $fecha", '', 0, 'L', true, 0, false, false, 0);
+
+            // Incrementar el número del estado y la posición y
+            $stateNumber++;
+            $yPosition += 20; // Ajustar el espacio vertical entre los estados
+        }
+
+        // Salida del PDF
+        $pdf->Output('maparecorrido.pdf', 'I');
+    }
+    public function documentos($id)
+    {
+        $mesaEntrada = MesaEntrada::with('documentos')->findOrFail($id);
+        return response()->json($mesaEntrada->documentos);
+    }
+}
