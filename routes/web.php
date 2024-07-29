@@ -10,6 +10,7 @@ use App\Http\Controllers\OrigenController;
 use App\Http\Controllers\ProfilesController;
 use App\Http\Controllers\TipoDocController;
 use App\Http\Controllers\UserDestinoController;
+use App\Http\Controllers\PersonaController;
 
 /*
 |--------------------------------------------------------------------------
@@ -35,7 +36,7 @@ Route::get('/home', function () {
 //acceden los autenticados
 Route::middleware('auth')->group(function () {
 
-    
+    Route::resource('/personas', PersonaController::class);
     Route::resource('/firmante', FirmanteController::class);
     Route::resource('/tipodoc', TipoDocController::class);
     Route::resource('/destino', DestinoController::class);
