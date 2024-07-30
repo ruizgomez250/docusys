@@ -11,11 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('partidos_politicos', function (Blueprint $table) {
+        Schema::create('legislador_periodo_legislativo', function (Blueprint $table) {
             $table->id();
-            $table->string('nombre')->unique();
-            $table->string('sigla')->unique()->nullable(); // Sigla del partido, si es aplicable
-            $table->string('descripcion')->nullable();
+            $table->foreignId('legislador_id')->constrained('legisladores')->onDelete('cascade');
+            $table->foreignId('periodo_legislativo_id')->constrained('periodos_legislativos')->onDelete('cascade');
             $table->timestamps();
         });
     }
@@ -25,6 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('partido_politico');
+        Schema::dropIfExists('legislador_periodo_legislativo');
     }
 };

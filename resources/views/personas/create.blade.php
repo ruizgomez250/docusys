@@ -2,6 +2,9 @@
 
 @section('content_header')
     <div class="row">
+        @error('error')
+            <small class="text-danger">{{ $error }}</small>
+        @enderror
         <div class="col-12">
             <h1 class="m-0 text-dark">Registrar Legislador</h1>
             <div class="row">
@@ -42,7 +45,7 @@
 
                                 <div class="row">
                                     <div class="col-12 col-md-5">
-                                        <label for="direccion">Dirección</label>
+                                        <label for="direccion">Circunscripción</label>
                                         <input type="text" class="form-control" id="direccion" name="direccion"
                                             value="{{ old('direccion') }}">
                                         @error('direccion')
@@ -74,10 +77,45 @@
                                         @enderror
                                     </div>
                                 </div>
-                                
+
+                                <div class="row">
+                                    <div class="col-12 col-md-4">
+                                        <label for="cargo">Cargo</label>
+                                        <input type="text" class="form-control" id="cargo" name="cargo"
+                                            value="{{ old('cargo') }}" required>
+                                        @error('cargo')
+                                            <small class="text-danger">{{ $message }}</small>
+                                        @enderror
+                                    </div>
+                                    <div class="col-12 col-md-5">
+                                        <label for="partido_id">Partido Político</label>
+                                        <select name="partido_id" id="partido_id" class="form-control" required>
+                                            <option value="">Seleccione un partido</option>
+                                            @foreach ($partidos as $partido)
+                                                <option value="{{ $partido->id }}">{{ $partido->nombre }}</option>
+                                            @endforeach
+                                        </select>
+                                        @error('partido_id')
+                                            <small class="text-danger">{{ $message }}</small>
+                                        @enderror
+                                    </div>
+                                    <div class="col-12 col-md-2">
+                                        <label for="periodos">Periodo Legislativo</label>
+                                        <select name="periodos" id="periodos" class="form-control"  required>
+                                            @foreach ($periodos as $periodo)
+                                                <option value="{{ $periodo->id }}">{{ $periodo->nombre }}</option>
+                                            @endforeach
+                                        </select>
+                                        @error('periodos')
+                                            <small class="text-danger">{{ $message }}</small>
+                                        @enderror
+                                    </div>
+                                </div>
+
                                 <div class="row mt-5">
-                                    <div class="form-group col-md-12" >
-                                        <button type="submit" style="float: right;" class="btn btn-primary">Guardar</button>
+                                    <div class="form-group col-md-12">
+                                        <button type="submit" style="float: right;"
+                                            class="btn btn-primary">Guardar</button>
                                     </div>
                                 </div>
                             </form>

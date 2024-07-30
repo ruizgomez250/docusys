@@ -10,7 +10,7 @@ class Legislador extends Model
     use HasFactory;
     protected $table = 'legisladores';
 
-    protected $fillable = ['persona_id', 'cargo_id', 'partido_id', 'periodo_legislativo_id', 'activo'];
+    protected $fillable = ['persona_id', 'cargo', 'partido_id', 'periodo_legislativo_id', 'activo'];
 
     public function persona()
     {
@@ -22,15 +22,12 @@ class Legislador extends Model
         return $this->belongsTo(PartidoPolitico::class, 'partido_id');
     }
 
-    public function periodoLegislativo()
+    public function periodos()
     {
-        return $this->belongsTo(PeriodoLegislativo::class, 'periodo_legislativo_id');
+        return $this->belongsToMany(PeriodoLegislativo::class, 'legislador_periodo_legislativo')
+                    ->withTimestamps();
     }
 
-    public function cargo()
-    {
-        return $this->belongsTo(Cargo::class, 'cargo_id');
-    }
 
     public function designaciones()
     {

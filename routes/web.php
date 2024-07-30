@@ -2,15 +2,17 @@
 
 use Illuminate\Support\Facades\Route;
 
-use App\Http\Controllers\AutocompleteController;
-use App\Http\Controllers\DestinoController;
-use App\Http\Controllers\FirmanteController;
-use App\Http\Controllers\MesaEntradaController;
 use App\Http\Controllers\OrigenController;
-use App\Http\Controllers\ProfilesController;
-use App\Http\Controllers\TipoDocController;
-use App\Http\Controllers\UserDestinoController;
+use App\Http\Controllers\DestinoController;
 use App\Http\Controllers\PersonaController;
+use App\Http\Controllers\TipoDocController;
+use App\Http\Controllers\FirmanteController;
+use App\Http\Controllers\ProfilesController;
+use App\Http\Controllers\MesaEntradaController;
+use App\Http\Controllers\UserDestinoController;
+use App\Http\Controllers\AutocompleteController;
+use App\Http\Controllers\PartidoPoliticoController;
+use App\Http\Controllers\PeriodoLegislativoController;
 
 /*
 |--------------------------------------------------------------------------
@@ -35,8 +37,9 @@ Route::get('/home', function () {
 
 //acceden los autenticados
 Route::middleware('auth')->group(function () {
-
-    Route::resource('/personas', PersonaController::class);
+    Route::resource('partidos', PartidoPoliticoController::class);
+    Route::resource('periodos', PeriodoLegislativoController::class);
+    Route::resource('personas', PersonaController::class);
     Route::resource('/firmante', FirmanteController::class);
     Route::resource('/tipodoc', TipoDocController::class);
     Route::resource('/destino', DestinoController::class);
@@ -62,7 +65,6 @@ Route::middleware('auth')->group(function () {
     Route::put('roles/{role}/give-permissions', [App\Http\Controllers\RolesController::class, 'givePermissionToRole'])->name('roles.updatepermissionrole');
     Route::resource('permissions', App\Http\Controllers\PermissionController::class);
     Route::get('/mesaentrada/documentos/{id}', [MesaEntradaController::class, 'documentos'])->name('mesaentrada.documentos');
-
 });
 
 Route::get('/sinpermiso', function () {
