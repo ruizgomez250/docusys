@@ -13,7 +13,7 @@
                     <div class="card">
 
                         <div class="card-header">
-                            <a href="{{ route('personas.create') }}" class="btn btn-primary float-left">Add Personas</a>
+                            <a href="{{ route('legislador.create') }}" class="btn btn-primary float-left">Add Legislador</a>
                         </div>
 
                         <div class="card-body">
@@ -26,7 +26,7 @@
                                     <th>Acciones</th>
                                 </thead>
                                 <tbody>
-                                    @foreach ($personas as $item)
+                                    @foreach ($legislador as $item)
                                         <tr>
                                             <td>{{ $item->id }}</td>
                                             <td>{{ $item->ci }}</td>
@@ -34,11 +34,11 @@
                                             <td>{{ $item->apellido }}</td>
                                             <td>
                                                 
-                                                <a href="{{ route('personas.edit', $item->id) }}"
+                                                <a href="{{ route('legislador.edit', $item->id) }}"
                                                     class="btn btn-sm btn-outline-secondary"><i
                                                         class="fa fa-sm fa-fw fa-pen"></i></a>
 
-                                                <form action="{{ route('personas.destroy', $item->id) }}" method="post"
+                                                <form action="{{ route('legislador.destroy', $item->id) }}" method="post"
                                                     class="d-inline delete-form">
                                                     @csrf
                                                     @method('DELETE')

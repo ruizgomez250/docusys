@@ -1,13 +1,15 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
+use App\Models\Legislador;
 
+use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\OrigenController;
 use App\Http\Controllers\DestinoController;
-use App\Http\Controllers\PersonaController;
+use App\Http\Controllers\LegisladorController;
 use App\Http\Controllers\TipoDocController;
 use App\Http\Controllers\FirmanteController;
 use App\Http\Controllers\ProfilesController;
+
 use App\Http\Controllers\MesaEntradaController;
 use App\Http\Controllers\UserDestinoController;
 use App\Http\Controllers\AutocompleteController;
@@ -39,7 +41,7 @@ Route::get('/home', function () {
 Route::middleware('auth')->group(function () {
     Route::resource('partidos', PartidoPoliticoController::class);
     Route::resource('periodos', PeriodoLegislativoController::class);
-    Route::resource('personas', PersonaController::class);
+    Route::resource('legislador', LegisladorController::class);
     Route::resource('/firmante', FirmanteController::class);
     Route::resource('/tipodoc', TipoDocController::class);
     Route::resource('/destino', DestinoController::class);
