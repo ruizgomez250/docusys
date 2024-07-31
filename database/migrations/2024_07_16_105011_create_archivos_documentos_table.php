@@ -11,8 +11,8 @@ return new class extends Migration
         Schema::create('archivos_documentos', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('id_mentrada');
-            $table->string('nombre_archivo');
-            $table->string('ruta_archivo');
+            $table->string('nombre_archivo')->nullable();
+            $table->string('ruta_archivo')->nullable();
             $table->timestamps();
 
             // Clave foránea

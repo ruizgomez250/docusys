@@ -11,6 +11,10 @@ class ArchivosDocumento extends Model
 
     protected $table = 'archivos_documentos';
     protected $fillable = [
-        'id_mentrada', 'nombre_archivo', 'ruta_archivo',
+        'id_mentrada', 'nombre_archivo', 'ruta_archivo','link','observacion','id_usuario', 
     ];
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'id_usuario');
+    }
 }

@@ -44,6 +44,9 @@ class User extends Authenticatable
         'password' => 'hashed',
     ];
     // Dentro del modelo Usuario (o User)
-   
+    public function archivosDocumentos()
+    {
+        return $this->hasMany(ArchivosDocumento::class, 'id_usuario');
+    }
 
 }

@@ -80,7 +80,7 @@
                                         Recepcionado
                                     @elseif ($row->estado == '3')
                                         Aceptado
-                                    @else 
+                                    @else
                                         Redireccionado
                                     @endif
                                 </td>
@@ -102,15 +102,16 @@
                                         <x-adminlte-button theme="outline-danger" data-toggle="modal"
                                             data-target="#modalDestinos" class="btn-sm " icon="fas fa-paper-plane"
                                             onclick="cargarmentrada({{ $row->id }})" />
+                                        <x-adminlte-button theme="outline-danger" data-toggle="modal"
+                                            data-target="#modalCargaDocs" onclick="cargarmentrada({{ $row->id }})"
+                                            class="btn-sm " icon="fas fa-file-upload" />
                                         <form action="{{ route('mesaentrada.finalizar', $row->id) }}" method="post"
                                             class="d-inline enviar-form">
                                             @csrf
-                                            <button type="button" class="btn btn-sm  btn-outline-secondary enviar-button">
-                                                <i class="fas fa-flag-checkered"></i>
-                                            </button>
+
                                         </form>
                                     @endif
-                                    
+
                                     <a href="{{ route('reporte.recorrido', $row) }}" target="_blank"
                                         class="btn btn-sm btn-outline-secondary">
                                         <i class="fa fa-file-pdf"></i>
@@ -149,6 +150,49 @@
                         <input type="hidden" name="idmentrada" id="idmentrada" required>
                         <div class="modal-footer">
                             <button type="submit" class="btn btn-primary">Enviar</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-default" type="button" data-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- fin Modal-->
+    <!--Modal-->
+    <div class="modal fade" id="modalCargaDocs">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">Adjuntar Archivos</h4>
+                </div>
+                <div class="modal-body d-flex justify-content-center align-items-center">
+                    <form action="{{ route('mesaentrada.storedocs') }}" method="post" enctype="multipart/form-data"
+                        autocomplete="off">
+                        @csrf
+                        <input type="hidden" name="idmentrada1" id="idmentrada1">
+                        <div class="row">
+                            <div class="col-md-5 form-group">
+                                <label for="documento">Documento (PDF o DOC)</label>
+                                <input type="file" name="documento" id="documento" class="form-control">
+                            </div>
+                            <div class="col-md-5 form-group">
+                                <label for="archivo">Archivo (ZIP o RAR)</label>
+                                <input type="file" name="archivo" id="archivo" class="form-control">
+                            </div>
+                            <div class="col-md-12 form-group">
+                                <label for="link">Link</label>
+                                <input type="text" name="link" id="link" class="form-control">
+                            </div>
+                            <div class="col-md-12 form-group">
+                                <label for="observacion">Observación</label>
+                                <textarea name="observacion" id="observacion" rows="4" class="form-control"></textarea>
+                            </div>
+                            <div class="col-md-12 form-group">
+                                <x-adminlte-button class="btn-group" style="float: right;" type="submit"
+                                    label="Registrar" theme="primary" icon="fas fa-lg fa-save" />
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -202,6 +246,7 @@
 
         function cargarmentrada(id) {
             document.getElementById('idmentrada').value = id;
+            document.getElementById('idmentrada1').value = id;
         }
 
         function openDocumentosModal(id) {
@@ -212,25 +257,43 @@
                     $('#documentosList').empty();
                     if (data.length > 0) {
                         data.forEach(function(doc) {
-                            var extension = doc.nombre_archivo.split('.').pop().toLowerCase();
-                            var folder = (extension === 'pdf' || extension === 'docx' || extension ===
-                                'doc') ? 'documentos' : 'archivos';
-                            var url = '{{ asset('') }}' + folder + '/' + doc.nombre_archivo;
+                            if (doc.link) {
+                                var linkHtml = '<a href="' + doc.link +
+                                    '" target="_blank"><i class="fa fa-3x fa-link"></i></a>';
 
-                            var iconClass = '';
-                            if (extension === 'pdf') {
-                                iconClass = 'fa-file-pdf';
-                            } else if (extension === 'docx' || extension === 'doc') {
-                                iconClass = 'fa-file-word';
-                            } else {
-                                iconClass =
-                                    'fa-file-archive'; // Puedes ajustar este icono según el tipo de archivo
+                                var observacionHtml = doc.observacion ? '<span class="observacion">' +
+                                    doc.observacion + '</span>' : '';
+
+                                $('#documentosList').append('<li>' + linkHtml + ' ' + observacionHtml +
+                                    '</li>');
                             }
+                            if (doc.nombre_archivo) { // Verificación añadida
+                                var extension = doc.nombre_archivo.split('.').pop().toLowerCase();
+                                var folder = (extension === 'pdf' || extension === 'docx' ||
+                                    extension === 'doc') ? 'documentos' : 'archivos';
+                                var url = 'http://localhost/docusys/public/' + folder + '/' + doc
+                                    .nombre_archivo;
 
-                            var iconHtml = '<i class="fa fa-3x ' + iconClass +
-                                '"></i>'; // Tamaño grande del icono (fa-3x)
-                            var linkHtml = '<a href="' + url + '" target="_blank">' + iconHtml + '</a>';
-                            $('#documentosList').append('<li>' + linkHtml + '</li>');
+                                var iconClass = '';
+                                if (extension === 'pdf') {
+                                    iconClass = 'fa-file-pdf';
+                                } else if (extension === 'docx' || extension === 'doc') {
+                                    iconClass = 'fa-file-word';
+                                } else {
+                                    iconClass =
+                                        'fa-file-archive'; // Puedes ajustar este icono según el tipo de archivo
+                                }
+
+                                var iconHtml = '<i class="fa fa-3x ' + iconClass +
+                                    '"></i>'; // Tamaño grande del icono (fa-3x)
+                                var linkHtml = '<a href="' + url + '" target="_blank">' + iconHtml +
+                                    '</a>';
+                                var observacionHtml = doc.observacion ? '<span class="observacion">' +
+                                    doc.observacion + '</span>' : '';
+
+                                $('#documentosList').append('<li>' + linkHtml + ' ' + observacionHtml +
+                                    '</li>');
+                            }
                         });
                     } else {
                         $('#documentosList').append('<li>No hay documentos disponibles.</li>');
