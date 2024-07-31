@@ -18,6 +18,8 @@ use Exception;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
 
+use function PHPUnit\Framework\isNull;
+
 class MesaEntradaController extends Controller
 {
     public function __construct()
@@ -132,8 +134,6 @@ class MesaEntradaController extends Controller
                     'telefono' => 'required|array',
                     'email.*' => 'nullable|email',
                 ]);
-                //dd('s');
-                //dd($request->input());
                 $anho = date('Y');
 
                 // Obtener el mayor número de 'nro_mentrada' para el año especificado
@@ -186,30 +186,31 @@ class MesaEntradaController extends Controller
                         'id_mentrada' => $mesaEntrada->id,
                         'nombre_archivo' => $nombreNuevo,
                         'ruta_archivo' => 'documentos/' . $nombreNuevo,
+                        'id_usuario' => $userId,
                     ]);
                 }
 
 
-                if ($request->hasFile('archivo')) {
-                    $archivo = $request->file('archivo');
+                // if ($request->hasFile('archivo')) {
+                //     $archivo = $request->file('archivo');
 
-                    // Crear nuevo nombre de archivo
-                    $descripcion = substr($request->input('descripcion'), 0, 15);
-                    $descripcionSinEspacios = str_replace(' ', '_', $descripcion);
-                    $fechaHora = date('Ymd_His');
-                    $extension = $archivo->getClientOriginalExtension();
-                    $nombreNuevoArchivo = $descripcionSinEspacios . '_' . $fechaHora . '.' . $extension;
+                //     // Crear nuevo nombre de archivo
+                //     $descripcion = substr($request->input('descripcion'), 0, 15);
+                //     $descripcionSinEspacios = str_replace(' ', '_', $descripcion);
+                //     $fechaHora = date('Ymd_His');
+                //     $extension = $archivo->getClientOriginalExtension();
+                //     $nombreNuevoArchivo = $descripcionSinEspacios . '_' . $fechaHora . '.' . $extension;
 
-                    // Mover archivo a la carpeta 'archivos'
-                    $rutaArchivo = $archivo->move(public_path('archivos'), $nombreNuevoArchivo);
+                //     // Mover archivo a la carpeta 'archivos'
+                //     $rutaArchivo = $archivo->move(public_path('archivos'), $nombreNuevoArchivo);
 
-                    // Crear registro en la base de datos
-                    ArchivosDocumento::create([
-                        'id_mentrada' => $mesaEntrada->id,
-                        'nombre_archivo' => $nombreNuevoArchivo,
-                        'ruta_archivo' => 'archivos/' . $nombreNuevoArchivo,
-                    ]);
-                }
+                //     // Crear registro en la base de datos
+                //     ArchivosDocumento::create([
+                //         'id_mentrada' => $mesaEntrada->id,
+                //         'nombre_archivo' => $nombreNuevoArchivo,
+                //         'ruta_archivo' => 'archivos/' . $nombreNuevoArchivo,
+                //     ]);
+                // }
                 $mapaRecorrido = new MapaRecorrido();
                 $mapaRecorrido->id_mentrada = $mesaEntrada->id;
                 $mapaRecorrido->fecha_recepcion = $fechaAct;
@@ -279,7 +280,77 @@ class MesaEntradaController extends Controller
             return redirect()->route('mesaentrada.create')->with('error', 'Hubo un problema con la operación. Por favor, inténtelo de nuevo.');
         }
     }
+    public function storedocs(Request $request)
+    {
+        try {
+            DB::transaction(function () use ($request) {
+                // Validar los datos del formulario
+                $request->validate([
+                    'documento' => 'nullable|mimes:pdf,doc,docx|max:2048',
+                    'archivo' => 'nullable|mimes:zip,rar|max:2048',
+                    'link' => 'nullable|url',
+                    'observacion' => 'nullable|string|max:255',
+                    'descripcion' => 'nullable|string|max:255',
+                    'idmentrada1' => 'required|integer',
+                ]);
+                $userId = auth()->id();
+                // Obtener el ID de entrada
+                $idEntrada = $request->input('idmentrada1');
 
+                // Procesar el documento
+                $documentoPath = null;
+                $nombreDocumento = null;
+                if ($request->hasFile('documento')) {
+                    $file = $request->file('documento');
+                    $documentoPath = $this->handleFileUpload($file, 'documentos', $request->input('descripcion'));
+                    $nombreDocumento = basename($documentoPath);
+                }
+
+                // Procesar el archivo
+                $archivoPath = null;
+                $nombreArchivo = null;
+                if ($request->hasFile('archivo')) {
+                    $file = $request->file('archivo');
+                    $archivoPath = $this->handleFileUpload($file, 'archivos', $request->input('descripcion'));
+                    $nombreArchivo = basename($archivoPath);
+                }
+
+                // Asegurarse de que siempre haya un nombre de archivo
+                $nombreArchivoFinal = $nombreDocumento ?? $nombreArchivo;
+                // Crear el registro en la base de datos
+                $data = [
+                    'id_mentrada' => $idEntrada,
+                    'nombre_archivo' => $nombreArchivoFinal,
+                    'ruta_archivo' => $documentoPath ?? $archivoPath,
+                    'link' => $request->input('link'),
+                    'observacion' => $request->input('observacion'),
+                    'id_usuario' => $userId,
+                ];
+                // Imprimir los datos para depuración
+                ArchivosDocumento::create($data);
+                DB::commit();
+            });
+
+            return redirect()->route('recepciondoc')->with('success', 'Operación exitosa');
+        } catch (Exception $e) {
+            return redirect()->route('recepciondoc')->with('error', 'Hubo un problema con la operación. Por favor, inténtelo de nuevo.');
+        }
+    }
+
+    private function handleFileUpload($file, $folder, $description)
+    {
+        // Crear nuevo nombre de archivo
+        $descripcion = substr($description, 0, 15);
+        $descripcionSinEspacios = str_replace(' ', '_', $descripcion);
+        $fechaHora = date('Ymd_His');
+        $extension = $file->getClientOriginalExtension();
+        $nombreNuevo = $descripcionSinEspacios . '_' . $fechaHora . '.' . $extension;
+
+        // Mover archivo a la carpeta especificada
+        $rutaArchivo = $file->move(public_path($folder), $nombreNuevo);
+
+        return $folder . '/' . $nombreNuevo;
+    }
     /**
      * Show the form for editing the specified resource.
      */
@@ -674,57 +745,110 @@ class MesaEntradaController extends Controller
         }
     }
     function recorrido(MesaEntrada $row)
-    {
-        $recorridos = RecorridoDoc::where('id_mentrada', $row->id)->get();
-        $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
-        $pdf->SetPrintHeader(false); // Deshabilita la impresión del encabezado
-        $pdf->SetFont('helvetica', 'B', 14);
-        $pdf->AddPage();
-        $pdf->SetLeftMargin(12); // Ajusta el margen izquierdo a 12 mm
-        $pdf->Ln(25);
+{
+    $recorridos = RecorridoDoc::where('id_mentrada', $row->id)->get();
+    $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
+    $pdf->SetPrintHeader(false); // Deshabilita la impresión del encabezado
+    $pdf->SetFont('helvetica', 'B', 14);
+    $pdf->AddPage();
+    $pdf->SetLeftMargin(12); // Ajusta el margen izquierdo a 12 mm
+    $pdf->Ln(25);
 
-        // Establecer título del documento
-        $pdf->SetTextColor(0, 0, 0);
-        $pdf->SetTitle('Recorrido del Documento');
-        $pdf->Cell(0, 10, 'Mapa Recorrido', 0, 1, 'C'); // Celda centrada con el título
+    // Establecer título del documento
+    $pdf->SetTextColor(0, 0, 0);
+    $pdf->SetTitle('Recorrido del Documento');
+    $pdf->Cell(0, 10, 'Mapa Recorrido', 0, 1, 'C'); // Celda centrada con el título
+    $pdf->SetFont('helvetica', '', 10);
+
+    $pdf->Ln(10); // Espacio antes de comenzar el diagrama
+
+    // Variables para controlar la posición en el PDF
+    $yPosition = $pdf->GetY();
+    $xPosition = 20;
+    $stateNumber = 1;
+
+    // Iterar sobre los recorridos y dibujar el diagrama
+    foreach ($recorridos as $recorrido) {
+        // Dibujar el círculo
+        $pdf->SetXY($xPosition, $yPosition);
+        $pdf->Circle($xPosition, $yPosition, 5);
+
+        // Escribir el número del estado
+        $pdf->SetXY($xPosition - 2.5, $yPosition - 2.5);
+        $pdf->Cell(5, 5, $stateNumber, 0, 1, 'C');
+
+        // Escribir la descripción en negrita
+        $pdf->SetXY($xPosition + 10, $yPosition - 3);
+        $pdf->SetFont('helvetica', 'B', 10);
+        $pdf->Write(0, $recorrido->descripcion, '', 0, 'L', true, 0, false, false, 0);
+
+        // Escribir la fecha debajo de la descripción
+        $pdf->SetXY($xPosition + 10, $yPosition + 7); // Ajustar posición para la fecha
         $pdf->SetFont('helvetica', '', 10);
+        $fecha = \Carbon\Carbon::parse($recorrido->fecha)->format('d/m/Y H:i');
+        $pdf->Write(0, "Fecha: $fecha", '', 0, 'L', true, 0, false, false, 0);
 
-        $pdf->Ln(10); // Espacio antes de comenzar el diagrama
+        // Incrementar el número del estado y la posición y
+        $stateNumber++;
+        $yPosition += 30; // Ajustar el espacio vertical entre los estados
+    }
 
-        // Variables para controlar la posición en el PDF
-        $yPosition = $pdf->GetY();
-        $xPosition = 20;
-        $stateNumber = 1;
+    // Agregar información sobre los documentos
+    $documentos = ArchivosDocumento::where('id_mentrada', $row->id)->get();
+    if ($documentos->isNotEmpty()) {
+        // Salto de línea antes de la sección de documentos
+        $pdf->Ln(10);
 
-        // Iterar sobre los recorridos y dibujar el diagrama
-        foreach ($recorridos as $recorrido) {
-            // Dibujar el círculo
-            $pdf->SetXY($xPosition, $yPosition);
-            $pdf->Circle($xPosition, $yPosition, 5);
+        // Ajustar la posición para la sección de documentos
+        $pdf->SetXY(12, $pdf->GetY()); // Volver a ajustar la posición X
+        $pdf->SetFont('helvetica', 'B', 10);
+        $pdf->Cell(0, 10, 'Documentos Asociados', 0, 1, 'L');
 
-            // Escribir el número del estado
-            $pdf->SetXY($xPosition - 2.5, $yPosition - 2.5);
-            $pdf->Cell(5, 5, $stateNumber, 0, 1, 'C');
+        // Preparar los detalles de documentos
+        $pdf->SetFont('helvetica', '', 10);
+        $pdf->Ln(5); // Espacio antes de la lista de documentos
+        $pdf->SetX(22); // Ajustar la posición X para la lista de documentos
+        $pdf->Write(0, '• Se agregaron:');
 
-            // Escribir la descripción en negrita
-            $pdf->SetXY($xPosition + 10, $yPosition - 3);
-            $pdf->SetFont('helvetica', 'B', 10);
-            $pdf->Write(0, $recorrido->descripcion, '', 0, 'L', true, 0, false, false, 0);
+        // Inicializar contadores para cada tipo de documento
+        $pdfCount = 0;
+        $docCount = 0;
+        $zipCount = 0;
 
-            // Escribir la fecha debajo de la descripción
-            $pdf->SetXY($xPosition + 10, $yPosition + 7); // Ajustar posición para la fecha
-            $pdf->SetFont('helvetica', '', 10);
-            $fecha = \Carbon\Carbon::parse($recorrido->fecha)->format('d/m/Y H:i');
-            $pdf->Write(0, "Fecha: $fecha", '', 0, 'L', true, 0, false, false, 0);
-
-            // Incrementar el número del estado y la posición y
-            $stateNumber++;
-            $yPosition += 20; // Ajustar el espacio vertical entre los estados
+        foreach ($documentos as $documento) {
+            // Obtener la extensión del archivo
+            $extension = pathinfo($documento->nombre_archivo, PATHINFO_EXTENSION);
+            switch (strtolower($extension)) {
+                case 'pdf':
+                    $pdfCount++;
+                    break;
+                case 'doc':
+                case 'docx':
+                    $docCount++;
+                    break;
+                case 'zip':
+                    $zipCount++;
+                    break;
+            }
         }
 
-        // Salida del PDF
-        $pdf->Output('maparecorrido.pdf', 'I');
+        // Escribir los tipos de documentos
+        $pdf->Ln(5); // Espacio entre líneas
+        $pdf->SetX(32); // Ajustar la posición X para la lista
+        $pdf->Write(0, "$pdfCount PDF(s)");
+        $pdf->Ln(5);
+        $pdf->SetX(32); // Ajustar la posición X para la lista
+        $pdf->Write(0, "$docCount Docx(s)");
+        $pdf->Ln(5);
+        $pdf->SetX(32); // Ajustar la posición X para la lista
+        $pdf->Write(0, "$zipCount ZIP(s)");
     }
+
+    // Salida del PDF
+    $pdf->Output('maparecorrido.pdf', 'I');
+}
+
+
     public function documentos($id)
     {
         $mesaEntrada = MesaEntrada::with('documentos')->findOrFail($id);

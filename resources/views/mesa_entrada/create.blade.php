@@ -52,10 +52,10 @@
                                 <label for="documento">Documento (PDF o DOC)</label>
                                 <input type="file" name="documento" id="documento" accept=".pdf, .doc, .docx" required>
                             </div>
-                            <div class="col-md-5 form-group">
+                            {{-- <div class="col-md-5 form-group">
                                 <label for="archivo">Archivo (ZIP o RAR)</label>
                                 <input type="file" name="archivo" id="archivo" accept=".zip, .rar" required>
-                            </div>
+                            </div> --}}
                         </div>
 
                         <div class="row">

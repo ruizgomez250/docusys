@@ -61,6 +61,7 @@ Route::middleware('auth')->group(function () {
     Route::put('roles/{role}/give-permissions', [App\Http\Controllers\RolesController::class, 'givePermissionToRole'])->name('roles.updatepermissionrole');
     Route::resource('permissions', App\Http\Controllers\PermissionController::class);
     Route::get('/mesaentrada/documentos/{id}', [MesaEntradaController::class, 'documentos'])->name('mesaentrada.documentos');
+    Route::post('/mesaentrada/storedocs', [MesaEntradaController::class, 'storeDocs'])->name('mesaentrada.storedocs');
 
 });
 
