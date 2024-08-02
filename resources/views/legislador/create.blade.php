@@ -84,14 +84,7 @@
                                 </div>
 
                                 <div class="row">
-                                    <div class="col-12 col-md-4">
-                                        <label for="cargo">Cargo</label>
-                                        <input type="text" class="form-control" id="cargo" name="cargo"
-                                            value="{{ old('cargo') }}" >
-                                        @error('cargo')
-                                            <small class="text-danger">{{ $message }}</small>
-                                        @enderror
-                                    </div>
+
                                     <div class="col-12 col-md-5">
                                         <label for="partido_id">Partido Político</label>
                                         <select name="partido_id" id="partido_id" class="form-control" required>

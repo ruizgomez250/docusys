@@ -19,8 +19,10 @@ class LegisladorController extends Controller
 
     public function create()
     {
-        $partidos = PartidoPolitico::all();
-        $periodos = PeriodoLegislativo::all();
+        // Ordenar en orden descendente por nombre
+        $partidos = PartidoPolitico::orderBy('nombre', 'asc')->get();
+        $periodos = PeriodoLegislativo::orderBy('nombre', 'desc')->get();
+
 
         return view('legislador.create', compact('partidos', 'periodos'));
     }
@@ -36,7 +38,7 @@ class LegisladorController extends Controller
             'telefono' => 'nullable',
             'email' => 'nullable|email|unique:legisladores,email',
             'fecha_nac' => 'nullable|date',
-            
+
             'partido_id' => 'required|exists:partidos_politicos,id',
             'periodos' => 'required|array',
             'periodos.*' => 'exists:periodos_legislativos,id',
@@ -99,10 +101,10 @@ class LegisladorController extends Controller
             'periodos' => 'nullable|array',
             'periodos.*' => 'exists:periodos_legislativos,id',
         ]);
-    
+
         // Actualizar los datos del legislador
         $legislador->update($request->except('periodos'));
-   // dd($request->input('periodos', []));
+        // dd($request->input('periodos', []));
         // Sincronizar los periodos legislativos, si se proporcionan
         if ($request->has('periodos')) {
             $legislador->periodos()->sync($request->input('periodos', []));
@@ -110,7 +112,7 @@ class LegisladorController extends Controller
             // Si no se proporcionan periodos, desvincular todos los periodos
             $legislador->periodos()->sync([]);
         }
-    
+
         return redirect()->route('legislador.index')->with('success', 'Legislador actualizado exitosamente.');
     }
 
