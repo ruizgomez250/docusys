@@ -18,4 +18,6 @@ class PeriodoLegislativo extends Model
     {
         return $this->belongsToMany(Legislador::class, 'legislador_periodo_legislativo');
     }
+
+
 }

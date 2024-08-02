@@ -446,15 +446,33 @@ return [
             'content' => '<i class="fas fa-box"></i>',
             'can'  => 'Gestion Usuarios',
         ],
+       
+
         [
-            'text' => 'change_password',
-            'url'  => 'profile/edit',
-            'icon' => 'fas fa-fw fa-lock',
+            'text'       => 'MANTENIMIENTO',
+            'icon'       => 'fas fa-wrench',  //<i class="fas fa-wrench"></i>
             'classes' => 'custom-icon-box-black',
-            'content' => '<i class="fas fa-box"></i>',
+            'content' => '<i class="fas fa-map-marker-alt"></i>',  // Cambiado a un icono más adecuado
+            'can'  => 'Destinos',
+            'submenu'        => [
+                [
+                    'text' => 'Períodos',
+                    'url'  => '/periodos',
+                ],
+                [
+                    'text' => 'Partidos Politicos',
+                    'url'  => '/partidos',
+                ],
+                [
+                    'text' => 'Cargos',
+                    'url'  => '/cargos',
+                ],
+                [
+                    'text' => 'Legisladores',
+                    'url'  => '/legislador',
+                ],
+            ],
         ],
-
-
 
 
     ],

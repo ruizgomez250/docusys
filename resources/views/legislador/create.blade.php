@@ -87,7 +87,7 @@
                                     <div class="col-12 col-md-4">
                                         <label for="cargo">Cargo</label>
                                         <input type="text" class="form-control" id="cargo" name="cargo"
-                                            value="{{ old('cargo') }}" required>
+                                            value="{{ old('cargo') }}" >
                                         @error('cargo')
                                             <small class="text-danger">{{ $message }}</small>
                                         @enderror

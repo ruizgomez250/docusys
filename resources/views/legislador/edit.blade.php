@@ -11,7 +11,7 @@
                             <a href="{{ route('legislador.index') }}" class="btn btn-secondary float-right">Regresar</a>
                         </div>
                         <div class="card-body">
-                            <form action="{{ route('legislador.update', $legislador) }}" method="POST">
+                            <form action="{{ route('legislador.update', $legislador) }}" method="POST" id="legisladorForm">
                                 @csrf
                                 @method('PUT')
                                 <div class="row">
@@ -78,45 +78,37 @@
 
                                 <div class="row mt-4">
                                     <div class="col-12 col-md-5">
-                                        <label for="periodos_disponibles">Periodos Disponibles</label>
+                                        <label for="periodos_disponibles">Periodos Legislativos Disponibles:</label>
                                         <select multiple class="form-control" id="periodos_disponibles">
                                             @foreach ($periodo as $periodo)
-                                                <option value="{{ $periodo->id }}">{{ $periodo->nombre }}</option>
+                                                @if (!$legislador->periodos->contains($periodo))
+                                                    <option value="{{ $periodo->id }}">{{ $periodo->nombre }}</option>
+                                                @endif
                                             @endforeach
                                         </select>
                                     </div>
 
                                     <div class="col-12 col-md-2 d-flex align-items-center justify-content-center">
                                         <div>
-                                            <button type="button" class="btn btn-primary" id="addPeriodo">Agregar
-                                                &gt;&gt;</button>
+                                            <button type="button" class="btn btn-primary" id="addPeriodo">Agregar &gt;&gt;</button>
                                             <br><br>
-                                            <button type="button" class="btn btn-secondary" id="removePeriodo">&lt;&lt;
-                                                Quitar</button>
+                                            <button type="button" class="btn btn-secondary" id="removePeriodo">&lt;&lt; Quitar</button>
                                         </div>
                                     </div>
-                                 
+
                                     <div class="col-12 col-md-5">
-                                        <label for="periodos">Periodos Legislativos</label>
+                                        <label for="periodos">Periodos Legislativos:</label>
                                         <select multiple class="form-control" id="periodos" name="periodos[]">
-                                            @foreach($periodotwo as $item)
-                                                <option value="{{ $item->id }}"
-                                                    {{ $legislador->periodos->contains($item->id) ? 'selected' : '' }}>
-                                                    {{ $item->nombre }}
-                                                </option>
+                                            @foreach ($legislador->periodos as $periodo)
+                                                <option value="{{ $periodo->id }}" selected>{{ $periodo->nombre }}</option>
                                             @endforeach
                                         </select>
-                                        @error('periodos')
-                                            <small class="text-danger">{{ $message }}</small>
-                                        @enderror
                                     </div>
-                                    
                                 </div>
 
                                 <div class="row mt-5">
                                     <div class="form-group col-md-12">
-                                        <button type="submit" style="float: right;"
-                                            class="btn btn-primary">Actualizar</button>
+                                        <button type="submit" style="float: right;" class="btn btn-primary">Actualizar</button>
                                     </div>
                                 </div>
                             </form>
@@ -130,21 +122,40 @@
 
 @section('js')
     <script>
-        document.getElementById('addPeriodo').addEventListener('click', function() {
-            let selected = document.getElementById('periodos_disponibles').selectedOptions;
-            let periodosSelect = document.getElementById('periodos');
-            for (let i = 0; i < selected.length; i++) {
-                let option = selected[i];
-                let newOption = new Option(option.text, option.value, true, true);
-                periodosSelect.add(newOption);
-                option.remove();
-            }
-        });
+        document.addEventListener('DOMContentLoaded', function() {
+            const addButton = document.getElementById('addPeriodo');
+            const removeButton = document.getElementById('removePeriodo');
+            const periodosSelect = document.getElementById('periodos');
+            const periodosDisponiblesSelect = document.getElementById('periodos_disponibles');
 
-        document.getElementById('removePeriodo').addEventListener('click', function() {
-            const select = document.getElementById('periodos');
-            const selectedOptions = Array.from(select.selectedOptions);
-            selectedOptions.forEach(option => option.remove());
+            addButton.addEventListener('click', function() {
+                const selected = periodosDisponiblesSelect.selectedOptions;
+                for (let i = 0; i < selected.length; i++) {
+                    const option = selected[i];
+                    let newOption = new Option(option.text, option.value, true, true);
+                    periodosSelect.appendChild(newOption);
+                    option.remove();
+                }
+            });
+
+            removeButton.addEventListener('click', function() {
+                const selectedOptions = Array.from(periodosSelect.selectedOptions);
+                selectedOptions.forEach(option => {
+                    let newOption = new Option(option.text, option.value);
+                    periodosDisponiblesSelect.appendChild(newOption);                    
+                    option.remove();
+                });
+                Array.from(periodosSelect.options).forEach(option => {
+                    option.selected = true;
+                });
+            });
+
+            document.getElementById('legisladorForm').addEventListener('submit', function() {
+                // Ensure all options in periodos[] are selected
+                Array.from(periodosSelect.options).forEach(option => {
+                    option.selected = true;
+                });
+            });
         });
     </script>
 @stop

@@ -13,8 +13,9 @@
                     <div class="card">
 
                         <div class="card-header">
-                            <a href="{{ route('legislador.create') }}" class="btn btn-primary float-left">Add Legislador</a>
+                            <a href="{{ route('legislador.create') }}" class="btn btn-primary float-right">Add Legislador</a>
                         </div>
+                        
 
                         <div class="card-body">
                             <table class="table">
@@ -23,6 +24,8 @@
                                     <th>CI</th>
                                     <th>Nombre</th>
                                     <th>Apellido</th>
+                                    <th>Período</th>
+                                    <th>Partido</th>
                                     <th>Acciones</th>
                                 </thead>
                                 <tbody>
@@ -32,6 +35,14 @@
                                             <td>{{ $item->ci }}</td>
                                             <td>{{ $item->nombre }}</td>
                                             <td>{{ $item->apellido }}</td>
+                                            <td>
+                                                @foreach ($item->periodos as $periodo)
+                                                    {{ $periodo->nombre }}@if (!$loop->last)| @endif
+                                                @endforeach
+                                            </td>
+                                            <td>
+                                               {{ $item->partido->nombre }} 
+                                            </td>
                                             <td>
                                                 
                                                 <a href="{{ route('legislador.edit', $item->id) }}"

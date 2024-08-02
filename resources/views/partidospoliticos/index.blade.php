@@ -13,7 +13,7 @@
                     <div class="card">
 
                         <div class="card-header">
-                            <a href="{{ route('partidos.create') }}" class="btn btn-primary float-left">Add Partidos</a>
+                            <a href="{{ route('partidos.create') }}" class="btn btn-primary  float-right">Add Partidos</a>
                         </div>
 
                         <div class="card-body">

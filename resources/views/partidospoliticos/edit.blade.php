@@ -34,7 +34,7 @@
                                     <div class="col-12 col-md-6">
                                         <label for="descripcion">Descripción</label>
                                         <input type="text" class="form-control" id="descripcion" name="descripcion"
-                                            value="{{ old('descripcion', $partido->descripcion) }}" required>
+                                            value="{{ old('descripcion', $partido->descripcion) }}" >
                                         @error('descripcion')
                                             <small class="text-danger">{{ $message }}</small>
                                         @enderror
