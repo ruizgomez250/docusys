@@ -15,6 +15,7 @@ use App\Http\Controllers\LegisladorController;
 use App\Http\Controllers\MesaEntradaController;
 use App\Http\Controllers\UserDestinoController;
 use App\Http\Controllers\AutocompleteController;
+use App\Http\Controllers\DesignacionController;
 use App\Http\Controllers\PartidoPoliticoController;
 use App\Http\Controllers\PeriodoLegislativoController;
 
@@ -41,6 +42,9 @@ Route::get('/home', function () {
 
 //acceden los autenticados
 Route::middleware('auth')->group(function () {
+    Route::resource('designaciones', DesignacionController::class);
+    // Mostrar las designaciones de un legislador específico
+    Route::get('designaciones/legislador/{legisladorId}', [DesignacionController::class, 'index'])->name('designacion.index');
     Route::resource('entidades', EntidadController::class);
     Route::resource('cargos', CargoController::class);
     Route::resource('partidos', PartidoPoliticoController::class);

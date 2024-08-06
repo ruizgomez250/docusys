@@ -40,11 +40,8 @@
                                                     {{ $periodo->nombre }}@if (!$loop->last)| @endif
                                                 @endforeach
                                             </td>
+                                            <td>{{ $item->partido->nombre }}</td>
                                             <td>
-                                               {{ $item->partido->nombre }} 
-                                            </td>
-                                            <td>
-                                                
                                                 <a href="{{ route('legislador.edit', $item->id) }}"
                                                     class="btn btn-sm btn-outline-secondary"><i
                                                         class="fa fa-sm fa-fw fa-pen"></i></a>
@@ -60,6 +57,9 @@
                                                     </button>
                                                 </form>
 
+                                                <a href="{{ route('designaciones.index', $item->id) }}"
+                                                    class="btn btn-sm btn-outline-info"><i
+                                                        class="fa fa-sm fa-fw fa-eye"></i> Ver Designaciones</a>
                                             </td>
                                         </tr>
                                     @endforeach
