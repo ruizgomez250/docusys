@@ -6,10 +6,11 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CargoController;
 use App\Http\Controllers\OrigenController;
 use App\Http\Controllers\DestinoController;
+use App\Http\Controllers\EntidadController;
 use App\Http\Controllers\TipoDocController;
 use App\Http\Controllers\FirmanteController;
-use App\Http\Controllers\ProfilesController;
 
+use App\Http\Controllers\ProfilesController;
 use App\Http\Controllers\LegisladorController;
 use App\Http\Controllers\MesaEntradaController;
 use App\Http\Controllers\UserDestinoController;
@@ -40,6 +41,7 @@ Route::get('/home', function () {
 
 //acceden los autenticados
 Route::middleware('auth')->group(function () {
+    Route::resource('entidades', EntidadController::class);
     Route::resource('cargos', CargoController::class);
     Route::resource('partidos', PartidoPoliticoController::class);
     Route::resource('periodos', PeriodoLegislativoController::class);

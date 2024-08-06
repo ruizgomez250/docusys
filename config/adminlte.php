@@ -468,6 +468,10 @@ return [
                     'url'  => '/cargos',
                 ],
                 [
+                    'text' => 'Entidades',
+                    'url'  => '/entidades',
+                ],
+                [
                     'text' => 'Legisladores',
                     'url'  => '/legislador',
                 ],

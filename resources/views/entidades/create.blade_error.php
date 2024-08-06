@@ -23,7 +23,17 @@
                                         @enderror
                                     </div>
 
-
+                                    <div class="col-12 col-md-2">
+                                        <label for="tipo">Tipo</label>
+                                        <select  class="form-control" id="tipo" name="tipo">
+                                            <option value="comision">Comisión Asesora</option>
+                                            <option value="comision">Comisión Bicameral</option>
+                                            <option value="comisionespecial">Comisión Especial</option>
+                                            <option value="consejodelamagistratura">Consejo de la Magistratura</option>
+                                            <option value="parlasur">Parlasur</option>
+                                            <option value="parlatino">Parlatino</option>
+                                        </select>                                        
+                                    </div>
 
                                     <div class="col-12 col-md-6">
                                         <label for="descripcion">Descripción</label>
