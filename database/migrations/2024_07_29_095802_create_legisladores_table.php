@@ -12,11 +12,16 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('legisladores', function (Blueprint $table) {
-            $table->id('id');
-            $table->foreignId('persona_id')->constrained('personas');
+            $table->id();
+            $table->string('ci')->unique()->nullable();
+            $table->string('nombre');
+            $table->string('apellido');
+            $table->string('circunscripcion')->nullable();
+            $table->string('telefono')->nullable();
+            $table->string('email')->unique()->nullable();
+            $table->date('fecha_nac')->nullable();
             $table->string('cargo')->default('Diputado Nacional');
             $table->foreignId('partido_id')->constrained('partidos_politicos');
-            $table->foreignId('periodo_legislativo_id')->constrained('periodos_legislativos');
             $table->boolean('activo')->default(true);
             $table->timestamps();
         });

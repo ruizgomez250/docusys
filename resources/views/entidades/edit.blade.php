@@ -8,33 +8,45 @@
                 <div class="col-md-12">
                     <div class="card">
                         <div class="card-header">
-                            <a href="{{ route('partidos.index') }}" class="btn btn-secondary float-right">Regresar</a>
+                            <a href="{{ route('entidades.index') }}" class="btn btn-secondary float-right">Regresar</a>
                         </div>
                         <div class="card-body">
-                            <form action="{{ route('partidos.update', $partido) }}" method="POST">
+                            <form action="{{ route('entidades.update', $entidad) }}" method="POST" autocomplete="off">
                                 @csrf
                                 @method('PUT')
                                 <div class="row">
                                     <div class="col-12 col-md-4">
                                         <label for="nombre">Nombre</label>
                                         <input type="text" class="form-control" id="nombre" name="nombre"
-                                            value="{{ old('nombre', $partido->nombre) }}">
+                                            value="{{ old('nombre', $entidad->nombre) }}">
                                         @error('nombre')
                                             <small class="text-danger">{{ $message }}</small>
                                         @enderror
                                     </div>
-                                    <div class="col-12 col-md-2">
-                                        <label for="sigla">Sigla</label>
-                                        <input type="text" class="form-control" id="sigla" name="sigla"
-                                            value="{{ old('sigla', $partido->sigla) }}" required>
-                                        @error('sigla')
-                                            <small class="text-danger">{{ $message }}</small>
-                                        @enderror
+
+                                    <div class="col-12 col-md-3">
+                                        <label for="tipo">Tipo</label>
+                                        <select class="form-control" id="tipo" name="tipo">
+                                            <option value="Comisión Asesora Permanente" {{ $entidad->tipo == 'Comisión Asesora Permanente' ? 'selected' : '' }}>
+                                                Comisión Asesora Permanente
+                                            </option>
+                                            <option value="Comisión Bicameral" {{ $entidad->tipo == 'Comisión Bicameral' ? 'selected' : '' }}>
+                                                Comisión Bicameral
+                                            </option>
+                                            <option value="Comisión Especial" {{ $entidad->tipo == 'Comisión Especial' ? 'selected' : '' }}>
+                                                Comisión Especial
+                                            </option>
+                                            <option value="Órgano de Cooperación | Legislativa | Judícial" {{ $entidad->tipo == 'Órgano de Cooperación | Legislativa | Judícial' ? 'selected' : '' }}>
+                                                Órgano de Cooperación | Legislativa | Judícial
+                                            </option>
+                                        </select>
                                     </div>
+                                    
+
                                     <div class="col-12 col-md-6">
                                         <label for="descripcion">Descripción</label>
                                         <input type="text" class="form-control" id="descripcion" name="descripcion"
-                                            value="{{ old('descripcion', $partido->descripcion) }}" >
+                                            value="{{ old('descripcion', $entidad->descripcion) }}" >
                                         @error('descripcion')
                                             <small class="text-danger">{{ $message }}</small>
                                         @enderror

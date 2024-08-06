@@ -10,32 +10,17 @@ class Legislador extends Model
     use HasFactory;
     protected $table = 'legisladores';
 
-    protected $fillable = ['persona_id', 'cargo', 'partido_id', 'periodo_legislativo_id', 'activo'];
-
-    public function persona()
-    {
-        return $this->belongsTo(Persona::class);
-    }
+    protected $fillable = [
+        'ci', 'nombre', 'apellido', 'circunscripcion', 'telefono', 'email', 'fecha_nac', 'cargo', 'partido_id'
+    ];
 
     public function partido()
     {
-        return $this->belongsTo(PartidoPolitico::class, 'partido_id');
+        return $this->belongsTo(PartidoPolitico::class);
     }
 
     public function periodos()
     {
-        return $this->belongsToMany(PeriodoLegislativo::class, 'legislador_periodo_legislativo')
-                    ->withTimestamps();
-    }
-
-
-    public function designaciones()
-    {
-        return $this->hasMany(Designacion::class, 'legislador_id');
-    }
-
-    public function registrosAsistencia()
-    {
-        return $this->hasMany(RegistroAsistencia::class, 'legislador_id');
+        return $this->belongsToMany(PeriodoLegislativo::class, 'legislador_periodo_legislativo');
     }
 }
