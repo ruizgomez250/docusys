@@ -430,6 +430,26 @@ return [
             ],
         ],
 
+        [
+            'text'       => 'Asistencia',
+            'icon'       => 'fas fa-calendar-check',
+            'icon_color' => 'primary',
+            'classes' => 'custom-icon-box-black',
+            'content' => '<i class="fas fa-box"></i>',
+            'can'  => 'Documentos Oficina',
+            'submenu'        => [
+                [
+                    'text' => 'Registrar Asistencia',
+                    'url'  => 'registro_asistencias/create',
+
+                ],
+                [
+                    'text' => 'Registrar Permiso',
+                    'url'  => 'permisos',
+                ],
+            ],
+        ],
+
         ['header' => 'account_settings'],
         [
             'text' => 'profile',

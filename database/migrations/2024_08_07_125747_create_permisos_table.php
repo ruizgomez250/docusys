@@ -11,13 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('registro_asistencias', function (Blueprint $table) {
+        Schema::create('permisos', function (Blueprint $table) {
             $table->id();
             $table->foreignId('legislador_id')->constrained('legisladores')->onDelete('cascade');
-            $table->enum('sesion_tipo', ['Sesión Ordinaria', 'Sesión Extraordinaria', 'Otro']); // Enum para el tipo de sesión
-            $table->date('fecha_sesion');
-            $table->enum('estado', ['Presente', 'Ausente', 'Justificado']);
-            $table->text('justificacion')->nullable(); // Opcional, solo si el estado es 'Justificado'
+            $table->enum('tipo_permiso', ['Particular', 'Reposo Médico', 'Otro']);
+            $table->date('fecha');
+            $table->text('observacion')->nullable();
+            $table->enum('estado', ['Vigente', 'Anulado'])->default('Vigente');
             $table->timestamps();
         });
     }
@@ -27,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('registro_asistencias');
+        Schema::dropIfExists('permisos');
     }
 };

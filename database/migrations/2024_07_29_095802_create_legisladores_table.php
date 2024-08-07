@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('ci')->unique()->nullable();
             $table->string('nombre');
             $table->string('apellido');
+            $table->string('apodo')->nullable();
             $table->string('circunscripcion')->nullable();
             $table->string('telefono')->nullable();
             $table->string('email')->unique()->nullable();

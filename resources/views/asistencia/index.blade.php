@@ -1,24 +1,5 @@
 @extends('adminlte::page')
-@section('css')
-    <style>
-        .label {
-            padding: 0.2em 0.5em;
-            font-weight: bold;
-            border-radius: 0.25em;
-            display: inline-block;
-        }
 
-        .label-success {
-            background-color: green;
-            color: white;
-        }
-
-        .label-danger {
-            background-color: red;
-            color: white;
-        }
-    </style>
-@endsection
 @section('content_header')
     <div class="row">
         <div class="col-12">
@@ -45,7 +26,6 @@
                                     <th>Apodo</th>
                                     <th>Período</th>
                                     <th>Partido</th>
-                                    <th>Estado</th>
                                     <th>Acciones</th>
                                 </thead>
                                 <tbody>
@@ -61,14 +41,6 @@
                                                 @endforeach
                                             </td>
                                             <td>{{ $item->partido->nombre }}</td>
-                                            <td>
-                                                @if ($item->activo)
-                                                    <label class="label label-success">Activo</label>
-                                                @else
-                                                    <label class="label label-danger">Inactivo</label>
-                                                @endif
-                                            </td>
-                                            
                                             <td>
                                                 <a href="{{ route('legislador.edit', $item->id) }}"
                                                     class="btn btn-sm btn-outline-secondary"><i

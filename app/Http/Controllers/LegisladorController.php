@@ -34,6 +34,7 @@ class LegisladorController extends Controller
             //    'ci' => 'unique:legisladores,ci',
             'nombre' => 'required',
             'apellido' => 'required',
+            'apodo' => 'nullable',
             'circunscripcion' => 'nullable',
             'telefono' => 'nullable',
             'email' => 'nullable|email|unique:legisladores,email',
@@ -91,11 +92,13 @@ class LegisladorController extends Controller
 
     public function update(Request $request, Legislador $legislador)
     {
+      //  dd($request);
         $request->validate([
             'nombre' => 'required|string',
             'apellido' => 'required|string',
+            'apodo' => 'nullable|string',
             'circunscripcion' => 'nullable|string',
-            'telefono' => 'nullable|string',
+            'telefono' => 'nullable|string',            
             'email' => 'nullable|email|unique:legisladores,email,' . $legislador->id,
             'fecha_nac' => 'nullable|date',
             'periodos' => 'nullable|array',

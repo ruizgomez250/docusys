@@ -7,17 +7,20 @@ use App\Http\Controllers\CargoController;
 use App\Http\Controllers\OrigenController;
 use App\Http\Controllers\DestinoController;
 use App\Http\Controllers\EntidadController;
+use App\Http\Controllers\PermisoController;
+use App\Http\Controllers\ReporteController;
+
 use App\Http\Controllers\TipoDocController;
 use App\Http\Controllers\FirmanteController;
-
 use App\Http\Controllers\ProfilesController;
 use App\Http\Controllers\LegisladorController;
+use App\Http\Controllers\DesignacionController;
 use App\Http\Controllers\MesaEntradaController;
 use App\Http\Controllers\UserDestinoController;
 use App\Http\Controllers\AutocompleteController;
-use App\Http\Controllers\DesignacionController;
 use App\Http\Controllers\PartidoPoliticoController;
 use App\Http\Controllers\PeriodoLegislativoController;
+use App\Http\Controllers\RegistroAsistenciaController;
 
 /*
 |--------------------------------------------------------------------------
@@ -42,9 +45,15 @@ Route::get('/home', function () {
 
 //acceden los autenticados
 Route::middleware('auth')->group(function () {
+    Route::get('/reporte-asistencia/{fecha_sesion}', [ReporteController::class, 'generarReporte'])->name('reporte.asistencia');
+    Route::resource('permisos', PermisoController::class);
+    Route::get('registro_asistencias/create', [RegistroAsistenciaController::class, 'create'])->name('registro_asistencias.create');
+    Route::post('registro_asistencias', [RegistroAsistenciaController::class, 'store'])->name('registro_asistencias.store');
+    Route::get('designaciones/legislador/{legisladorId}', [DesignacionController::class, 'index'])->name('designacion.inicio');
+    Route::get('designaciones/legisladorc/{legisladorId}', [DesignacionController::class, 'create'])->name('designacion.crear');
     Route::resource('designaciones', DesignacionController::class);
     // Mostrar las designaciones de un legislador específico
-    Route::get('designaciones/legislador/{legisladorId}', [DesignacionController::class, 'index'])->name('designacion.index');
+
     Route::resource('entidades', EntidadController::class);
     Route::resource('cargos', CargoController::class);
     Route::resource('partidos', PartidoPoliticoController::class);

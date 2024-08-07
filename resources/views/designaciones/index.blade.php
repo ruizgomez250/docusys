@@ -13,7 +13,7 @@
                     <div class="card">
 
                         <div class="card-header">
-                            <a href="{{ route('entidades.create') }}" class="btn btn-primary  float-right">Add Entidad</a>
+                            <a href="{{ route('designacion.crear',$legislador) }}" class="btn btn-primary  float-right">Nueva Designación</a>
                         </div>
 
                         <div class="card-body">
@@ -29,16 +29,16 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @forelse($designaciones as $designacion)
+                                    @forelse($designaciones as $designacione)
                                         <tr>
-                                            <td>{{ $designacion->id }}</td>
-                                            <td>{{ $designacion->entidad->nombre ?? 'N/A' }}</td>
-                                            <td>{{ $designacion->cargo->nombre ?? 'N/A' }}</td>
-                                            <td>{{ $designacion->fecha_inicio->format('d/m/Y') }}</td>
-                                            <td>{{ $designacion->fecha_fin ? $designacion->fecha_fin->format('d/m/Y') : 'N/A' }}</td>
+                                            <td>{{ $designacione->id }}</td>
+                                            <td>{{ $designacione->entidad->nombre ?? 'N/A' }}</td>
+                                            <td>{{ $designacione->cargo->nombre ?? 'N/A' }}</td>
+                                            <td>{{ $designacione->fecha_inicio  }}</td>
+                                            <td>{{ $designacione->fecha_fin ? $designacione->fecha_fin : 'N/A' }}</td>
                                             <td>
-                                                <a href="{{ route('designacion.edit', $designacion) }}" class="btn btn-warning btn-sm">Editar</a>
-                                                <form action="{{ route('designacion.destroy', $designacion) }}" method="POST" style="display:inline;">
+                                              
+                                                <form action="{{ route('designaciones.destroy', $designacione) }}" method="POST" style="display:inline;">
                                                     @csrf
                                                     @method('DELETE')
                                                     <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de que quieres eliminar esta designación?')">Eliminar</button>

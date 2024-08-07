@@ -23,7 +23,7 @@
                                             <small class="text-danger">{{ $message }}</small>
                                         @enderror
                                     </div>
-                                    <div class="col-12 col-md-5">
+                                    <div class="col-12 col-md-3">
                                         <label for="nombre">Nombre</label>
                                         <input type="text" class="form-control" id="nombre" name="nombre"
                                             value="{{ old('nombre', $legislador->nombre) }}" required>
@@ -31,7 +31,7 @@
                                             <small class="text-danger">{{ $message }}</small>
                                         @enderror
                                     </div>
-                                    <div class="col-12 col-md-5">
+                                    <div class="col-12 col-md-3">
                                         <label for="apellido">Apellido</label>
                                         <input type="text" class="form-control" id="apellido" name="apellido"
                                             value="{{ old('apellido', $legislador->apellido) }}" required>
@@ -39,10 +39,22 @@
                                             <small class="text-danger">{{ $message }}</small>
                                         @enderror
                                     </div>
+
+
+                                    <div class="col-12 col-md-4">
+                                        <label for="apodo">Apodo</label>
+                                        <input type="text" class="form-control" id="apodo" name="apodo"
+                                            value="{{ old('apodo', $legislador->apodo) }}" >
+                                        @error('apodo')
+                                            <small class="text-danger">{{ $message }}</small>
+                                        @enderror
+                                    </div>
+
+
                                 </div>
 
                                 <div class="row">
-                                    <div class="col-12 col-md-4">
+                                    <div class="col-12 col-md-3">
                                         <label for="circunscripcion">Circunscripcion</label>
                                         <input type="text" class="form-control" id="circunscripcion" name="circunscripcion"
                                             value="{{ old('circunscripcion', $legislador->circunscripcion) }}">
@@ -58,7 +70,7 @@
                                             <small class="text-danger">{{ $message }}</small>
                                         @enderror
                                     </div>
-                                    <div class="col-12 col-md-4">
+                                    <div class="col-12 col-md-3">
                                         <label for="email">Email</label>
                                         <input type="email" class="form-control" id="email" name="email"
                                             value="{{ old('email', $legislador->email) }}">
@@ -74,6 +86,18 @@
                                             <small class="text-danger">{{ $message }}</small>
                                         @enderror
                                     </div>
+                                    <div class="col-12 col-md-2">
+                                        <label for="activo">Estado</label>
+                                        <div class="form-check form-switch">
+                                            <!-- Campo oculto con valor por defecto 'off' -->
+                                            <input type="hidden" name="activo" value="0">
+                                            <input type="checkbox" id="activo" name="activo" value="1" {{ old('activo', $legislador->activo ?? '') == "1" ? 'checked' : '' }}>
+                                            <label class="form-check-label" for="activo">Activo</label>
+                                        </div>
+                                    </div>
+                                    
+
+
                                 </div>
 
                                 <div class="row mt-4">

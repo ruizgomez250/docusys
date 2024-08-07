@@ -11,7 +11,7 @@ class Legislador extends Model
     protected $table = 'legisladores';
 
     protected $fillable = [
-        'ci', 'nombre', 'apellido', 'circunscripcion', 'telefono', 'email', 'fecha_nac', 'cargo', 'partido_id'
+        'ci', 'nombre', 'apellido', 'apodo', 'circunscripcion', 'telefono', 'email', 'fecha_nac', 'cargo', 'partido_id','activo'
     ];
 
     public function partido()
@@ -23,4 +23,11 @@ class Legislador extends Model
     {
         return $this->belongsToMany(PeriodoLegislativo::class, 'legislador_periodo_legislativo');
     }
+
+// En el modelo Legislador
+public function permiso()
+{
+    return $this->hasOne(Permiso::class);
+}
+
 }
