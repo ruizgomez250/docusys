@@ -15,7 +15,7 @@
 
                     <a href="{{ url('users') }}" class="btn btn-outline-secondary btn-sm btn-block">GESTIÓN DE USUARIOS</a>
                     <a href="{{ url('roles') }}" class="btn btn-outline-secondary btn-sm btn-block">GESTIÓN DE ROLES</a>
-                    <a href="{{ url('permissions') }}" class="btn btn-outline-secondary btn-sm btn-block">GESTIÓN DE PERMISOS</a>
+                    {{-- <a href="{{ url('permissions') }}" class="btn btn-outline-secondary btn-sm btn-block">GESTIÓN DE PERMISOS</a> --}}
 
                 </div>
             </div>

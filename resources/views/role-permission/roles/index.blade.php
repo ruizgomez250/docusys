@@ -13,7 +13,7 @@
                     <div class="card">
 
                         <div class="card-header">
-                            <a href="{{ route('roles.create') }}" class="btn btn-primary float-left">Add Roles</a>
+                            <a href="{{ route('roles.create') }}" class="btn btn-primary float-left">Agregar Roles</a>
                         </div>
 
                         <div class="card-body">

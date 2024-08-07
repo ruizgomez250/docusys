@@ -392,24 +392,7 @@ return [
                 ],
             ],
         ],
-        [
-            'text'       => 'Usuario Oficina',
-            'icon'       => 'fas fa-user',
-            'icon_color' => 'success',
-            'classes'    => 'custom-icon-box-black',
-            'content'    => '<i class="fas fa-box"></i>',
-            'can'  => 'Usuario Oficina',
-            'submenu'    => [
-                [
-                    'text' => 'Lista de Usuarios',
-                    'url'  => '/usuariodestino',
-                ],
-                [
-                    'text' => 'Asignar usuario',
-                    'url'  => '/usuariodestino/create',
-                ],
-            ],
-        ],
+        
         [
             'text'       => 'Documentos Oficina',
             'icon'       => 'fas fa-folder',
@@ -445,6 +428,24 @@ return [
             'classes' => 'custom-icon-box-black',
             'content' => '<i class="fas fa-box"></i>',
             'can'  => 'Gestion Usuarios',
+        ],
+        [
+            'text'       => 'Usuario Oficina',
+            'icon'       => 'fas fa-user',
+            'icon_color' => 'success',
+            'classes'    => 'custom-icon-box-black',
+            'content'    => '<i class="fas fa-box"></i>',
+            'can'  => 'Usuario Oficina',
+            'submenu'    => [
+                [
+                    'text' => 'Lista de Usuarios',
+                    'url'  => '/usuariodestino',
+                ],
+                [
+                    'text' => 'Asignar usuario',
+                    'url'  => '/usuariodestino/create',
+                ],
+            ],
         ],
        
 

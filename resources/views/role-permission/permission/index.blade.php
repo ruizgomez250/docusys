@@ -13,7 +13,7 @@
                     <div class="card">
 
                         <div class="card-header">
-                            <a href="{{ url('permissions/create') }}" class="btn btn-primary float-left">Add Permission</a>
+                            <a href="{{ url('permissions/create') }}" class="btn btn-primary float-left">Agregar Permisos</a>
                         </div>
 
                         <div class="card-body">
