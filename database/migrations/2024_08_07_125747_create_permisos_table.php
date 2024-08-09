@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('permisos', function (Blueprint $table) {
             $table->id();
             $table->foreignId('legislador_id')->constrained('legisladores')->onDelete('cascade');
-            $table->enum('tipo_permiso', ['Particular', 'Reposo Médico', 'Otro']);
+            $table->enum('tipo_permiso', ['Particular', 'Salud','Misión', 'Otros']);
             $table->date('fecha');
             $table->text('observacion')->nullable();
             $table->enum('estado', ['Vigente', 'Anulado'])->default('Vigente');
