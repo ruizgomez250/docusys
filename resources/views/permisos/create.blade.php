@@ -18,9 +18,10 @@
         <div class="form-group">
             <label for="tipo_permiso">Tipo de Permiso</label>
             <select class="form-control" id="tipo_permiso" name="tipo_permiso">
+                <option value="Misión">Misión</option>
                 <option value="Particular">Particular</option>
-                <option value="Reposo Médico">Reposo Médico</option>
-                <option value="Otro">Otro</option>
+                <option value="Salud">Salud</option>
+                <option value="Otros">Otros</option>
             </select>
         </div>
         <div class="form-group">

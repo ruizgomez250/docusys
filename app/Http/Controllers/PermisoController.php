@@ -26,7 +26,7 @@ class PermisoController extends Controller
     {
         $request->validate([
             'legislador_id' => 'required|exists:legisladores,id',
-            'tipo_permiso' => 'required|in:Particular,Reposo Médico,Otro',
+            'tipo_permiso' => 'required|in:Particular,Misión,Salud,Otros',
             'fecha' => 'required|date',
             'estado' => 'required|in:Vigente,Anulado',
         ]);
@@ -46,7 +46,7 @@ class PermisoController extends Controller
     {
         $request->validate([
             'legislador_id' => 'required|exists:legisladores,id',
-            'tipo_permiso' => 'required|in:Particular,Reposo Médico,Otro',
+            'tipo_permiso' => 'required|in:Particular,Misión,Salud,Otros',
             'fecha' => 'required|date',
             'estado' => 'required|in:Vigente,Anulado',
         ]);

@@ -21,9 +21,10 @@
         <div class="form-group">
             <label for="tipo_permiso">Tipo de Permiso</label>
             <select class="form-control" id="tipo_permiso" name="tipo_permiso">
+                <option value="Misión" {{ $permiso->tipo_permiso == 'Misión' ? 'selected' : '' }}>Misión</option>
                 <option value="Particular" {{ $permiso->tipo_permiso == 'Particular' ? 'selected' : '' }}>Particular</option>
-                <option value="Reposo Médico" {{ $permiso->tipo_permiso == 'Reposo Médico' ? 'selected' : '' }}>Reposo Médico</option>
-                <option value="Otro" {{ $permiso->tipo_permiso == 'Otro' ? 'selected' : '' }}>Otro</option>
+                <option value="Salud" {{ $permiso->tipo_permiso == 'Salud' ? 'selected' : '' }}>Salud</option>
+                <option value="Otros" {{ $permiso->tipo_permiso == 'Otros' ? 'selected' : '' }}>Otros</option>
             </select>
         </div>
         <div class="form-group">

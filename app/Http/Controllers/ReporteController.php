@@ -1,12 +1,12 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\RegistroAsistencia;
-use Barryvdh\DomPDF\Facade as PDF;
-use Illuminate\Http\Request;
+use Barryvdh\DomPDF\Facade\Pdf as PDF;
 
-class ReporteAsistenciaController extends Controller
+class ReporteController extends Controller
 {
     public function generarReporte($fecha_sesion)
     {
@@ -63,6 +63,7 @@ class ReporteAsistenciaController extends Controller
 
         $pdf = PDF::loadHTML($html);
 
-        return $pdf->download('reporte_asistencia_' . $fecha_sesion . '.pdf');
+        // Mostrar el PDF en una nueva pestaña
+        return $pdf->stream('reporte_asistencia_' . $fecha_sesion . '.pdf');
     }
 }

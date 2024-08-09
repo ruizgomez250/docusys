@@ -50,7 +50,7 @@
                 <button type="submit" style="float: right;" class="btn btn-primary">Registrar Asistencia</button>
                 
             </form>
-            <a href="{{ route('reporte.asistencia', ['fecha_sesion' => $fechaSesion]) }}" target="_blank" rel="noopener noreferrer">PDF</a>
+            <a href="{{ route('reporte.asistencia', ['fecha_sesion' => $fechaSesion]) }}" style="float: right;" class="btn btn-danger mr-2" target="_blank" rel="noopener noreferrer"><i class="fas fa-file-pdf"></i></a>
 
         </div>
     </div>

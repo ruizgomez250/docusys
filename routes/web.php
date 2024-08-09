@@ -8,7 +8,6 @@ use App\Http\Controllers\OrigenController;
 use App\Http\Controllers\DestinoController;
 use App\Http\Controllers\EntidadController;
 use App\Http\Controllers\PermisoController;
-use App\Http\Controllers\ReporteController;
 
 use App\Http\Controllers\TipoDocController;
 use App\Http\Controllers\FirmanteController;
@@ -21,6 +20,7 @@ use App\Http\Controllers\AutocompleteController;
 use App\Http\Controllers\PartidoPoliticoController;
 use App\Http\Controllers\PeriodoLegislativoController;
 use App\Http\Controllers\RegistroAsistenciaController;
+use App\Http\Controllers\ReporteController;
 
 /*
 |--------------------------------------------------------------------------
@@ -45,7 +45,7 @@ Route::get('/home', function () {
 
 //acceden los autenticados
 Route::middleware('auth')->group(function () {
-    Route::get('/reporte-asistencia/{fecha_sesion}', [ReporteController::class, 'generarReporte'])->name('reporte.asistencia');
+    Route::get('/reporte_asistencia/{fecha_sesion}', [ReporteController::class, 'generarReporte'])->name('reporte.asistencia');
     Route::resource('permisos', PermisoController::class);
     Route::get('registro_asistencias/create', [RegistroAsistenciaController::class, 'create'])->name('registro_asistencias.create');
     Route::post('registro_asistencias', [RegistroAsistenciaController::class, 'store'])->name('registro_asistencias.store');

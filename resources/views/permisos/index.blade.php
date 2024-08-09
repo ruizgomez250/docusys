@@ -1,5 +1,24 @@
 @extends('adminlte::page')
+@section('css')
+    <style>
+        .label {
+            padding: 0.2em 0.5em;
+            font-weight: bold;
+            border-radius: 0.25em;
+            display: inline-block;
+        }
 
+        .label-success {
+            background-color: green;
+            color: white;
+        }
+
+        .label-danger {
+            background-color: red;
+            color: white;
+        }
+    </style>
+@endsection
 @section('content_header')
     <h1>Permisos</h1>
 @stop
@@ -25,11 +44,12 @@
                     <td>{{ $permiso->legislador->nombre }} {{ $permiso->legislador->apellido }}</td>
                     <td>{{ $permiso->tipo_permiso }}</td>
                     <td>{{ $permiso->fecha }}</td>
+
                     <td>
                         @if ($permiso->estado == 'Vigente')
-                            <span style="color: green;">Vigente</span>
+                            <label class="label label-success">Vigente</label>
                         @else
-                            <span style="color: red;">Anulado</span>
+                            <label class="label label-danger">Anulado</label>
                         @endif
                     </td>
                     <td>
