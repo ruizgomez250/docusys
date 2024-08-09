@@ -177,25 +177,43 @@
                     $('#documentosList').empty();
                     if (data.length > 0) {
                         data.forEach(function(doc) {
-                            var extension = doc.nombre_archivo.split('.').pop().toLowerCase();
-                            var folder = (extension === 'pdf' || extension === 'docx' || extension ===
-                                'doc') ? 'documentos' : 'archivos';
-                            var url = '{{ asset('') }}' + folder + '/' + doc.nombre_archivo;
+                            if (doc.link) {
+                                var linkHtml = '<a href="' + doc.link +
+                                    '" target="_blank"><i class="fa fa-3x fa-link"></i></a>';
 
-                            var iconClass = '';
-                            if (extension === 'pdf') {
-                                iconClass = 'fa-file-pdf';
-                            } else if (extension === 'docx' || extension === 'doc') {
-                                iconClass = 'fa-file-word';
-                            } else {
-                                iconClass =
-                                'fa-file-archive'; // Puedes ajustar este icono según el tipo de archivo
+                                var observacionHtml = doc.observacion ? '<span class="observacion">' +
+                                    doc.observacion + '</span>' : '';
+
+                                $('#documentosList').append('<li>' + linkHtml + ' ' + observacionHtml +
+                                    '</li>');
                             }
+                            if (doc.nombre_archivo) { // Verificación añadida
+                                var extension = doc.nombre_archivo.split('.').pop().toLowerCase();
+                                var folder = (extension === 'pdf' || extension === 'docx' ||
+                                    extension === 'doc') ? 'documentos' : 'archivos';
+                                var url = 'http://localhost/docusys/public/' + folder + '/' + doc
+                                    .nombre_archivo;
 
-                            var iconHtml = '<i class="fa fa-3x ' + iconClass +
-                            '"></i>'; // Tamaño grande del icono (fa-3x)
-                            var linkHtml = '<a href="' + url + '" target="_blank">' + iconHtml + '</a>';
-                            $('#documentosList').append('<li>' + linkHtml + '</li>');
+                                var iconClass = '';
+                                if (extension === 'pdf') {
+                                    iconClass = 'fa-file-pdf';
+                                } else if (extension === 'docx' || extension === 'doc') {
+                                    iconClass = 'fa-file-word';
+                                } else {
+                                    iconClass =
+                                        'fa-file-archive'; // Puedes ajustar este icono según el tipo de archivo
+                                }
+
+                                var iconHtml = '<i class="fa fa-3x ' + iconClass +
+                                    '"></i>'; // Tamaño grande del icono (fa-3x)
+                                var linkHtml = '<a href="' + url + '" target="_blank">' + iconHtml +
+                                    '</a>';
+                                var observacionHtml = doc.observacion ? '<span class="observacion">' +
+                                    doc.observacion + '</span>' : '';
+
+                                $('#documentosList').append('<li>' + linkHtml + ' ' + observacionHtml +
+                                    '</li>');
+                            }
                         });
                     } else {
                         $('#documentosList').append('<li>No hay documentos disponibles.</li>');

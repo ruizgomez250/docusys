@@ -1,7 +1,7 @@
 @extends('adminlte::page')
 
 @section('content_header')
-<h1 class="m-0 custom-heading">Editar Mesa de Entrada</h1>
+<h1 class="m-0 custom-heading">Editar Usuario Destino</h1>
 @stop
 @section('plugins.Sweetalert2', true)
 
@@ -62,7 +62,7 @@
                         </div>
                         <div class="row">
                             <div class="form-group col-md-12">
-                                <a class="btn btn-danger" style="float: right;" href="{{ route('mesaentrada.index') }}">Cancelar</a>
+                                <a class="btn btn-danger" style="float: right;" href="{{ route('usuariodestino.index') }}">Cancelar</a>
                                 <x-adminlte-button class="btn-group" style="float: right;" type="submit" label="Actualizar" theme="primary" icon="fas fa-lg fa-save" />
                             </div>
                         </div>

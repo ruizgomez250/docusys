@@ -108,7 +108,9 @@
                                         <form action="{{ route('mesaentrada.finalizar', $row->id) }}" method="post"
                                             class="d-inline enviar-form">
                                             @csrf
-
+                                            <button type="button" class="btn btn-sm  btn-outline-secondary enviar-button">
+                                                <i class="fas fa-flag-checkered"></i>
+                                            </button>
                                         </form>
                                     @endif
 

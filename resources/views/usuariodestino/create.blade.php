@@ -62,7 +62,7 @@
 
                         <div class="row">
                             <div class="form-group col-md-12">
-                                <a class="btn btn-danger" style="float: right;" href="{{ route('mesaentrada.index') }}">Cancelar</a>
+                                <a class="btn btn-danger" style="float: right;" href="{{ route('usuariodestino.index') }}">Cancelar</a>
                                 <x-adminlte-button class="btn-group" style="float: right;" type="submit" label="Registrar" theme="primary" icon="fas fa-lg fa-save" />
                             </div>
                         </div>
