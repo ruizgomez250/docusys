@@ -32,7 +32,18 @@ class MesaEntradaController extends Controller
     public function index()
     {
         $heads = [
-            'ID', 'Nro MEntrada', 'Año', 'Fecha Recepción', 'Origen', 'Tipo Doc', 'Destino', 'Observación', 'Estado', 'Usuario', 'Acción', 'Tiene Documentos'
+            'ID',
+            'Nro MEntrada',
+            'Año',
+            'Fecha Recepción',
+            'Origen',
+            'Tipo Doc',
+            'Destino',
+            'Observación',
+            'Estado',
+            'Usuario',
+            'Acción',
+            'Tiene Documentos'
         ];
 
         // Obtener todas las entradas de mesa junto con la información de si tienen documentos o no
@@ -46,7 +57,16 @@ class MesaEntradaController extends Controller
     public function recepcionado()
     {
         $heads = [
-            'ID', 'Nro MEntrada', 'Año', 'Fecha Recepción', 'Origen', 'Tipo Doc', 'Observación', 'Estado', 'Usuario', 'Acción'
+            'ID',
+            'Nro MEntrada',
+            'Año',
+            'Fecha Recepción',
+            'Origen',
+            'Tipo Doc',
+            'Observación',
+            'Estado',
+            'Usuario',
+            'Acción'
         ];
         $userId = auth()->id();
         $userDestino = UserDestino::where('user_id', $userId)->first();
@@ -67,7 +87,17 @@ class MesaEntradaController extends Controller
     public function reenviado()
     {
         $heads = [
-            'ID', 'Nro MEntrada', 'Año', 'Fecha Recepción', 'Origen', 'Tipo Doc', 'Destino', 'Observación', 'Estado', 'Usuario', 'Acción'
+            'ID',
+            'Nro MEntrada',
+            'Año',
+            'Fecha Recepción',
+            'Origen',
+            'Tipo Doc',
+            'Destino',
+            'Observación',
+            'Estado',
+            'Usuario',
+            'Acción'
         ];
         $userId = auth()->id();
         $userDestino = UserDestino::where('user_id', $userId)->first();
@@ -92,7 +122,17 @@ class MesaEntradaController extends Controller
     public function finalizado()
     {
         $heads = [
-            'ID', 'Nro MEntrada', 'Año', 'Fecha Recepción', 'Origen', 'Tipo Doc', 'Destino', 'Observación', 'Estado', 'Usuario', 'Acción'
+            'ID',
+            'Nro MEntrada',
+            'Año',
+            'Fecha Recepción',
+            'Origen',
+            'Tipo Doc',
+            'Destino',
+            'Observación',
+            'Estado',
+            'Usuario',
+            'Acción'
         ];
         $userId = auth()->id();
         $userDestino = UserDestino::where('user_id', $userId)->first();
@@ -168,27 +208,7 @@ class MesaEntradaController extends Controller
                 $mesaEntrada->save();
 
 
-                if ($request->hasFile('documento')) {
-                    $file = $request->file('documento');
-
-                    // Crear nuevo nombre de archivo
-                    $descripcion = substr($request->input('descripcion'), 0, 15);
-                    $descripcionSinEspacios = str_replace(' ', '_', $descripcion);
-                    $fechaHora = date('Ymd_His');
-                    $extension = $file->getClientOriginalExtension();
-                    $nombreNuevo = $descripcionSinEspacios . '_' . $fechaHora . '.' . $extension;
-
-                    // Mover archivo a la carpeta 'documentos'
-                    $rutaDocumento = $file->move(public_path('documentos'), $nombreNuevo);
-
-                    // Crear registro en la base de datos
-                    ArchivosDocumento::create([
-                        'id_mentrada' => $mesaEntrada->id,
-                        'nombre_archivo' => $nombreNuevo,
-                        'ruta_archivo' => 'documentos/' . $nombreNuevo,
-                        'id_usuario' => $userId,
-                    ]);
-                }
+                
 
 
                 // if ($request->hasFile('archivo')) {
@@ -232,9 +252,32 @@ class MesaEntradaController extends Controller
                 $recorridodoc->id_mentrada = $mesaEntrada->id;
                 $recorridodoc->fecha = $fechaHoraActual;
                 $recorridodoc->descripcion = 'Recepcionado: ' . $destino->nombre;
-
+                
                 // Guardar el nuevo registro en la base de datos
                 $recorridodoc->save();
+
+                if ($request->hasFile('documento')) {
+                    $file = $request->file('documento');
+
+                    // Crear nuevo nombre de archivo
+                    $descripcion = substr($request->input('descripcion'), 0, 15);
+                    $descripcionSinEspacios = str_replace(' ', '_', $descripcion);
+                    $fechaHora = date('Ymd_His');
+                    $extension = $file->getClientOriginalExtension();
+                    $nombreNuevo = $descripcionSinEspacios . '_' . $fechaHora . '.' . $extension;
+
+                    // Mover archivo a la carpeta 'documentos'
+                    $rutaDocumento = $file->move(public_path('documentos'), $nombreNuevo);
+
+                    // Crear registro en la base de datos
+                    ArchivosDocumento::create([
+                        'id_recorrido' =>$recorridodoc->id,
+                        'id_mentrada' => $mesaEntrada->id,
+                        'nombre_archivo' => $nombreNuevo,
+                        'ruta_archivo' => 'documentos/' . $nombreNuevo,
+                        'id_usuario' => $userId,
+                    ]);
+                }
 
                 foreach ($validatedData['idfirmante'] as $index => $idfirmante) {
                     // Si el idfirmante es 0, crear un nuevo registro de Firmante
@@ -317,8 +360,10 @@ class MesaEntradaController extends Controller
 
                 // Asegurarse de que siempre haya un nombre de archivo
                 $nombreArchivoFinal = $nombreDocumento ?? $nombreArchivo;
+                $maxId = RecorridoDoc::where('id_mentrada', $idEntrada)->max('id');
                 // Crear el registro en la base de datos
                 $data = [
+                    'id_recorrido' =>$maxId,
                     'id_mentrada' => $idEntrada,
                     'nombre_archivo' => $nombreArchivoFinal,
                     'ruta_archivo' => $documentoPath ?? $archivoPath,
@@ -762,91 +807,104 @@ class MesaEntradaController extends Controller
 
     $pdf->Ln(10); // Espacio antes de comenzar el diagrama
 
-    // Variables para controlar la posición en el PDF
-    $yPosition = $pdf->GetY();
     $xPosition = 20;
     $stateNumber = 1;
 
+    //para imprimir los documentos hay que saber la fecha de carga e inicializar una bandera
+    $doccargado = -1;
+
     // Iterar sobre los recorridos y dibujar el diagrama
     foreach ($recorridos as $recorrido) {
-        // Dibujar el círculo
-        $pdf->SetXY($xPosition, $yPosition);
-        $pdf->Circle($xPosition, $yPosition, 5);
 
-        // Escribir el número del estado
-        $pdf->SetXY($xPosition - 2.5, $yPosition - 2.5);
+        // Dibujar el círculo
+        $pdf->Circle($xPosition, $pdf->GetY() + 5, 5); // Ajustar la posición vertical para el círculo
+
+        // Escribir el número del estado centrado en el círculo
+        $pdf->SetXY($xPosition - 2.5, $pdf->GetY() + 2.5); // Ajustar la posición del número para centrarlo
         $pdf->Cell(5, 5, $stateNumber, 0, 1, 'C');
 
         // Escribir la descripción en negrita
-        $pdf->SetXY($xPosition + 10, $yPosition - 3);
+        $pdf->SetX($xPosition + 10);
         $pdf->SetFont('helvetica', 'B', 10);
-        $pdf->Write(0, $recorrido->descripcion, '', 0, 'L', true, 0, false, false, 0);
+        $pdf->Write(0, $recorrido->descripcion);
 
         // Escribir la fecha debajo de la descripción
-        $pdf->SetXY($xPosition + 10, $yPosition + 7); // Ajustar posición para la fecha
+        $pdf->Ln(7); // Espacio para la fecha
+        $pdf->SetX($xPosition + 10);
         $pdf->SetFont('helvetica', '', 10);
         $fecha = \Carbon\Carbon::parse($recorrido->fecha)->format('d/m/Y H:i');
-        $pdf->Write(0, "Fecha: $fecha", '', 0, 'L', true, 0, false, false, 0);
+        $pdf->Write(0, "Fecha: $fecha");
 
-        // Incrementar el número del estado y la posición y
-        $stateNumber++;
-        $yPosition += 30; // Ajustar el espacio vertical entre los estados
-    }
+        if ($doccargado == -1) {
+            $doccargado = 0;
+        } else {
+            // Agregar información sobre los documentos
+            $documentos = ArchivosDocumento::where('id_mentrada', $row->id)
+                ->where('id_recorrido', $recorrido->id)
+                ->get();
 
-    // Agregar información sobre los documentos
-    $documentos = ArchivosDocumento::where('id_mentrada', $row->id)->get();
-    if ($documentos->isNotEmpty()) {
-        // Salto de línea antes de la sección de documentos
-        $pdf->Ln(10);
+            if ($documentos->isNotEmpty()) {
+                $pdf->Ln(10); // Espacio antes de la sección de documentos
+                $pdf->SetFont('helvetica', 'B', 10);
+                $pdf->Cell(0, 10, 'Documentos Asociados', 0, 1, 'L');
 
-        // Ajustar la posición para la sección de documentos
-        $pdf->SetXY(12, $pdf->GetY()); // Volver a ajustar la posición X
-        $pdf->SetFont('helvetica', 'B', 10);
-        $pdf->Cell(0, 10, 'Documentos Asociados', 0, 1, 'L');
+                $pdf->SetFont('helvetica', '', 10);
+                $pdf->Ln(5); // Espacio antes de la lista de documentos
+                $pdf->SetX(22);
+                $pdf->Write(0, '• Se agregaron:');
 
-        // Preparar los detalles de documentos
-        $pdf->SetFont('helvetica', '', 10);
-        $pdf->Ln(5); // Espacio antes de la lista de documentos
-        $pdf->SetX(22); // Ajustar la posición X para la lista de documentos
-        $pdf->Write(0, '• Se agregaron:');
+                // Inicializar contadores para cada tipo de documento
+                $pdfCount = 0;
+                $docCount = 0;
+                $zipCount = 0;
+                $linkCount=0;
 
-        // Inicializar contadores para cada tipo de documento
-        $pdfCount = 0;
-        $docCount = 0;
-        $zipCount = 0;
+                foreach ($documentos as $documento) {
+                    if (!empty($documento->link)) {
+                        $linkCount++;
+                    }
+                    $extension = pathinfo($documento->nombre_archivo, PATHINFO_EXTENSION);
+                    switch (strtolower($extension)) {
+                        case 'pdf':
+                            $pdfCount++;
+                            break;
+                        case 'doc':
+                        case 'docx':
+                            $docCount++;
+                            break;
+                        case 'zip':
+                            $zipCount++;
+                            break;
+                    }
+                }
 
-        foreach ($documentos as $documento) {
-            // Obtener la extensión del archivo
-            $extension = pathinfo($documento->nombre_archivo, PATHINFO_EXTENSION);
-            switch (strtolower($extension)) {
-                case 'pdf':
-                    $pdfCount++;
-                    break;
-                case 'doc':
-                case 'docx':
-                    $docCount++;
-                    break;
-                case 'zip':
-                    $zipCount++;
-                    break;
+                // Escribir los tipos de documentos
+                $pdf->Ln(5); // Espacio entre líneas
+                $pdf->SetX(32);
+                $pdf->Write(0, "$linkCount LINKS");
+                $pdf->Ln(5);
+                $pdf->SetX(32);
+                $pdf->Write(0, "$pdfCount PDF(s)");
+                $pdf->Ln(5);
+                $pdf->SetX(32);
+                $pdf->Write(0, "$docCount Docx(s)");
+                $pdf->Ln(5);
+                $pdf->SetX(32);
+                $pdf->Write(0, "$zipCount ZIP(s)");
+                $pdf->Ln(20); // Espacio después de los documentos
             }
         }
 
-        // Escribir los tipos de documentos
-        $pdf->Ln(5); // Espacio entre líneas
-        $pdf->SetX(32); // Ajustar la posición X para la lista
-        $pdf->Write(0, "$pdfCount PDF(s)");
-        $pdf->Ln(5);
-        $pdf->SetX(32); // Ajustar la posición X para la lista
-        $pdf->Write(0, "$docCount Docx(s)");
-        $pdf->Ln(5);
-        $pdf->SetX(32); // Ajustar la posición X para la lista
-        $pdf->Write(0, "$zipCount ZIP(s)");
+        // Incrementar el número del estado y la posición vertical
+        $stateNumber++;
+        $pdf->Ln(10); // Ajustar el espacio vertical entre los estados
     }
 
     // Salida del PDF
     $pdf->Output('maparecorrido.pdf', 'I');
 }
+
+
 
 
     public function documentos($id)
