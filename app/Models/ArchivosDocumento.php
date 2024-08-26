@@ -11,7 +11,7 @@ class ArchivosDocumento extends Model
 
     protected $table = 'archivos_documentos';
     protected $fillable = [
-        'id_mentrada', 'nombre_archivo', 'ruta_archivo','link','observacion','id_usuario', 
+        'id_mentrada', 'nombre_archivo', 'ruta_archivo','link','observacion','id_usuario','id_recorrido', 
     ];
     public function user()
     {
