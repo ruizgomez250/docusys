@@ -94,7 +94,7 @@ return [
     'auth_logo' => [
         'enabled' => true,
         'img' => [
-            'path' => 'vendor/adminlte/dist/img/docusys.jpg',
+            'path' => 'vendor/adminlte/dist/img/camara.png',
             'alt' => 'Auth Logo',
             'class' => '',
             'width' => 180,
@@ -117,7 +117,7 @@ return [
     'preloader' => [
         'enabled' => false,
         'img' => [
-            'path' => 'vendor/adminlte/dist/img/AdminLTELogo.png',
+            'path' => 'vendor/adminlte/dist/img/camara.png',
             'alt' => 'AdminLTE Preloader Image',
             'effect' => 'animation__shake',
             'width' => 370,
@@ -298,7 +298,7 @@ return [
     */
 
     'menu' => [
-        ['header' => 'DocuSys'],
+        ['header' => 'STD'],
 
         [
             'text'       => 'Firmante',
