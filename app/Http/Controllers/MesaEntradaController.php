@@ -208,7 +208,7 @@ class MesaEntradaController extends Controller
                 $mesaEntrada->save();
 
 
-                
+
 
 
                 // if ($request->hasFile('archivo')) {
@@ -252,7 +252,7 @@ class MesaEntradaController extends Controller
                 $recorridodoc->id_mentrada = $mesaEntrada->id;
                 $recorridodoc->fecha = $fechaHoraActual;
                 $recorridodoc->descripcion = 'Recepcionado: ' . $destino->nombre;
-                
+
                 // Guardar el nuevo registro en la base de datos
                 $recorridodoc->save();
 
@@ -271,7 +271,7 @@ class MesaEntradaController extends Controller
 
                     // Crear registro en la base de datos
                     ArchivosDocumento::create([
-                        'id_recorrido' =>$recorridodoc->id,
+                        'id_recorrido' => $recorridodoc->id,
                         'id_mentrada' => $mesaEntrada->id,
                         'nombre_archivo' => $nombreNuevo,
                         'ruta_archivo' => 'documentos/' . $nombreNuevo,
@@ -363,7 +363,7 @@ class MesaEntradaController extends Controller
                 $maxId = RecorridoDoc::where('id_mentrada', $idEntrada)->max('id');
                 // Crear el registro en la base de datos
                 $data = [
-                    'id_recorrido' =>$maxId,
+                    'id_recorrido' => $maxId,
                     'id_mentrada' => $idEntrada,
                     'nombre_archivo' => $nombreArchivoFinal,
                     'ruta_archivo' => $documentoPath ?? $archivoPath,
@@ -790,119 +790,123 @@ class MesaEntradaController extends Controller
         }
     }
     function recorrido(MesaEntrada $row)
-{
-    $recorridos = RecorridoDoc::where('id_mentrada', $row->id)->get();
-    $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
-    $pdf->SetPrintHeader(false); // Deshabilita la impresión del encabezado
-    $pdf->SetFont('helvetica', 'B', 14);
-    $pdf->AddPage();
-    $pdf->SetLeftMargin(12); // Ajusta el margen izquierdo a 12 mm
-    $pdf->Ln(25);
+    {
+        $recorridos = RecorridoDoc::where('id_mentrada', $row->id)->get();
+        $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
+        $pdf->SetPrintHeader(false); // Deshabilita la impresión del encabezado
+        $pdf->SetFont('Times', 'IU', 14);
+        $pdf->AddPage();
+        $pdf->SetLeftMargin(12); // Ajusta el margen izquierdo a 12 mm
+        $pdf->Ln(25);
 
-    // Establecer título del documento
-    $pdf->SetTextColor(0, 0, 0);
-    $pdf->SetTitle('Recorrido del Documento');
-    $pdf->Cell(0, 10, 'Mapa Recorrido', 0, 1, 'C'); // Celda centrada con el título
-    $pdf->SetFont('helvetica', '', 10);
+        // Insertar marca de agua
+        $pdf->SetAlpha(0.3); // Establece la opacidad al 10%
+        $pdf->Image('vendor/adminlte/dist/img/icono camara.png', 10, 50, 190); // Ajusta la posición y tamaño de la imagen
+        $pdf->SetAlpha(1); // Restablece la opacidad al 100%
+        // Establecer título del documento
+        $pdf->SetTextColor(0, 0, 0);
+        $pdf->SetTitle('Recorrido del Documento');
+        $pdf->Cell(0, 10, 'Mapa Recorrido', 0, 1, 'C'); // Celda centrada con el título
+        $pdf->SetFont('Times', '', 12);
 
-    $pdf->Ln(10); // Espacio antes de comenzar el diagrama
+        $pdf->Ln(10); // Espacio antes de comenzar el diagrama
 
-    $xPosition = 20;
-    $stateNumber = 1;
+        $xPosition = 20;
+        $stateNumber = 1;
 
-    //para imprimir los documentos hay que saber la fecha de carga e inicializar una bandera
-    $doccargado = -1;
+        //para imprimir los documentos hay que saber la fecha de carga e inicializar una bandera
+        $doccargado = -1;
 
-    // Iterar sobre los recorridos y dibujar el diagrama
-    foreach ($recorridos as $recorrido) {
+        // Iterar sobre los recorridos y dibujar el diagrama
+        foreach ($recorridos as $recorrido) {
 
-        // Dibujar el círculo
-        $pdf->Circle($xPosition, $pdf->GetY() + 5, 5); // Ajustar la posición vertical para el círculo
+            // Dibujar el círculo
+            $pdf->Circle($xPosition, $pdf->GetY() + 5, 5); // Ajustar la posición vertical para el círculo
 
-        // Escribir el número del estado centrado en el círculo
-        $pdf->SetXY($xPosition - 2.5, $pdf->GetY() + 2.5); // Ajustar la posición del número para centrarlo
-        $pdf->Cell(5, 5, $stateNumber, 0, 1, 'C');
+            // Escribir el número del estado centrado en el círculo
+            $pdf->SetXY($xPosition - 2.5, $pdf->GetY() + 2.5); // Ajustar la posición del número para centrarlo
+            $pdf->Cell(5, 5, $stateNumber, 0, 1, 'C');
 
-        // Escribir la descripción en negrita
-        $pdf->SetX($xPosition + 10);
-        $pdf->SetFont('helvetica', 'B', 10);
-        $pdf->Write(0, $recorrido->descripcion);
+            // Escribir la descripción en negrita
+            $pdf->SetX($xPosition + 10);
+            $pdf->SetFont('Times', 'B', 12);
+            $pdf->Write(0, $recorrido->descripcion);
 
-        // Escribir la fecha debajo de la descripción
-        $pdf->Ln(7); // Espacio para la fecha
-        $pdf->SetX($xPosition + 10);
-        $pdf->SetFont('helvetica', '', 10);
-        $fecha = \Carbon\Carbon::parse($recorrido->fecha)->format('d/m/Y H:i');
-        $pdf->Write(0, "Fecha: $fecha");
+            // Escribir la fecha debajo de la descripción
+            $pdf->Ln(7); // Espacio para la fecha
+            $pdf->SetX($xPosition + 10);
+            $pdf->SetFont('Times', '', 12);
+            $fecha = \Carbon\Carbon::parse($recorrido->fecha)->format('d/m/Y H:i');
+            $pdf->Write(0, "Fecha: $fecha");
 
-        if ($doccargado == -1) {
-            $doccargado = 0;
-        } else {
-            // Agregar información sobre los documentos
-            $documentos = ArchivosDocumento::where('id_mentrada', $row->id)
-                ->where('id_recorrido', $recorrido->id)
-                ->get();
+            if ($doccargado == -1) {
+                $doccargado = 0;
+            } else {
+                // Agregar información sobre los documentos
+                $documentos = ArchivosDocumento::where('id_mentrada', $row->id)
+                    ->where('id_recorrido', $recorrido->id)
+                    ->get();
 
-            if ($documentos->isNotEmpty()) {
-                $pdf->Ln(10); // Espacio antes de la sección de documentos
-                $pdf->SetFont('helvetica', 'B', 10);
-                $pdf->Cell(0, 10, 'Documentos Asociados', 0, 1, 'L');
+                if ($documentos->isNotEmpty()) {
+                    $pdf->Ln(10); // Espacio antes de la sección de documentos
+                    $pdf->SetFont('Times', 'B', 12);
+                    $pdf->Cell(0, 10, 'Documentos Asociados', 0, 1, 'L');
 
-                $pdf->SetFont('helvetica', '', 10);
-                $pdf->Ln(5); // Espacio antes de la lista de documentos
-                $pdf->SetX(22);
-                $pdf->Write(0, '• Se agregaron:');
+                    $pdf->SetFont('Times', '', 12);
+                    $pdf->Ln(5); // Espacio antes de la lista de documentos
+                    $pdf->SetX(22);
+                    $pdf->Write(0, '• Se agregaron:');
 
-                // Inicializar contadores para cada tipo de documento
-                $pdfCount = 0;
-                $docCount = 0;
-                $zipCount = 0;
-                $linkCount=0;
+                    // Inicializar contadores para cada tipo de documento
+                    $pdfCount = 0;
+                    $docCount = 0;
+                    $zipCount = 0;
+                    $linkCount = 0;
 
-                foreach ($documentos as $documento) {
-                    if (!empty($documento->link)) {
-                        $linkCount++;
+                    foreach ($documentos as $documento) {
+                        if (!empty($documento->link)) {
+                            $linkCount++;
+                        }
+                        $extension = pathinfo($documento->nombre_archivo, PATHINFO_EXTENSION);
+                        switch (strtolower($extension)) {
+                            case 'pdf':
+                                $pdfCount++;
+                                break;
+                            case 'doc':
+                            case 'docx':
+                                $docCount++;
+                                break;
+                            case 'zip':
+                                $zipCount++;
+                                break;
+                        }
                     }
-                    $extension = pathinfo($documento->nombre_archivo, PATHINFO_EXTENSION);
-                    switch (strtolower($extension)) {
-                        case 'pdf':
-                            $pdfCount++;
-                            break;
-                        case 'doc':
-                        case 'docx':
-                            $docCount++;
-                            break;
-                        case 'zip':
-                            $zipCount++;
-                            break;
-                    }
+
+                    // Escribir los tipos de documentos
+                    $pdf->Ln(5); // Espacio entre líneas
+                    $pdf->SetX(32);
+                    $pdf->Write(0, "$linkCount LINKS");
+                    $pdf->Ln(5);
+                    $pdf->SetX(32);
+                    $pdf->Write(0, "$pdfCount PDF(s)");
+                    $pdf->Ln(5);
+                    $pdf->SetX(32);
+                    $pdf->Write(0, "$docCount Docx(s)");
+                    $pdf->Ln(5);
+                    $pdf->SetX(32);
+                    $pdf->Write(0, "$zipCount ZIP(s)");
+                    $pdf->Ln(20); // Espacio después de los documentos
                 }
-
-                // Escribir los tipos de documentos
-                $pdf->Ln(5); // Espacio entre líneas
-                $pdf->SetX(32);
-                $pdf->Write(0, "$linkCount LINKS");
-                $pdf->Ln(5);
-                $pdf->SetX(32);
-                $pdf->Write(0, "$pdfCount PDF(s)");
-                $pdf->Ln(5);
-                $pdf->SetX(32);
-                $pdf->Write(0, "$docCount Docx(s)");
-                $pdf->Ln(5);
-                $pdf->SetX(32);
-                $pdf->Write(0, "$zipCount ZIP(s)");
-                $pdf->Ln(20); // Espacio después de los documentos
             }
+
+            // Incrementar el número del estado y la posición vertical
+            $stateNumber++;
+            $pdf->Ln(10); // Ajustar el espacio vertical entre los estados
         }
 
-        // Incrementar el número del estado y la posición vertical
-        $stateNumber++;
-        $pdf->Ln(10); // Ajustar el espacio vertical entre los estados
+        // Salida del PDF
+        $pdf->Output('maparecorrido.pdf', 'I');
     }
-
-    // Salida del PDF
-    $pdf->Output('maparecorrido.pdf', 'I');
-}
 
 
 

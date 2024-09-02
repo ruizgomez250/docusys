@@ -90,6 +90,7 @@
                                     @elseif ($row->estado == '0')
                                         Trámite Finalizado
                                     @endif
+
                                 </td>
                                 <td>{{ $row->user->name ?? 'N/A' }}</td>
                                 <td>
@@ -97,11 +98,17 @@
                                         class="btn btn-sm btn-outline-secondary">
                                         <i class="fa fa-file-pdf"></i>
                                     </a>
+
                                     @if ($row->tiene_documentos)
                                         <button type="button" class="btn btn-sm btn-outline-secondary"
                                             onclick="openDocumentosModal({{ $row->id }})">
                                             <i class="fa fa-sm fa-fw fa-print"></i>
                                         </button>
+                                    @endif
+                                    @if ($row->estado == '2')
+                                        <x-adminlte-button theme="outline-danger" data-toggle="modal"
+                                            data-target="#modalDestinos" class="btn-sm " icon="fas fa-paper-plane"
+                                            onclick="cargarmentrada({{ $row->id }})" />
                                     @endif
                                 </td>
                             </tr>
@@ -187,6 +194,7 @@
         function cargarmentrada(id) {
             document.getElementById('idmentrada').value = id;
         }
+
         function openDocumentosModal(id) {
             $.ajax({
                 url: '{{ route('mesaentrada.documentos', '') }}/' + id,
