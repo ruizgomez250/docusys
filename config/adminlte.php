@@ -430,6 +430,13 @@ return [
             'can'  => 'Gestion Usuarios',
         ],
         [
+            'text' => 'change_password',
+            'url'  => 'profile/edit',
+            'icon' => 'fas fa-fw fa-lock',
+            'classes' => 'custom-icon-box-black',
+            'content' => '<i class="fas fa-box"></i>',
+        ],
+        [
             'text'       => 'Usuario Oficina',
             'icon'       => 'fas fa-user',
             'icon_color' => 'success',
