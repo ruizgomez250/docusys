@@ -42,8 +42,7 @@ class MesaEntradaController extends Controller
             'Observación',
             'Estado',
             'Usuario',
-            'Acción',
-            'Tiene Documentos'
+            'Acción'
         ];
 
         // Obtener todas las entradas de mesa junto con la información de si tienen documentos o no
