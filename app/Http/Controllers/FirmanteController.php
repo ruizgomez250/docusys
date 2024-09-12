@@ -32,10 +32,10 @@ class FirmanteController extends Controller
         try {
             $request->validate([
                 'nombre' => 'required|string|max:255',
-                'telefono' => 'required|string|max:20',
                 'cedula' => 'required|string|max:20',
+                'telefono' => 'nullable|string|max:20',
+                'correo' => 'nullable|string|email|max:255', 
             ]);
-
             Firmante::create($request->all());
             return redirect()->route('firmante.create')->with('success', 'Operación exitosa');
         } catch (Exception $e) {

@@ -54,10 +54,10 @@
 
                         <div class="row">
                             <x-adminlte-input name="telefono" label="Telefono" placeholder="Ingresar"
-                                fgroup-class="col-md-3" value="{{ old('telefono') }}"  required/>
+                                fgroup-class="col-md-3" value="{{ old('telefono') }}"  />
                             <x-adminlte-input name="correo" type="email" label="Email"
                                 placeholder="Ingresar " fgroup-class="col-md-3"
-                                value="{{ old('correo') }}" required/>
+                                value="{{ old('correo') }}"/>
                         </div>
 
 
