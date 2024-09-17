@@ -149,7 +149,7 @@ class MesaEntradaController extends Controller
      */
     public function create(): View
     {
-        $origenes = Origen::all();
+        $origenes = $origenes = Origen::orderBy('indice')->orderBy('subindice')->get();
         $tiposdoc = TipoDoc::all();
         $destinos = Destino::all();
         return view('mesa_entrada.create', ['origenes' => $origenes, 'tiposDoc' => $tiposdoc, 'destinos' => $destinos]);
