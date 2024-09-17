@@ -61,7 +61,7 @@
                         <div class="row">
                             <x-adminlte-select2 name="id_origen" label="Origen" fgroup-class="col-md-4" required>
                                 @foreach ($origenes as $origen)
-                                    <option value="{{ $origen->id }}">{{ $origen->nombre }}</option>
+                                    <option value="{{ $origen->id }}">{{ $origen->indice.'.'.$origen->subindice.' - '.$origen->nombre }}</option>
                                 @endforeach
                             </x-adminlte-select2>
 

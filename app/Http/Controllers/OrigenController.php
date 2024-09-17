@@ -42,11 +42,11 @@ class OrigenController extends Controller
                 'subindice' => 'required|string|max:255',
                 'nombre' => 'required|string|max:255',
             ]);
-
             
             Origen::create($request->all());
             return redirect()->route('origen.create')->with('success', 'Operación exitosa');
         } catch (Exception $e) {
+            dd($e);
             // Puedes registrar el error si lo deseas
             //Log::error('Error al crear el firmante: ' . $e->getMessage());
 
