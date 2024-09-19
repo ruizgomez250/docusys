@@ -15,7 +15,9 @@ class TipoDocController extends Controller
     public function index()
     {
         $heads = [
-            'ID', 'Nombre', 'Acción'
+            'ID',
+            'Nombre',
+            'Acción'
         ];
         $tipodocs = TipoDoc::all();
         return view('tipodoc.index', ['tipodocs' => $tipodocs, 'heads' => $heads]);
@@ -96,8 +98,23 @@ class TipoDocController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy($id)
     {
-        //
+        try {
+            // Buscar el registro por ID
+            $tipoDoc = TipoDoc::findOrFail($id);
+
+            // Eliminar el registro
+            $tipoDoc->delete();
+
+            // Redirigir con un mensaje de éxito
+            return redirect()->route('tipodoc.index')->with('success', 'El registro fue eliminado correctamente.');
+        } catch (Exception $e) {
+            // Registrar el error si lo deseas
+            // Log::error('Error al eliminar el TipoDoc: ' . $e->getMessage());
+
+            // Redirigir con un mensaje de error
+            return redirect()->route('tipodoc.index')->with('error', 'Hubo un problema al intentar eliminar el registro. Por favor, inténtelo de nuevo.');
+        }
     }
 }

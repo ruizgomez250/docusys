@@ -15,7 +15,12 @@ class FirmanteController extends Controller
     public function index()
     {
         $heads = [
-            'ID', 'Nombre', 'Cedula', 'Correo', 'Teléfono', 'Acción'
+            'ID',
+            'Nombre',
+            'Cedula',
+            'Correo',
+            'Teléfono',
+            'Acción'
         ];
         $firmantes = Firmante::all();
         return view('firmante.index', ['firmantes' => $firmantes, 'heads' => $heads]);
@@ -34,7 +39,7 @@ class FirmanteController extends Controller
                 'nombre' => 'required|string|max:255',
                 'cedula' => 'required|string|max:20',
                 'telefono' => 'nullable|string|max:20',
-                'correo' => 'nullable|string|email|max:255', 
+                'correo' => 'nullable|string|email|max:255',
             ]);
             Firmante::create($request->all());
             return redirect()->route('firmante.create')->with('success', 'Operación exitosa');
@@ -91,9 +96,23 @@ class FirmanteController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Firmante $firmante)
+    public function destroy($id)
     {
-        $firmante->delete();
-        return response()->json(null, 204);
+        try {
+            // Buscar el registro del firmante por ID
+            $firmante = Firmante::findOrFail($id);
+
+            // Eliminar el registro
+            $firmante->delete();
+
+            // Redirigir con un mensaje de éxito
+            return redirect()->route('firmante.index')->with('success', 'Firmante eliminado correctamente.');
+        } catch (Exception $e) {
+            // Puedes registrar el error si lo deseas
+            // Log::error('Error al eliminar el firmante: ' . $e->getMessage());
+
+            // Redirigir con un mensaje de error
+            return redirect()->route('firmante.index')->with('error', 'Hubo un problema al intentar eliminar el firmante. Por favor, inténtelo de nuevo.');
+        }
     }
 }
