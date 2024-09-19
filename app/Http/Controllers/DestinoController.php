@@ -15,7 +15,10 @@ class DestinoController extends Controller
     public function index()
     {
         $heads = [
-            'ID', 'Nombre', 'Destino Inicial', 'Acción'
+            'ID',
+            'Nombre',
+            'Destino Inicial',
+            'Acción'
         ];
         $destinos = Destino::all();
         return view('destino.index', ['destinos' => $destinos, 'heads' => $heads]);
@@ -89,7 +92,7 @@ class DestinoController extends Controller
             $request->validate([
                 'nombre' => 'string|max:255',
             ]);
-            
+
             $defaultValue = 0;
             if ($request->filled('default')) {
                 $defaultValue = $request->input('default') == 'on' ? 1 : 0;
@@ -115,8 +118,23 @@ class DestinoController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy($id)
     {
-        //
+        try {
+            // Buscar el registro por ID
+            $destino = Destino::findOrFail($id);
+
+            // Eliminar el registro
+            $destino->delete();
+
+            // Redirigir con un mensaje de éxito
+            return redirect()->route('destino.index')->with('success', 'Registro eliminado correctamente');
+        } catch (Exception $e) {
+            // Puedes registrar el error si lo deseas
+            // Log::error('Error al eliminar el destino: ' . $e->getMessage());
+
+            // Redirigir con un mensaje de error
+            return redirect()->route('destino.index')->with('error', 'Hubo un problema al intentar eliminar el registro. Por favor, inténtelo de nuevo.');
+        }
     }
 }
