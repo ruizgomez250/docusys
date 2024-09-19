@@ -46,7 +46,6 @@ class OrigenController extends Controller
             Origen::create($request->all());
             return redirect()->route('origen.create')->with('success', 'Operación exitosa');
         } catch (Exception $e) {
-            dd($e);
             // Puedes registrar el error si lo deseas
             //Log::error('Error al crear el firmante: ' . $e->getMessage());
 
@@ -105,6 +104,21 @@ class OrigenController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        try {
+            // Buscar el registro por ID
+            $origen = Origen::findOrFail($id);
+            
+            // Eliminar el registro
+            $origen->delete();
+            
+            // Redirigir con un mensaje de éxito
+            return redirect()->route('origen.index')->with('success', 'Registro eliminado correctamente');
+        } catch (Exception $e) {
+            // Puedes registrar el error si lo deseas
+            // Log::error('Error al eliminar el origen: ' . $e->getMessage());
+    
+            // Redirigir con un mensaje de error
+            return redirect()->route('origen.index')->with('error', 'Hubo un problema al intentar eliminar el registro. Por favor, inténtelo de nuevo.');
+        }
     }
 }
