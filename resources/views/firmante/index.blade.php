@@ -74,6 +74,7 @@
                                 <td>{{ $row->id }}</td>
                                 <td>{{ $row->nombre }}</td>
                                 <td>{{ $row->cedula }}</td>
+                                <td>{{ $row->codigo }}</td> 
                                 <td>{{ $row->correo }}</td>
                                 <td>{{ $row->telefono }}</td>                               
                                 <td style="float:right;">

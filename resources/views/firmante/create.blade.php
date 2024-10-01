@@ -58,6 +58,9 @@
                             <x-adminlte-input name="correo" type="email" label="Email"
                                 placeholder="Ingresar " fgroup-class="col-md-3"
                                 value="{{ old('correo') }}"/>
+                            <x-adminlte-input name="codigo" type="text" label="Codigo"
+                                placeholder="Ingresar " fgroup-class="col-md-3"
+                                value="{{ old('correo') }}"/>
                         </div>
 
 

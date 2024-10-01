@@ -18,6 +18,7 @@ class FirmanteController extends Controller
             'ID',
             'Nombre',
             'Cedula',
+            'Codigo',
             'Correo',
             'Teléfono',
             'Acción'
@@ -40,6 +41,7 @@ class FirmanteController extends Controller
                 'cedula' => 'required|string|max:20',
                 'telefono' => 'nullable|string|max:20',
                 'correo' => 'nullable|string|email|max:255',
+                'codigo' => 'nullable|string|max:255',
             ]);
             Firmante::create($request->all());
             return redirect()->route('firmante.create')->with('success', 'Operación exitosa');
@@ -57,6 +59,7 @@ class FirmanteController extends Controller
 
         try {
             return view('firmante.edit', ['firmante' => $firmante]);
+            
         } catch (Exception $e) {
             return view('firmante.index')->with('message', 'No se pudo completar la operación.');
         }
@@ -76,9 +79,10 @@ class FirmanteController extends Controller
         try {
             $request->validate([
                 'nombre' => 'string|max:255',
-                'correo' => 'string|email|max:255|unique:firmantes,correo,' . $firmante->id,
+                'correo' => 'nullable|string|email|max:255|unique:firmantes,correo,' . $firmante->id,
                 'telefono' => 'string|max:20',
                 'cedula' => 'string|max:20',
+                'codigo' => 'string|max:20',
             ]);
 
             $firmante->update($request->all());

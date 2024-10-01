@@ -11,5 +11,5 @@ class Firmante extends Model
 
     protected $table = 'firmantes';
 
-    protected $fillable = ['nombre', 'correo', 'cedula', 'telefono'];
+    protected $fillable = ['nombre', 'correo', 'cedula', 'telefono', 'codigo'];
 }
