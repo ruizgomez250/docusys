@@ -55,7 +55,7 @@
                                 fgroup-class="col-md-3" value="{{ $firmante->telefono }}"  required/>
                             <x-adminlte-input name="correo" type="email" label="Email"
                                 placeholder="Ingresar " fgroup-class="col-md-3"
-                                value="{{ $firmante->correo }}" required/>
+                                value="{{ $firmante->correo }}" />
                         </div>
 
                         <input type="hidden" name="id" value="{{ $firmante->id }}"> <!-- Campo oculto para enviar el ID del cliente -->

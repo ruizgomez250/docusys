@@ -76,7 +76,7 @@ class FirmanteController extends Controller
         try {
             $request->validate([
                 'nombre' => 'string|max:255',
-                'correo' => 'string|email|max:255|unique:firmantes,correo,' . $firmante->id,
+                'correo' => 'nullable|string|email|max:255|unique:firmantes,correo,' . $firmante->id,
                 'telefono' => 'string|max:20',
                 'cedula' => 'string|max:20',
             ]);
