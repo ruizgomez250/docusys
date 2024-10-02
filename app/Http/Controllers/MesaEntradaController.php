@@ -168,9 +168,9 @@ class MesaEntradaController extends Controller
                     'id_destino' => 'required|integer',
                     'observacion' => 'nullable|string',
                     'idfirmante' => 'required|array',
-                    'cedula' => 'required|array',
+                    'cedula' => 'nullable|array',
                     'nombre' => 'required|array',
-                    'telefono' => 'required|array',
+                    'telefono' => 'nullable|array',
                     'email.*' => 'nullable|email',
                 ]);
                 $anho = date('Y');
@@ -284,15 +284,20 @@ class MesaEntradaController extends Controller
                     if ($idfirmante == 0) {
                         $firmanteData = [
                             'nombre' => $validatedData['nombre'][$index],
-                            'cedula' => $validatedData['cedula'][$index],
-                            'telefono' => $validatedData['telefono'][$index],
                         ];
-
+                        
                         // Agregar el correo electrónico si está presente y no es null
                         if (isset($validatedData['email'][$index])) {
                             $firmanteData['correo'] = $validatedData['email'][$index];
                         }
-
+                        if (isset($validatedData['cedula'][$index])) {
+                            $firmanteData['cedula'] = $validatedData['cedula'][$index];
+                        }else{
+                            $firmanteData['cedula'] = 0;
+                        }
+                        if (isset($validatedData['telefono'][$index])) {
+                            $firmanteData['telefono'] = $validatedData['telefono'][$index];
+                        }
                         $firmante = Firmante::create($firmanteData);
                     } else {
                         // Buscar el firmante en la base de datos y actualizar si existe
@@ -319,6 +324,7 @@ class MesaEntradaController extends Controller
 
             return redirect()->route('mesaentrada.create')->with('success', 'Operación exitosa');
         } catch (Exception $e) {
+            dd($e);
             return redirect()->route('mesaentrada.create')->with('error', 'Hubo un problema con la operación. Por favor, inténtelo de nuevo.');
         }
     }
