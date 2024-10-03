@@ -50,7 +50,7 @@
                             </div>
                             <div class="col-md-5 form-group">
                                 <label for="documento">Documento (PDF o DOC)</label>
-                                <input type="file" name="documento" id="documento" accept=".pdf, .doc, .docx" required>
+                                <input type="file" name="documento" id="documento" accept=".pdf, .doc, .docx" >
                             </div>
                             {{-- <div class="col-md-5 form-group">
                                 <label for="archivo">Archivo (ZIP o RAR)</label>
