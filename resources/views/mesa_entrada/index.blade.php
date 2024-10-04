@@ -3,7 +3,7 @@
 @section('content_header')
     <div class="row">
         <div class="col-6">
-            <h1 class="m-0 custom-heading">Lista de Mesas de Entradas</h1>
+            <h1 class="m-0 custom-heading">LISTA MESA DE ENTRADA</h1>
         </div>
         <div class="col-6">
             <a href="{{ route('mesaentrada.create') }}" class="btn btn-primary" style="float: right;">Registrar Nueva Mesa de
