@@ -880,6 +880,7 @@ class MesaEntradaController extends Controller
                     $docCount = 0;
                     $zipCount = 0;
                     $linkCount = 0;
+                    $comentario = '';
 
                     foreach ($documentos as $documento) {
                         if (!empty($documento->link)) {
@@ -898,6 +899,9 @@ class MesaEntradaController extends Controller
                                 $zipCount++;
                                 break;
                         }
+                        if (!empty($documento->observacion)) {
+                            $comentario .= ' (' . $documento->observacion . ') ';
+                        }
                     }
 
                     // Escribir los tipos de documentos
@@ -913,6 +917,9 @@ class MesaEntradaController extends Controller
                     $pdf->Ln(5);
                     $pdf->SetX(32);
                     $pdf->Write(0, "$zipCount ZIP(s)");
+                    $pdf->Ln(10); // Espacio después de los documentos
+
+                    $pdf->Write(0, $comentario);
                     $pdf->Ln(20); // Espacio después de los documentos
                 }
             }
