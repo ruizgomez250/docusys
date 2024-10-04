@@ -65,7 +65,8 @@ class MesaEntradaController extends Controller
             'Observación',
             'Estado',
             'Usuario',
-            'Acción'
+            'Acción',
+            'Ult. Act.'
         ];
         $userId = auth()->id();
         $userDestino = UserDestino::where('user_id', $userId)->first();
@@ -74,7 +75,14 @@ class MesaEntradaController extends Controller
         $mesasEntrada = MesaEntrada::join('mapa_recorrido', 'mesa_entrada.id', '=', 'mapa_recorrido.id_mentrada')
             ->where('mapa_recorrido.estado', '>', 0)
             ->where('mapa_recorrido.id_actual', $iddest)
-            ->select('mesa_entrada.*', 'mapa_recorrido.estado as mapa_estado', 'mapa_recorrido.observacion as mapa_observacion', 'mapa_recorrido.id_actual as origeninterno', 'mapa_recorrido.id_destino as destinointerno')
+            ->select(
+                'mesa_entrada.*',
+                'mapa_recorrido.estado as mapa_estado',
+                'mapa_recorrido.observacion as mapa_observacion',
+                'mapa_recorrido.id_actual as origeninterno',
+                'mapa_recorrido.id_destino as destinointerno',
+                'mapa_recorrido.created_at as mapa_created_at'
+            )
             ->with('documentos') // Cargar la relación documentos
             ->get()
             ->map(function ($mesaEntrada) {
@@ -96,7 +104,8 @@ class MesaEntradaController extends Controller
             'Observación',
             'Estado',
             'Usuario',
-            'Acción'
+            'Acción',
+            'Ult. Act.'
         ];
         $userId = auth()->id();
         $userDestino = UserDestino::where('user_id', $userId)->first();
@@ -113,9 +122,18 @@ class MesaEntradaController extends Controller
             ->with('documentos') // Cargar la relación documentos
             ->get()
             ->map(function ($mesaEntrada) {
+                // Agregar la propiedad si tiene documentos
                 $mesaEntrada->tiene_documentos = $mesaEntrada->documentos->isNotEmpty();
+
+                // Cargar el campo created_at de mapa_recorrido
+                $mesaEntrada->fecha_creacion_recorrido = DB::table('mapa_recorrido')
+                    ->where('id_mentrada', $mesaEntrada->id)
+                    ->orderBy('created_at', 'desc') // Asegúrate de seleccionar la fecha correcta si hay múltiples registros
+                    ->value('created_at');
+
                 return $mesaEntrada;
             });
+
         return view('mesa_entrada.reenviado', ['mesasEntrada' => $mesasEntrada, 'destinos' => $destinos, 'heads' => $heads]);
     }
     public function finalizado()
@@ -131,7 +149,8 @@ class MesaEntradaController extends Controller
             'Observación',
             'Estado',
             'Usuario',
-            'Acción'
+            'Acción',
+            'Ult. Act.'
         ];
         $userId = auth()->id();
         $userDestino = UserDestino::where('user_id', $userId)->first();
@@ -140,7 +159,13 @@ class MesaEntradaController extends Controller
         $mesasEntrada = MesaEntrada::join('mapa_recorrido', 'mesa_entrada.id', '=', 'mapa_recorrido.id_mentrada')
             ->where('mapa_recorrido.estado', '=', 0)
             ->where('mapa_recorrido.id_actual', $iddest)
-            ->select('mesa_entrada.*', 'mapa_recorrido.estado as mapa_estado', 'mapa_recorrido.observacion as mapa_observacion', 'mapa_recorrido.id_destino as destinointerno')
+            ->select(
+                'mesa_entrada.*',
+                'mapa_recorrido.estado as mapa_estado',
+                'mapa_recorrido.observacion as mapa_observacion',
+                'mapa_recorrido.id_destino as destinointerno',
+                'mapa_recorrido.created_at as mapa_created_at'
+            )
             ->get();
         return view('mesa_entrada.finalizado', ['mesasEntrada' => $mesasEntrada, 'destinos' => $destinos, 'heads' => $heads]);
     }
@@ -177,7 +202,7 @@ class MesaEntradaController extends Controller
 
                 // Obtener el mayor número de 'nro_mentrada' para el año especificado
                 $maxNroMentrada = MesaEntrada::where('anho', $anho)->max('nro_mentrada');
-                
+
                 // Si no se encuentra ningún registro, establecer el número como 0
                 if (is_null($maxNroMentrada)) {
                     $maxNroMentrada = 1;
@@ -286,14 +311,14 @@ class MesaEntradaController extends Controller
                         $firmanteData = [
                             'nombre' => $validatedData['nombre'][$index],
                         ];
-                        
+
                         // Agregar el correo electrónico si está presente y no es null
                         if (isset($validatedData['email'][$index])) {
                             $firmanteData['correo'] = $validatedData['email'][$index];
                         }
                         if (isset($validatedData['cedula'][$index])) {
                             $firmanteData['cedula'] = $validatedData['cedula'][$index];
-                        }else{
+                        } else {
                             $firmanteData['cedula'] = 0;
                         }
                         if (isset($validatedData['telefono'][$index])) {
@@ -683,7 +708,7 @@ class MesaEntradaController extends Controller
                 $recorridodoc->id_mentrada = $mapaRecorrido->id_mentrada;
                 $recorridodoc->fecha = $fechaHoraActual;
                 $recorridodoc->descripcion = 'Confirmado Recepcion: ' . $destino->nombre;
-                $recorridodoc->id_usuario= $userId;
+                $recorridodoc->id_usuario = $userId;
 
                 // Guardar el nuevo registro en la base de datos
                 $recorridodoc->save();
@@ -848,7 +873,7 @@ class MesaEntradaController extends Controller
             // Escribir la descripción en negrita
             $pdf->SetX($xPosition + 10);
             $pdf->SetFont('Times', 'B', 12);
-            $pdf->Write(0, $recorrido->descripcion.' - Usuario: '.$recorrido->user->name);
+            $pdf->Write(0, $recorrido->descripcion . ' - Usuario: ' . $recorrido->user->name);
 
             // Escribir la fecha debajo de la descripción
             $pdf->Ln(7); // Espacio para la fecha

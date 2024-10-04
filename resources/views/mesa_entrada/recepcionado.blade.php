@@ -65,7 +65,7 @@
             <div class="card">
                 <div class="card-body">
                     <x-adminlte-datatable id="table1" :heads="$heads" head-theme="dark" theme="light" striped hoverable
-                        with-buttons :config="['order' => [[0, 'desc']]]">
+                        with-buttons :config="['order' => [[10, 'desc']]]">
                         @foreach ($mesasEntrada as $row)
                             <tr>
                                 <td>{{ $row->id }}</td>
@@ -125,6 +125,7 @@
                                         </button>
                                     @endif
                                 </td>
+                                <td>{{ $row->mapa_created_at }}</td>
                             </tr>
                         @endforeach
                     </x-adminlte-datatable>

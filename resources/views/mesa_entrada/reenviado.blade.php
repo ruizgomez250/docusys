@@ -65,7 +65,7 @@
             <div class="card">
                 <div class="card-body">
                     <x-adminlte-datatable id="table1" :heads="$heads" head-theme="dark" theme="light" striped hoverable
-                        with-buttons :config="['order' => [[0, 'desc']]]">
+                        with-buttons :config="['order' => [[11, 'desc']]]">
                         @php
                             // Convertir la colección de destinos a un array con los IDs como claves y los nombres como valores
                             $destinosArray = $destinos->pluck('nombre', 'id')->toArray();
@@ -111,6 +111,7 @@
                                             onclick="cargarmentrada({{ $row->id }})" />
                                     @endif
                                 </td>
+                                <td>{{ $row->fecha_creacion_recorrido }}</td>
                             </tr>
                         @endforeach
                     </x-adminlte-datatable>
