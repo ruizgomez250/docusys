@@ -65,7 +65,7 @@
             <div class="card">
                 <div class="card-body">
                     <x-adminlte-datatable id="table1" :heads="$heads" head-theme="dark" theme="light" striped hoverable
-                        with-buttons>
+                        with-buttons :config="['order' => [[0, 'desc']]]">
                         @foreach ($mesasEntrada as $row)
                             <tr>
                                 <td>{{ $row->id }}</td>

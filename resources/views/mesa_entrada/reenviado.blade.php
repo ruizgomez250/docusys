@@ -65,7 +65,7 @@
             <div class="card">
                 <div class="card-body">
                     <x-adminlte-datatable id="table1" :heads="$heads" head-theme="dark" theme="light" striped hoverable
-                        with-buttons>
+                        with-buttons :config="['order' => [[0, 'desc']]]">
                         @php
                             // Convertir la colección de destinos a un array con los IDs como claves y los nombres como valores
                             $destinosArray = $destinos->pluck('nombre', 'id')->toArray();
