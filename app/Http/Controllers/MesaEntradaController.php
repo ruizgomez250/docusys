@@ -177,7 +177,7 @@ class MesaEntradaController extends Controller
 
                 // Obtener el mayor número de 'nro_mentrada' para el año especificado
                 $maxNroMentrada = MesaEntrada::where('anho', $anho)->max('nro_mentrada');
-
+                
                 // Si no se encuentra ningún registro, establecer el número como 0
                 if (is_null($maxNroMentrada)) {
                     $maxNroMentrada = 1;
@@ -245,12 +245,13 @@ class MesaEntradaController extends Controller
 
                 // Obtener la fecha y hora actual en el formato deseado
                 $destino = Destino::find($destinoactual->destino_id);
-
+                $userId = auth()->id();
                 $fechaHoraActual = date('Y-m-d H:i:s');
                 $recorridodoc = new RecorridoDoc();
                 $recorridodoc->id_mentrada = $mesaEntrada->id;
                 $recorridodoc->fecha = $fechaHoraActual;
                 $recorridodoc->descripcion = 'Recepcionado: ' . $destino->nombre;
+                $recorridodoc->id_usuario = $userId;
 
                 // Guardar el nuevo registro en la base de datos
                 $recorridodoc->save();
@@ -324,7 +325,6 @@ class MesaEntradaController extends Controller
 
             return redirect()->route('mesaentrada.create')->with('success', 'Operación exitosa');
         } catch (Exception $e) {
-            dd($e);
             return redirect()->route('mesaentrada.create')->with('error', 'Hubo un problema con la operación. Por favor, inténtelo de nuevo.');
         }
     }
@@ -480,11 +480,13 @@ class MesaEntradaController extends Controller
                 $fechaHoraActual = date('Y-m-d H:i:s');
 
                 // Actualizar RecorridoDoc
+                $userId = auth()->id();
                 $recorridodoc = RecorridoDoc::where('id_mentrada', $id)->first();
                 if ($recorridodoc) {
                     $recorridodoc->update([
                         'fecha' => $fechaHoraActual,
                         'descripcion' => 'Actualizado: ' . $destino->nombre,
+                        'id_usuario' => $userId,
                     ]);
                 } else {
                     // Crear nuevo RecorridoDoc si no existe
@@ -492,6 +494,7 @@ class MesaEntradaController extends Controller
                         'id_mentrada' => $id,
                         'fecha' => $fechaHoraActual,
                         'descripcion' => 'Actualizado: ' . $destino->nombre,
+                        'id_usuario' => $userId,
                     ]);
                 }
 
@@ -629,11 +632,13 @@ class MesaEntradaController extends Controller
                 // Obtener la fecha y hora actual en el formato deseado
                 $destino = Destino::find($idDestino,);
 
+                $userId = auth()->id();
                 $fechaHoraActual = date('Y-m-d H:i:s');
                 $recorridodoc = new RecorridoDoc();
                 $recorridodoc->id_mentrada = $mesaEntrada->id;
                 $recorridodoc->fecha = $fechaHoraActual;
                 $recorridodoc->descripcion = 'Enviado: ' . $destino->nombre;
+                $recorridodoc->id_usuario = $userId;
 
                 // Guardar el nuevo registro en la base de datos
                 $recorridodoc->save();
@@ -671,11 +676,14 @@ class MesaEntradaController extends Controller
                 // Obtener la fecha y hora actual en el formato deseado
                 $destino = Destino::find($mapaRecorrido->id_actual);
 
+                $userId = auth()->id();
+
                 $fechaHoraActual = date('Y-m-d H:i:s');
                 $recorridodoc = new RecorridoDoc();
                 $recorridodoc->id_mentrada = $mapaRecorrido->id_mentrada;
                 $recorridodoc->fecha = $fechaHoraActual;
                 $recorridodoc->descripcion = 'Confirmado Recepcion: ' . $destino->nombre;
+                $recorridodoc->id_usuario= $userId;
 
                 // Guardar el nuevo registro en la base de datos
                 $recorridodoc->save();
@@ -716,11 +724,14 @@ class MesaEntradaController extends Controller
                 // Obtener la fecha y hora actual en el formato deseado
                 $destino = Destino::find($mapaRecorrido->id_actual);
 
+                $userId = auth()->id();
+
                 $fechaHoraActual = date('Y-m-d H:i:s');
                 $recorridodoc = new RecorridoDoc();
                 $recorridodoc->id_mentrada = $mapaRecorrido->id_mentrada;
                 $recorridodoc->fecha = $fechaHoraActual;
                 $recorridodoc->descripcion = 'Trámite  Documental Finalizado: ' . $destino->nombre;
+                $recorridodoc->id_usuario = $userId;
 
                 // Guardar el nuevo registro en la base de datos
                 $recorridodoc->save();
@@ -770,12 +781,14 @@ class MesaEntradaController extends Controller
 
                 // Obtener la fecha y hora actual en el formato deseado
                 $destino = Destino::find($request->post('id_destino'));
+                $userId = auth()->id();
 
                 $fechaHoraActual = date('Y-m-d H:i:s');
                 $recorridodoc = new RecorridoDoc();
                 $recorridodoc->id_mentrada = $mapaRecorrido->id_mentrada;
                 $recorridodoc->fecha = $fechaHoraActual;
                 $recorridodoc->descripcion = 'Enviado: ' . $destino->nombre;
+                $recorridodoc->id_usuario = $userId;
 
                 // Guardar el nuevo registro en la base de datos
                 $recorridodoc->save();
@@ -796,7 +809,7 @@ class MesaEntradaController extends Controller
     }
     function recorrido(MesaEntrada $row)
     {
-        $recorridos = RecorridoDoc::where('id_mentrada', $row->id)->get();
+        $recorridos = RecorridoDoc::with('user')->where('id_mentrada', $row->id)->get();
         $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
         $pdf->SetPrintHeader(false); // Deshabilita la impresión del encabezado
         $pdf->SetFont('Times', 'IU', 14);
@@ -835,7 +848,7 @@ class MesaEntradaController extends Controller
             // Escribir la descripción en negrita
             $pdf->SetX($xPosition + 10);
             $pdf->SetFont('Times', 'B', 12);
-            $pdf->Write(0, $recorrido->descripcion);
+            $pdf->Write(0, $recorrido->descripcion.' - Usuario: '.$recorrido->user->name);
 
             // Escribir la fecha debajo de la descripción
             $pdf->Ln(7); // Espacio para la fecha

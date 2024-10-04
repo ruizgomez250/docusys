@@ -109,6 +109,10 @@
                                     {{ $row->estado == '1' ? 'Recepcionado' : 'Enviado' }}</td>
                                 <td>{{ $row->user->name ?? 'N/A' }}</td>
                                 <td style="float:right;">
+                                    <a href="{{ route('reporte.recorrido', $row) }}" target="_blank"
+                                        class="btn btn-sm btn-outline-secondary">
+                                        <i class="fa fa-file-pdf"></i>
+                                    </a>
                                     @if ($row->estado == 1)
                                         <a href="{{ route('mesaentrada.edit', $row->id) }}"
                                             class="btn btn-sm  btn-outline-secondary">

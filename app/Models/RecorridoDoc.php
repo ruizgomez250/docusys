@@ -17,11 +17,16 @@ class RecorridoDoc extends Model
         'descripcion',
         'id_mentrada',
         'fecha',
+        'id_usuario',
     ];
 
     // Definir la relación con la tabla mesa_entrada
     public function mesaEntrada()
     {
         return $this->belongsTo(MesaEntrada::class, 'id_mentrada');
+    }
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'id_usuario');
     }
 }
