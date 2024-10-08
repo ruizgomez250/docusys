@@ -78,14 +78,14 @@
                                 <td>{{ $row->fecha_recepcion }}</td>
                                 <td>{{ $row->origen->nombre ?? 'N/A' }}</td>
                                 <td>{{ $row->tipoDoc->nombre ?? 'N/A' }}</td>
-                                <td>{{ $destinosArray[$row->destinointerno] ?? 'Desconocido' }}</td>
+                                <td></td>
                                 <td>{{ $row->observacion }}</td>
-                                <td class="{{ $row->estado == '2' ? 'text-danger' : 'text-success' }}">
-                                    @if ($row->estado == '2')
+                                <td class="{{ $row->estado_recorrido == '2' ? 'text-danger' : 'text-success' }}">
+                                    @if ($row->estado_recorrido == '2')
                                         Enviado
-                                    @elseif ($row->estado == '3')
+                                    @elseif ($row->estado_recorrido == '3')
                                         Aceptado
-                                    @elseif ($row->estado == '4')
+                                    @elseif ($row->estado_recorrido == '4')
                                         Redireccionado
                                     @elseif ($row->estado == '0')
                                         Trámite Finalizado
@@ -105,7 +105,7 @@
                                             <i class="fa fa-sm fa-fw fa-print"></i>
                                         </button>
                                     @endif
-                                    @if ($row->estado == '2')
+                                    @if ($row->estado_recorrido == '2')
                                         <x-adminlte-button theme="outline-danger" data-toggle="modal"
                                             data-target="#modalDestinos" class="btn-sm " icon="fas fa-paper-plane"
                                             onclick="cargarmentrada({{ $row->id }})" />

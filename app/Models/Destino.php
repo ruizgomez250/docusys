@@ -14,4 +14,8 @@ class Destino extends Model
     protected $fillable = [
         'nombre','default',
     ];
+    public function destino()
+    {
+        return $this->belongsTo(Destino::class, 'id_destino');
+    }
 }

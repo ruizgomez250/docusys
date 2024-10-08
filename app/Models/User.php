@@ -52,5 +52,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(RecorridoDoc::class, 'id_usuario');
     }
+    public function mesaEntrada()
+    {
+        return $this->hasMany(MesaEntrada::class, 'id_usuario');
+    }
 
 }

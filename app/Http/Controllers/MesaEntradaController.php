@@ -73,7 +73,7 @@ class MesaEntradaController extends Controller
         $iddest = $userDestino->destino_id;
         $destinos = Destino::all();
         $mesasEntrada = MesaEntrada::join('mapa_recorrido', 'mesa_entrada.id', '=', 'mapa_recorrido.id_mentrada')
-            ->where('mapa_recorrido.estado', '>', 0)
+            ->where('mapa_recorrido.estado', '=', 1)
             ->where('mapa_recorrido.id_actual', $iddest)
             ->select(
                 'mesa_entrada.*',
@@ -111,29 +111,43 @@ class MesaEntradaController extends Controller
         $userDestino = UserDestino::where('user_id', $userId)->first();
         $iddest = $userDestino->destino_id;
         $destinos = Destino::all();
-        $mesasEntrada = MesaEntrada::whereIn('id', function ($query) use ($iddest) {
+        $mesasEntrada = MesaEntrada::whereIn('id', function ($query) use ($iddest) { 
             $query->select('me.id')
                 ->from('mesa_entrada as me')
                 ->join('mapa_recorrido as mr', 'mr.id_mentrada', '=', 'me.id')
                 ->where('mr.id_actual', $iddest)
-                ->where('mr.estado', 0)
+                ->where('mr.estado', '=', 0) // Excluir estado 1
                 ->distinct();
         })
-            ->with('documentos') // Cargar la relación documentos
-            ->get()
-            ->map(function ($mesaEntrada) {
-                // Agregar la propiedad si tiene documentos
-                $mesaEntrada->tiene_documentos = $mesaEntrada->documentos->isNotEmpty();
-
-                // Cargar el campo created_at de mapa_recorrido
-                $mesaEntrada->fecha_creacion_recorrido = DB::table('mapa_recorrido')
-                    ->where('id_mentrada', $mesaEntrada->id)
-                    ->orderBy('created_at', 'desc') // Asegúrate de seleccionar la fecha correcta si hay múltiples registros
-                    ->value('created_at');
-
-                return $mesaEntrada;
-            });
-
+        ->with([
+            'documentos', // Cargar la relación con documentos
+            'recorridoDocs' => function ($query) {
+                $query->orderBy('created_at', 'desc');
+            },
+            'user' // Cargar la relación con el usuario
+        ])
+        ->get()
+        ->map(function ($mesaEntrada) {
+            // Agregar la propiedad si tiene documentos
+            $mesaEntrada->tiene_documentos = $mesaEntrada->documentos->isNotEmpty();
+        
+            // Obtener el último recorrido con el destino
+            $recorrido = DB::table('mapa_recorrido as mr')
+                ->leftJoin('destinos as d', 'mr.id_destino', '=', 'd.id') // Unir con la tabla destinos
+                ->where('mr.id_mentrada', $mesaEntrada->id)
+                ->orderBy('mr.created_at', 'desc') // Ordenar por la fecha de creación más reciente
+                ->first(['mr.created_at', 'mr.estado', 'd.nombre as destino_nombre']); // Traer también el nombre del destino
+        
+            // Asignar la fecha de creación del recorrido, estado y nombre del destino
+            $mesaEntrada->fecha_creacion_recorrido = $recorrido ? $recorrido->created_at : null;
+            $mesaEntrada->estado_recorrido = $recorrido ? $recorrido->estado : null;
+            $mesaEntrada->destino_nombre = $recorrido ? $recorrido->destino_nombre : null; // Nombre del destino
+        
+            return $mesaEntrada;
+        });
+        
+              
+        
         return view('mesa_entrada.reenviado', ['mesasEntrada' => $mesasEntrada, 'destinos' => $destinos, 'heads' => $heads]);
     }
     public function finalizado()
@@ -692,10 +706,13 @@ class MesaEntradaController extends Controller
 
 
             if ($mapaRecorrido) {
+                $mapaRecorrido->estado = 2;
+                $mapaRecorrido->save();
+
 
                 $mesaEntrada = MesaEntrada::findOrFail($id);
-                $mesaEntrada->estado = 3;
-                $mesaEntrada->save();
+                // $mesaEntrada->estado = 3;
+                // $mesaEntrada->save();
                 date_default_timezone_set('America/Asuncion'); // Cambia 'America/Asuncion' por tu zona horaria
 
                 // Obtener la fecha y hora actual en el formato deseado
