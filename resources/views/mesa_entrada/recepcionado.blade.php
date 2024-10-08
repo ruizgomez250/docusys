@@ -86,7 +86,7 @@
                                 </td>
                                 <td>{{ $row->user->name ?? 'N/A' }}</td>
                                 <td style="float:right;">
-                                    @if ($row->estado == 2)
+                                    @if ($row->estado == 2 && $row->mapa_estado == 1)
                                         <form action="{{ route('mesaentrada.aceptar', $row->id) }}" method="post"
                                             class="d-inline enviar-form">
                                             @csrf
@@ -94,7 +94,7 @@
                                                 <i class="fas fa-check"></i>
                                             </button>
                                         </form>
-                                    @elseif($row->estado == 3)
+                                    @elseif($row->estado == 2 && $row->mapa_estado == 2 )
                                         {{-- <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal"
                                             data-bs-target="#modalDestinos">
                                             <i class="fas fa-paper-plane"></i>
@@ -150,6 +150,7 @@
                                 </option>
                             @endforeach
                         </x-adminlte-select2>
+                        <input type="hidden" name="masdestinos" id="masdestinos" value="0">
                         <input type="hidden" name="idmentrada" id="idmentrada" required>
                         <div class="modal-footer">
                             <button type="submit" class="btn btn-primary">Enviar</button>

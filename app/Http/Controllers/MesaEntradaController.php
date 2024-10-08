@@ -16,6 +16,7 @@ use App\Models\UserDestino;
 use Illuminate\Http\Request;
 use Exception;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 use function PHPUnit\Framework\isNull;
@@ -73,7 +74,7 @@ class MesaEntradaController extends Controller
         $iddest = $userDestino->destino_id;
         $destinos = Destino::all();
         $mesasEntrada = MesaEntrada::join('mapa_recorrido', 'mesa_entrada.id', '=', 'mapa_recorrido.id_mentrada')
-            ->where('mapa_recorrido.estado', '=', 1)
+            ->where('mapa_recorrido.estado', '!=', 0)
             ->where('mapa_recorrido.id_actual', $iddest)
             ->select(
                 'mesa_entrada.*',
@@ -89,6 +90,7 @@ class MesaEntradaController extends Controller
                 $mesaEntrada->tiene_documentos = $mesaEntrada->documentos->isNotEmpty();
                 return $mesaEntrada;
             });
+        //dd($mesasEntrada);
         return view('mesa_entrada.recepcionado', ['mesasEntrada' => $mesasEntrada, 'destinos' => $destinos, 'heads' => $heads]);
     }
     public function reenviado()
@@ -145,7 +147,7 @@ class MesaEntradaController extends Controller
         
             return $mesaEntrada;
         });
-        
+        // dd($mesasEntrada);
               
         
         return view('mesa_entrada.reenviado', ['mesasEntrada' => $mesasEntrada, 'destinos' => $destinos, 'heads' => $heads]);
@@ -642,8 +644,11 @@ class MesaEntradaController extends Controller
         DB::beginTransaction();
 
         try {
+            $userId = Auth::id();
+            $userDestino = UserDestino::where('user_id', $userId)->first();
             $mapaRecorrido = MapaRecorrido::where('id_mentrada', $id)
                 ->where('estado', '>', 0)
+                ->where('id_actual', $userDestino->destino_id)
                 ->first();
 
             if ($mapaRecorrido) {
@@ -700,9 +705,13 @@ class MesaEntradaController extends Controller
 
         try {
             // Buscar el mapa de recorrido por id_mentrada
+            $userId = Auth::id();
+            $userDestino = UserDestino::where('user_id', $userId)->first();
             $mapaRecorrido = MapaRecorrido::where('id_mentrada', $id)
                 ->where('estado', 1)
+                ->where('id_actual', $userDestino->destino_id)
                 ->first();
+            
 
 
             if ($mapaRecorrido) {
@@ -746,21 +755,27 @@ class MesaEntradaController extends Controller
     public function finalizar($id)
     {
         DB::beginTransaction();
-
+        
         try {
             // Buscar el mapa de recorrido por id_mentrada
+            $contador = MapaRecorrido::where('id_mentrada', $id)
+                ->where('estado','>', 0) 
+                ->count();
+            $userId = Auth::id();
+            $userDestino = UserDestino::where('user_id', $userId)->first();
             $mapaRecorrido = MapaRecorrido::where('id_mentrada', $id)
-                ->where('estado', 1)
-                ->first();
-
-
+                ->where('estado', 2)
+                ->where('id_actual', $userDestino->destino_id)
+                ->first();     
             if ($mapaRecorrido) {
                 $mapaRecorrido->estado = 0;
                 $mapaRecorrido->save();
-
-                $mesaEntrada = MesaEntrada::findOrFail($id);
-                $mesaEntrada->estado = 0;
-                $mesaEntrada->save();
+                
+                if($contador == 1){
+                    $mesaEntrada = MesaEntrada::findOrFail($id);
+                    $mesaEntrada->estado = 0;
+                    $mesaEntrada->save();
+                }
                 date_default_timezone_set('America/Asuncion'); // Cambia 'America/Asuncion' por tu zona horaria
 
                 // Obtener la fecha y hora actual en el formato deseado
@@ -787,7 +802,6 @@ class MesaEntradaController extends Controller
                 return redirect()->route('recepciondoc')->with('error', 'Mesa de Entrada no se pudo actualizar.');
             }
         } catch (\Exception $e) {
-            dd($e);
             DB::rollBack();
             return redirect()->route('recepciondoc')->with('error', 'Mesa de Entrada no se pudo actualizar.');
         }
@@ -796,14 +810,31 @@ class MesaEntradaController extends Controller
     {
 
         DB::beginTransaction();
-
         try {
             // Buscar el mapa de recorrido por id_mentrada
             $id = $request->post('idmentrada');
+            $userId = Auth::id();
+            $userDestino = UserDestino::where('user_id', $userId)->first();
+
+            
             $mapaRecorrido = MapaRecorrido::where('id_mentrada', $id)
-                ->where('estado', 1)
+                ->where('estado', 2)
+                ->where('id_actual', $userDestino->destino_id)
                 ->first();
 
+            if($request->post('masdestinos') == 1 ){
+                date_default_timezone_set('America/Asuncion');
+
+                $mapaRecorrido = MapaRecorrido::create([
+                    'id_mentrada' => $id,
+                    'fecha_recepcion' => now(),
+                    'id_actual' => $userDestino->destino_id,
+                    'id_destino' => null,
+                    'observacion' => 'Nuevo recorrido creado',
+                    'estado' => 1,
+                ]);
+
+            }
             if ($mapaRecorrido) {
 
                 $mapaRecorrido->id_destino = $request->post('id_destino');
@@ -837,7 +868,7 @@ class MesaEntradaController extends Controller
                 $mesaEntrada = MesaEntrada::findOrFail($id);
                 $mesaEntrada->estado = 2;
                 $mesaEntrada->save();
-                //dd($nuevoMapaRecorrido);
+                
                 DB::commit();
                 return redirect()->route('recepciondoc')->with('success', 'Mesa de Entrada actualizada exitosamente.');
             } else {

@@ -83,7 +83,7 @@
                                 <td class="{{ $row->estado_recorrido == '2' ? 'text-danger' : 'text-success' }}">
                                     @if ($row->estado_recorrido == '2')
                                         Enviado
-                                    @elseif ($row->estado_recorrido == '3')
+                                    @elseif ($row->estado_recorrido == '0')
                                         Aceptado
                                     @elseif ($row->estado_recorrido == '4')
                                         Redireccionado
@@ -105,7 +105,7 @@
                                             <i class="fa fa-sm fa-fw fa-print"></i>
                                         </button>
                                     @endif
-                                    @if ($row->estado_recorrido == '2')
+                                    @if ($row->estado_recorrido > 0)
                                         <x-adminlte-button theme="outline-danger" data-toggle="modal"
                                             data-target="#modalDestinos" class="btn-sm " icon="fas fa-paper-plane"
                                             onclick="cargarmentrada({{ $row->id }})" />
@@ -136,10 +136,17 @@
                                 </option>
                             @endforeach
                         </x-adminlte-select2>
+
                         <input type="hidden" name="idmentrada" id="idmentrada" required>
+
+                        <!-- Campo hidden para masdestinos -->
+                        <input type="hidden" name="masdestinos" id="masdestinos" value="0">
+
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                            <button type="submit" class="btn btn-primary">Enviar</button>
+                            <button type="submit" class="btn btn-info" onclick="setMasDestinos(1)"
+                                data-bs-dismiss="modal">Fijar Otro destino más</button>
+                            <button type="submit" class="btn btn-primary" onclick="setMasDestinos(0)">Cambiar Destino
+                                Enviado</button>
                         </div>
                     </form>
                 </div>
@@ -174,6 +181,10 @@
 @stop
 @push('js')
     <script>
+        function setMasDestinos(value) {
+            // Cambia el valor del campo hidden a 0 o 1
+            document.getElementById('masdestinos').value = value;
+        }
         $('.enviar-button').on('click', function() {
             var form = $(this).closest('.enviar-form');
             Swal.fire({
