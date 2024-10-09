@@ -33,7 +33,7 @@ class MesaEntradaController extends Controller
     public function index()
     {
         $heads = [
-            'ID',
+            '',
             'Nro MEntrada',
             'Año',
             'Fecha Recepción',
@@ -57,7 +57,7 @@ class MesaEntradaController extends Controller
     public function recepcionado()
     {
         $heads = [
-            'ID',
+            '',
             'Nro MEntrada',
             'Año',
             'Fecha Recepción',
@@ -96,7 +96,7 @@ class MesaEntradaController extends Controller
     public function reenviado()
     {
         $heads = [
-            'ID',
+            '',
             'Nro MEntrada',
             'Año',
             'Fecha Recepción',
@@ -155,7 +155,7 @@ class MesaEntradaController extends Controller
     public function finalizado()
     {
         $heads = [
-            'ID',
+            '',
             'Nro MEntrada',
             'Año',
             'Fecha Recepción',

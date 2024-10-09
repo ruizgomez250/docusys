@@ -97,7 +97,7 @@
 
                         @foreach ($mesasEntrada as $row)
                             <tr>
-                                <td>{{ $row->id }} <i class="fa fa-plus-circle text-primary details-control"></i></td>
+                                <td><i class="fa fa-plus-circle text-primary details-control"></i></td>
                                 <td>{{ $row->nro_mentrada }}</td>
                                 <td>{{ $row->anho }}</td>
                                 <td>{{ $row->fecha_recepcion }}</td>
