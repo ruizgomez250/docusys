@@ -1014,4 +1014,11 @@ class MesaEntradaController extends Controller
         $mesaEntrada = MesaEntrada::with('documentos')->findOrFail($id);
         return response()->json($mesaEntrada->documentos);
     }
+    public function firmantes($id)
+    {
+        $firmantes = MesaEntradaFirmante::where('id_mentrada', $id)
+        ->with('firmante') // Cargar la relación firmante
+        ->get();
+        return response()->json($firmantes);
+    }
 }
