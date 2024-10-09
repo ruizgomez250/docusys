@@ -97,7 +97,7 @@
 
                         @foreach ($mesasEntrada as $row)
                             <tr>
-                                <td>{{ $row->id }}</td>
+                                <td>{{ $row->id }} <i class="fa fa-plus-circle text-primary details-control"></i></td>
                                 <td>{{ $row->nro_mentrada }}</td>
                                 <td>{{ $row->anho }}</td>
                                 <td>{{ $row->fecha_recepcion }}</td>
@@ -173,6 +173,7 @@
 @stop
 @push('js')
     <script>
+        
         function openDocumentosModal(id) {
             $.ajax({
                 url: '{{ route('mesaentrada.documentos', '') }}/' + id,
