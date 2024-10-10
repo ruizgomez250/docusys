@@ -64,28 +64,43 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-body">
-                    <x-adminlte-datatable id="table1" :heads="$heads" head-theme="dark" theme="light" striped hoverable
-                        with-buttons>
-                        @php
-                            // Convertir la colección de destinos a un array con los IDs como claves y los nombres como valores
-                            $destinosArray = $destinos->pluck('nombre', 'id')->toArray();
-                        @endphp
-                        @foreach ($mesasEntrada as $row)
+                    <table id="table1" class="table table-bordered table-hover" theme="light">
+                        <thead>
                             <tr>
-                                <td>{{ $row->id }}</td>
+                                
+                                <th></th> <!-- Columna para el botón de expansión -->
+                                <th>Nro MEntrada</th>
+                                <th>Año</th>
+                                <th>Fecha Recepción</th>
+                                <th>Origen</th>
+                                <th>Tipo Doc</th>
+                                <th>Destino</th>
+                                <th>Observación</th>
+                                <th>Estado</th>
+                                <th>Usuario</th>
+                                <th>Acciones</th>
+                                <th>Ult. Act.</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($mesasEntrada as $row)
+                            <tr data-child-id="{{ $row->id }}">
+                                <td class="details-control text-center">
+                                    <i class="fa fa-plus-circle text-primary"></i> <!-- Ícono de expansión -->
+                                </td>
                                 <td>{{ $row->nro_mentrada }}</td>
                                 <td>{{ $row->anho }}</td>
                                 <td>{{ $row->fecha_recepcion }}</td>
                                 <td>{{ $row->origen->nombre ?? 'N/A' }}</td>
                                 <td>{{ $row->tipoDoc->nombre ?? 'N/A' }}</td>
-                                <td>{{ $destinosArray[$row->destinointerno] ?? 'Desconocido' }}</td>
+                                <td></td>
                                 <td>{{ $row->observacion }}</td>
-                                <td class="{{ $row->estado == '2' ? 'text-danger' : 'text-success' }}">
-                                    @if ($row->estado == '2')
+                                <td class="{{ $row->estado_recorrido == '2' ? 'text-danger' : 'text-success' }}">
+                                    @if ($row->estado_recorrido == '2')
                                         Enviado
-                                    @elseif ($row->estado == '3')
+                                    @elseif ($row->estado_recorrido == '0')
                                         Aceptado
-                                    @elseif ($row->estado == '4')
+                                    @elseif ($row->estado_recorrido == '4')
                                         Redireccionado
                                     @elseif ($row->estado == '0')
                                         Trámite Finalizado
@@ -105,15 +120,20 @@
                                             <i class="fa fa-sm fa-fw fa-print"></i>
                                         </button>
                                     @endif
-                                    @if ($row->estado == '2')
+                                    @if ($row->estado_recorrido > 0)
                                         <x-adminlte-button theme="outline-danger" data-toggle="modal"
                                             data-target="#modalDestinos" class="btn-sm " icon="fas fa-paper-plane"
                                             onclick="cargarmentrada({{ $row->id }})" />
                                     @endif
                                 </td>
+                                <td>{{ $row->fecha_creacion_recorrido }}</td>
                             </tr>
                         @endforeach
-                    </x-adminlte-datatable>
+                            
+
+                        </tbody>
+                    </table>
+                    
                 </div>
             </div>
         </div>
@@ -135,10 +155,17 @@
                                 </option>
                             @endforeach
                         </x-adminlte-select2>
+
                         <input type="hidden" name="idmentrada" id="idmentrada" required>
+
+                        <!-- Campo hidden para masdestinos -->
+                        <input type="hidden" name="masdestinos" id="masdestinos" value="0">
+
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                            <button type="submit" class="btn btn-primary">Enviar</button>
+                            <button type="submit" class="btn btn-info" onclick="setMasDestinos(1)"
+                                data-bs-dismiss="modal">Fijar Otro destino más</button>
+                            <button type="submit" class="btn btn-primary" onclick="setMasDestinos(0)">Cambiar Destino
+                                Enviado</button>
                         </div>
                     </form>
                 </div>
@@ -173,6 +200,96 @@
 @stop
 @push('js')
     <script>
+        $(document).ready(function() {
+            // Inicialización de DataTables
+            var table = $('#table1').DataTable({
+                responsive: true,
+                autoWidth: false,
+                columnDefs: [{
+                        className: 'details-control', // Agrega clase de control de detalles
+                        orderable: false, // No se puede ordenar por esta columna
+                        targets: 0 // Índice de la columna de flechita
+                    },
+                    {
+                        orderable: false,
+                        targets: -1 // Última columna (acciones)
+                    }
+                ],
+                order: [
+                    [11, 'desc']
+                ], // Ordenar por el ID (columna 1)
+            });
+
+            // Función para generar HTML de detalles adicionales
+            function format(details) {
+                var detalleHTML = '<table class="table table-bordered table-hover table-sm">' +
+                    '<thead>' +
+                    '<tr>' +
+                    '<th>N</th>' +
+                    '<th>Cedula</th>' +
+                    '<th>Nombre</th>' +
+                    '<th>Telefono</th>' +
+                    '<th>Email</th>' +
+                    '</tr>' +
+                    '</thead>' +
+                    '<tbody>';
+                details.forEach(function(detalle, index) {
+                    detalleHTML += '<tr>' +
+                        '<td>' + (index + 1) + '</td>' + // N
+                        '<td>' + (detalle.firmante.cedula || '-') + '</td>' + // Cedula
+                        '<td>' + (detalle.firmante.nombre || '-') + '</td>' + // Nombre
+                        '<td>' + (detalle.firmante.telefono || '-') + '</td>' + // Telefono
+                        '<td>' + (detalle.firmante.correo || '-') + '</td>' + // Email
+                        '</tr>';
+                });
+                detalleHTML += '</tbody></table>';
+                return detalleHTML;
+            }
+
+            // Evento de clic en la flechita para mostrar/ocultar detalles
+            $('#table1 tbody').on('click', 'td.details-control', function() {
+                var tr = $(this).closest('tr');
+                var row = table.row(tr);
+                var id = tr.data('child-id'); // Obtener el ID del elemento (Mesa de entrada)
+                var iconElement = $(this).find('i'); // Guardar el elemento del ícono
+
+                if (row.child.isShown()) {
+                    // Si el detalle está visible, lo ocultamos
+                    row.child.hide();
+                    tr.removeClass('shown');
+                    iconElement.removeClass('fa-minus-circle').addClass('fa-plus-circle');
+                } else {
+                    // Si el detalle está oculto, lo mostramos
+                    $.ajax({
+                        url: '{{ route('mesaentrada.firmantes', '') }}/' +
+                        id, // Verificar si la ruta se forma correctamente
+                        method: 'GET',
+                        success: function(response) {
+
+                            // Utilizar el objeto de respuesta directamente como array de detalles
+                            var detalles =
+                            response; // Aquí 'response' ya es un array de objetos, no 'response.detalles'
+                            if (detalles.length > 0) {
+                                // Mostramos el detalle
+                                row.child(format(detalles)).show();
+                                tr.addClass('shown');
+                                iconElement.removeClass('fa-plus-circle').addClass(
+                                    'fa-minus-circle');
+                            } else {
+                                console.log('No se encontraron detalles.');
+                            }
+                        },
+                        error: function() {
+                            console.log('Error al obtener detalles.');
+                        }
+                    });
+                }
+            });
+        });
+        function setMasDestinos(value) {
+            // Cambia el valor del campo hidden a 0 o 1
+            document.getElementById('masdestinos').value = value;
+        }
         $('.enviar-button').on('click', function() {
             var form = $(this).closest('.enviar-form');
             Swal.fire({

@@ -17,7 +17,7 @@
                     <p class="bg-light p-2 rounded">Presidente</p>
                     
                     <h6 class="font-weight-bold">Solicitud de Proyecto</h6>
-                    <p class="bg-light p-2 rounded">Secretaria General Administrativa</p>
+                    <p class="bg-light p-2 rounded">Secretario General Administrativo: Lic. Carlos Samudio</p>
                     <p class="bg-light p-2 rounded">Secretario Administrativo: Abg. Julio Cesar Cabrera Guerrero</p>
                     
                     <h6 class="font-weight-bold">Construcción del Proyecto</h6>

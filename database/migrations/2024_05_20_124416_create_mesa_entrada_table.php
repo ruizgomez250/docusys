@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('mesa_entrada', function (Blueprint $table) {
             $table->id();
-            $table->string('nro_mentrada');
+            $table->integer('nro_mentrada');
             $table->integer('anho');
             $table->date('fecha_recepcion');
             $table->foreignId('id_origen')->constrained('origen');

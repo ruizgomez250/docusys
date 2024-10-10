@@ -3,7 +3,7 @@
 @section('content_header')
     <div class="row">
         <div class="col-6">
-            <h1 class="m-0 custom-heading">Lista de Mesas de Entradas</h1>
+            <h1 class="m-0 custom-heading">LISTA MESA DE ENTRADA</h1>
         </div>
         <div class="col-6">
             <a href="{{ route('mesaentrada.create') }}" class="btn btn-primary" style="float: right;">Registrar Nueva Mesa de
@@ -85,63 +85,81 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-body">
-                    @php
-                        $config = [
-                            'order' => [[3, 'desc']], // Ordenar por la cuarta columna (índice 3) en orden ascendente
-                        ];
-                    @endphp
-                    <x-adminlte-datatable id="table1" :heads="$heads" head-theme="dark" theme="light" striped
-                        hoverable with-buttons :config="$config">
-
-
-
-                        @foreach ($mesasEntrada as $row)
+                    <table id="table1" class="table table-bordered table-hover" theme="light">
+                        <thead>
                             <tr>
-                                <td>{{ $row->id }}</td>
-                                <td>{{ $row->nro_mentrada }}</td>
-                                <td>{{ $row->anho }}</td>
-                                <td>{{ $row->fecha_recepcion }}</td>
-                                <td>{{ $row->origen->nombre ?? 'N/A' }}</td>
-                                <td>{{ $row->tipoDoc->nombre ?? 'N/A' }}</td>
-                                <td>{{ $row->destino->nombre ?? 'N/A' }}</td>
-                                <td>{{ $row->observacion }}</td>
-                                <td class="{{ $row->estado == '1' ? 'text-danger' : 'text-success' }}">
-                                    {{ $row->estado == '1' ? 'Recepcionado' : 'Enviado' }}</td>
-                                <td>{{ $row->user->name ?? 'N/A' }}</td>
-                                <td style="float:right;">
-                                    @if ($row->estado == 1)
-                                        <a href="{{ route('mesaentrada.edit', $row->id) }}"
-                                            class="btn btn-sm  btn-outline-secondary">
-                                            <i class="fa fa-sm fa-fw fa-pen"></i>
-                                        </a>
-                                        <form action="{{ route('mesaentrada.destroy', $row->id) }}" method="post"
-                                            class="d-inline delete-form">
-                                            @csrf
-                                            @method('DELETE')
-                                            <input type="hidden" name="id_mentrada" value="{{ $row->id }}" />
-                                            <button type="button" class="btn btn-sm  btn-outline-secondary delete-button">
-                                                <ion-icon name="trash-outline"><i
-                                                        class="fa fa-sm fa-fw fa-trash"></i></ion-icon>
-                                            </button>
-                                        </form>
-                                        <form action="{{ route('mesaentrada.enviar', $row->id) }}" method="post"
-                                            class="d-inline enviar-form">
-                                            @csrf
-                                            <button type="button" class="btn btn-sm  btn-outline-secondary enviar-button">
-                                                <i class="fas fa-paper-plane"></i>
-                                            </button>
-                                        </form>
-                                    @endif
-                                    @if ($row->tiene_documentos)
-                                        <button type="button" class="btn btn-sm btn-outline-secondary"
-                                            onclick="openDocumentosModal({{ $row->id }})">
-                                            <i class="fa fa-sm fa-fw fa-print"></i>
-                                        </button>
-                                    @endif
-                                </td>
+                                <th></th> <!-- Columna para el botón de expansión -->
+                                <th>Nro MEntrada</th>
+                                <th>Año</th>
+                                <th>Fecha Recepción</th>
+                                <th>Origen</th>
+                                <th>Tipo Doc</th>
+                                <th>Destino</th>
+                                <th>Observación</th>
+                                <th>Estado</th>
+                                <th>Usuario</th>
+                                <th>Acciones</th>
                             </tr>
-                        @endforeach
-                    </x-adminlte-datatable>
+                        </thead>
+                        <tbody>
+                            @foreach ($mesasEntrada as $row)
+                                <tr data-child-id="{{ $row->id }}">
+                                    <td class="details-control text-center">
+                                        <i class="fa fa-plus-circle text-primary"></i> <!-- Ícono de expansión -->
+                                    </td>
+                                    <td>{{ $row->nro_mentrada }}</td>
+                                    <td>{{ $row->anho }}</td>
+                                    <td>{{ $row->fecha_recepcion }}</td>
+                                    <td>{{ $row->origen->nombre ?? 'N/A' }}</td>
+                                    <td>{{ $row->tipoDoc->nombre ?? 'N/A' }}</td>
+                                    <td>{{ $row->destino->nombre ?? 'N/A' }}</td>
+                                    <td>{{ $row->observacion }}</td>
+                                    <td class="{{ $row->estado == '1' ? 'text-danger' : 'text-success' }}">
+                                        {{ $row->estado == '1' ? 'Recepcionado' : 'Enviado' }}</td>
+                                    <td>{{ $row->user->name ?? 'N/A' }}</td>
+                                    <td style="float:right;">
+                                        <a href="{{ route('reporte.recorrido', $row) }}" target="_blank"
+                                            class="btn btn-sm btn-outline-secondary">
+                                            <i class="fa fa-file-pdf"></i>
+                                        </a>
+                                        @if ($row->estado == 1)
+                                            <a href="{{ route('mesaentrada.edit', $row->id) }}"
+                                                class="btn btn-sm  btn-outline-secondary">
+                                                <i class="fa fa-sm fa-fw fa-pen"></i>
+                                            </a>
+                                            <form action="{{ route('mesaentrada.destroy', $row->id) }}" method="post"
+                                                class="d-inline delete-form">
+                                                @csrf
+                                                @method('DELETE')
+                                                <input type="hidden" name="id_mentrada" value="{{ $row->id }}" />
+                                                <button type="button"
+                                                    class="btn btn-sm  btn-outline-secondary delete-button">
+                                                    <ion-icon name="trash-outline"><i
+                                                            class="fa fa-sm fa-fw fa-trash"></i></ion-icon>
+                                                </button>
+                                            </form>
+                                            <form action="{{ route('mesaentrada.enviar', $row->id) }}" method="post"
+                                                class="d-inline enviar-form">
+                                                @csrf
+                                                <button type="button"
+                                                    class="btn btn-sm  btn-outline-secondary enviar-button">
+                                                    <i class="fas fa-paper-plane"></i>
+                                                </button>
+                                            </form>
+                                        @endif
+                                        @if ($row->tiene_documentos)
+                                            <button type="button" class="btn btn-sm btn-outline-secondary"
+                                                onclick="openDocumentosModal({{ $row->id }})">
+                                                <i class="fa fa-sm fa-fw fa-print"></i>
+                                            </button>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+
+
                 </div>
             </div>
         </div>
@@ -169,6 +187,94 @@
 @stop
 @push('js')
     <script>
+        $(document).ready(function() {
+            // Inicialización de DataTables
+            var table = $('#table1').DataTable({
+                responsive: true,
+                autoWidth: false,
+                columnDefs: [{
+                        className: 'details-control', // Agrega clase de control de detalles
+                        orderable: false, // No se puede ordenar por esta columna
+                        targets: 0 // Índice de la columna de flechita
+                    },
+                    {
+                        orderable: false,
+                        targets: -1 // Última columna (acciones)
+                    }
+                ],
+                order: [
+                    [3, 'desc']
+                ], // Ordenar por el ID (columna 1)
+            });
+
+            // Función para generar HTML de detalles adicionales
+            function format(details) {
+                var detalleHTML = '<table class="table table-bordered table-hover table-sm">' +
+                    '<thead>' +
+                    '<tr>' +
+                    '<th>N</th>' +
+                    '<th>Cedula</th>' +
+                    '<th>Nombre</th>' +
+                    '<th>Telefono</th>' +
+                    '<th>Email</th>' +
+                    '</tr>' +
+                    '</thead>' +
+                    '<tbody>';
+                details.forEach(function(detalle, index) {
+                    detalleHTML += '<tr>' +
+                        '<td>' + (index + 1) + '</td>' + // N
+                        '<td>' + (detalle.firmante.cedula || '-') + '</td>' + // Cedula
+                        '<td>' + (detalle.firmante.nombre || '-') + '</td>' + // Nombre
+                        '<td>' + (detalle.firmante.telefono || '-') + '</td>' + // Telefono
+                        '<td>' + (detalle.firmante.correo || '-') + '</td>' + // Email
+                        '</tr>';
+                });
+                detalleHTML += '</tbody></table>';
+                return detalleHTML;
+            }
+
+            // Evento de clic en la flechita para mostrar/ocultar detalles
+            $('#table1 tbody').on('click', 'td.details-control', function() {
+                var tr = $(this).closest('tr');
+                var row = table.row(tr);
+                var id = tr.data('child-id'); // Obtener el ID del elemento (Mesa de entrada)
+                var iconElement = $(this).find('i'); // Guardar el elemento del ícono
+
+                if (row.child.isShown()) {
+                    // Si el detalle está visible, lo ocultamos
+                    row.child.hide();
+                    tr.removeClass('shown');
+                    iconElement.removeClass('fa-minus-circle').addClass('fa-plus-circle');
+                } else {
+                    // Si el detalle está oculto, lo mostramos
+                    $.ajax({
+                        url: '{{ route('mesaentrada.firmantes', '') }}/' +
+                        id, // Verificar si la ruta se forma correctamente
+                        method: 'GET',
+                        success: function(response) {
+
+                            // Utilizar el objeto de respuesta directamente como array de detalles
+                            var detalles =
+                            response; // Aquí 'response' ya es un array de objetos, no 'response.detalles'
+                            if (detalles.length > 0) {
+                                // Mostramos el detalle
+                                row.child(format(detalles)).show();
+                                tr.addClass('shown');
+                                iconElement.removeClass('fa-plus-circle').addClass(
+                                    'fa-minus-circle');
+                            } else {
+                                console.log('No se encontraron detalles.');
+                            }
+                        },
+                        error: function() {
+                            console.log('Error al obtener detalles.');
+                        }
+                    });
+                }
+            });
+        });
+
+
         function openDocumentosModal(id) {
             $.ajax({
                 url: '{{ route('mesaentrada.documentos', '') }}/' + id,

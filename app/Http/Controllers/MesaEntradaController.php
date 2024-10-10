@@ -16,6 +16,7 @@ use App\Models\UserDestino;
 use Illuminate\Http\Request;
 use Exception;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 use function PHPUnit\Framework\isNull;
@@ -32,7 +33,7 @@ class MesaEntradaController extends Controller
     public function index()
     {
         $heads = [
-            'ID',
+            '',
             'Nro MEntrada',
             'Año',
             'Fecha Recepción',
@@ -56,7 +57,7 @@ class MesaEntradaController extends Controller
     public function recepcionado()
     {
         $heads = [
-            'ID',
+            '',
             'Nro MEntrada',
             'Año',
             'Fecha Recepción',
@@ -65,28 +66,37 @@ class MesaEntradaController extends Controller
             'Observación',
             'Estado',
             'Usuario',
-            'Acción'
+            'Acción',
+            'Ult. Act.'
         ];
         $userId = auth()->id();
         $userDestino = UserDestino::where('user_id', $userId)->first();
         $iddest = $userDestino->destino_id;
         $destinos = Destino::all();
         $mesasEntrada = MesaEntrada::join('mapa_recorrido', 'mesa_entrada.id', '=', 'mapa_recorrido.id_mentrada')
-            ->where('mapa_recorrido.estado', '>', 0)
+            ->where('mapa_recorrido.estado', '!=', 0)
             ->where('mapa_recorrido.id_actual', $iddest)
-            ->select('mesa_entrada.*', 'mapa_recorrido.estado as mapa_estado', 'mapa_recorrido.observacion as mapa_observacion', 'mapa_recorrido.id_actual as origeninterno', 'mapa_recorrido.id_destino as destinointerno')
+            ->select(
+                'mesa_entrada.*',
+                'mapa_recorrido.estado as mapa_estado',
+                'mapa_recorrido.observacion as mapa_observacion',
+                'mapa_recorrido.id_actual as origeninterno',
+                'mapa_recorrido.id_destino as destinointerno',
+                'mapa_recorrido.created_at as mapa_created_at'
+            )
             ->with('documentos') // Cargar la relación documentos
             ->get()
             ->map(function ($mesaEntrada) {
                 $mesaEntrada->tiene_documentos = $mesaEntrada->documentos->isNotEmpty();
                 return $mesaEntrada;
             });
+        //dd($mesasEntrada);
         return view('mesa_entrada.recepcionado', ['mesasEntrada' => $mesasEntrada, 'destinos' => $destinos, 'heads' => $heads]);
     }
     public function reenviado()
     {
         $heads = [
-            'ID',
+            '',
             'Nro MEntrada',
             'Año',
             'Fecha Recepción',
@@ -96,32 +106,56 @@ class MesaEntradaController extends Controller
             'Observación',
             'Estado',
             'Usuario',
-            'Acción'
+            'Acción',
+            'Ult. Act.'
         ];
         $userId = auth()->id();
         $userDestino = UserDestino::where('user_id', $userId)->first();
         $iddest = $userDestino->destino_id;
         $destinos = Destino::all();
-        $mesasEntrada = MesaEntrada::whereIn('id', function ($query) use ($iddest) {
+        $mesasEntrada = MesaEntrada::whereIn('id', function ($query) use ($iddest) { 
             $query->select('me.id')
                 ->from('mesa_entrada as me')
                 ->join('mapa_recorrido as mr', 'mr.id_mentrada', '=', 'me.id')
                 ->where('mr.id_actual', $iddest)
-                ->where('mr.estado', 0)
+                ->where('mr.estado', '=', 0) // Excluir estado 1
                 ->distinct();
         })
-            ->with('documentos') // Cargar la relación documentos
-            ->get()
-            ->map(function ($mesaEntrada) {
-                $mesaEntrada->tiene_documentos = $mesaEntrada->documentos->isNotEmpty();
-                return $mesaEntrada;
-            });
+        ->with([
+            'documentos', // Cargar la relación con documentos
+            'recorridoDocs' => function ($query) {
+                $query->orderBy('created_at', 'desc');
+            },
+            'user' // Cargar la relación con el usuario
+        ])
+        ->get()
+        ->map(function ($mesaEntrada) {
+            // Agregar la propiedad si tiene documentos
+            $mesaEntrada->tiene_documentos = $mesaEntrada->documentos->isNotEmpty();
+        
+            // Obtener el último recorrido con el destino
+            $recorrido = DB::table('mapa_recorrido as mr')
+                ->leftJoin('destinos as d', 'mr.id_destino', '=', 'd.id') // Unir con la tabla destinos
+                ->where('mr.id_mentrada', $mesaEntrada->id)
+                ->orderBy('mr.created_at', 'desc') // Ordenar por la fecha de creación más reciente
+                ->first(['mr.created_at', 'mr.estado', 'd.nombre as destino_nombre']); // Traer también el nombre del destino
+        
+            // Asignar la fecha de creación del recorrido, estado y nombre del destino
+            $mesaEntrada->fecha_creacion_recorrido = $recorrido ? $recorrido->created_at : null;
+            $mesaEntrada->estado_recorrido = $recorrido ? $recorrido->estado : null;
+            $mesaEntrada->destino_nombre = $recorrido ? $recorrido->destino_nombre : null; // Nombre del destino
+        
+            return $mesaEntrada;
+        });
+        // dd($mesasEntrada);
+              
+        
         return view('mesa_entrada.reenviado', ['mesasEntrada' => $mesasEntrada, 'destinos' => $destinos, 'heads' => $heads]);
     }
     public function finalizado()
     {
         $heads = [
-            'ID',
+            '',
             'Nro MEntrada',
             'Año',
             'Fecha Recepción',
@@ -131,7 +165,8 @@ class MesaEntradaController extends Controller
             'Observación',
             'Estado',
             'Usuario',
-            'Acción'
+            'Acción',
+            'Ult. Act.'
         ];
         $userId = auth()->id();
         $userDestino = UserDestino::where('user_id', $userId)->first();
@@ -140,7 +175,13 @@ class MesaEntradaController extends Controller
         $mesasEntrada = MesaEntrada::join('mapa_recorrido', 'mesa_entrada.id', '=', 'mapa_recorrido.id_mentrada')
             ->where('mapa_recorrido.estado', '=', 0)
             ->where('mapa_recorrido.id_actual', $iddest)
-            ->select('mesa_entrada.*', 'mapa_recorrido.estado as mapa_estado', 'mapa_recorrido.observacion as mapa_observacion', 'mapa_recorrido.id_destino as destinointerno')
+            ->select(
+                'mesa_entrada.*',
+                'mapa_recorrido.estado as mapa_estado',
+                'mapa_recorrido.observacion as mapa_observacion',
+                'mapa_recorrido.id_destino as destinointerno',
+                'mapa_recorrido.created_at as mapa_created_at'
+            )
             ->get();
         return view('mesa_entrada.finalizado', ['mesasEntrada' => $mesasEntrada, 'destinos' => $destinos, 'heads' => $heads]);
     }
@@ -168,9 +209,9 @@ class MesaEntradaController extends Controller
                     'id_destino' => 'required|integer',
                     'observacion' => 'nullable|string',
                     'idfirmante' => 'required|array',
-                    'cedula' => 'required|array',
+                    'cedula' => 'nullable|array',
                     'nombre' => 'required|array',
-                    'telefono' => 'required|array',
+                    'telefono' => 'nullable|array',
                     'email.*' => 'nullable|email',
                 ]);
                 $anho = date('Y');
@@ -245,12 +286,13 @@ class MesaEntradaController extends Controller
 
                 // Obtener la fecha y hora actual en el formato deseado
                 $destino = Destino::find($destinoactual->destino_id);
-
+                $userId = auth()->id();
                 $fechaHoraActual = date('Y-m-d H:i:s');
                 $recorridodoc = new RecorridoDoc();
                 $recorridodoc->id_mentrada = $mesaEntrada->id;
                 $recorridodoc->fecha = $fechaHoraActual;
                 $recorridodoc->descripcion = 'Recepcionado: ' . $destino->nombre;
+                $recorridodoc->id_usuario = $userId;
 
                 // Guardar el nuevo registro en la base de datos
                 $recorridodoc->save();
@@ -284,15 +326,20 @@ class MesaEntradaController extends Controller
                     if ($idfirmante == 0) {
                         $firmanteData = [
                             'nombre' => $validatedData['nombre'][$index],
-                            'cedula' => $validatedData['cedula'][$index],
-                            'telefono' => $validatedData['telefono'][$index],
                         ];
 
                         // Agregar el correo electrónico si está presente y no es null
                         if (isset($validatedData['email'][$index])) {
                             $firmanteData['correo'] = $validatedData['email'][$index];
                         }
-
+                        if (isset($validatedData['cedula'][$index])) {
+                            $firmanteData['cedula'] = $validatedData['cedula'][$index];
+                        } else {
+                            $firmanteData['cedula'] = 0;
+                        }
+                        if (isset($validatedData['telefono'][$index])) {
+                            $firmanteData['telefono'] = $validatedData['telefono'][$index];
+                        }
                         $firmante = Firmante::create($firmanteData);
                     } else {
                         // Buscar el firmante en la base de datos y actualizar si existe
@@ -474,11 +521,13 @@ class MesaEntradaController extends Controller
                 $fechaHoraActual = date('Y-m-d H:i:s');
 
                 // Actualizar RecorridoDoc
+                $userId = auth()->id();
                 $recorridodoc = RecorridoDoc::where('id_mentrada', $id)->first();
                 if ($recorridodoc) {
                     $recorridodoc->update([
                         'fecha' => $fechaHoraActual,
                         'descripcion' => 'Actualizado: ' . $destino->nombre,
+                        'id_usuario' => $userId,
                     ]);
                 } else {
                     // Crear nuevo RecorridoDoc si no existe
@@ -486,6 +535,7 @@ class MesaEntradaController extends Controller
                         'id_mentrada' => $id,
                         'fecha' => $fechaHoraActual,
                         'descripcion' => 'Actualizado: ' . $destino->nombre,
+                        'id_usuario' => $userId,
                     ]);
                 }
 
@@ -594,8 +644,11 @@ class MesaEntradaController extends Controller
         DB::beginTransaction();
 
         try {
+            $userId = Auth::id();
+            $userDestino = UserDestino::where('user_id', $userId)->first();
             $mapaRecorrido = MapaRecorrido::where('id_mentrada', $id)
                 ->where('estado', '>', 0)
+                ->where('id_actual', $userDestino->destino_id)
                 ->first();
 
             if ($mapaRecorrido) {
@@ -623,11 +676,13 @@ class MesaEntradaController extends Controller
                 // Obtener la fecha y hora actual en el formato deseado
                 $destino = Destino::find($idDestino,);
 
+                $userId = auth()->id();
                 $fechaHoraActual = date('Y-m-d H:i:s');
                 $recorridodoc = new RecorridoDoc();
                 $recorridodoc->id_mentrada = $mesaEntrada->id;
                 $recorridodoc->fecha = $fechaHoraActual;
                 $recorridodoc->descripcion = 'Enviado: ' . $destino->nombre;
+                $recorridodoc->id_usuario = $userId;
 
                 // Guardar el nuevo registro en la base de datos
                 $recorridodoc->save();
@@ -650,26 +705,36 @@ class MesaEntradaController extends Controller
 
         try {
             // Buscar el mapa de recorrido por id_mentrada
+            $userId = Auth::id();
+            $userDestino = UserDestino::where('user_id', $userId)->first();
             $mapaRecorrido = MapaRecorrido::where('id_mentrada', $id)
                 ->where('estado', 1)
+                ->where('id_actual', $userDestino->destino_id)
                 ->first();
+            
 
 
             if ($mapaRecorrido) {
+                $mapaRecorrido->estado = 2;
+                $mapaRecorrido->save();
+
 
                 $mesaEntrada = MesaEntrada::findOrFail($id);
-                $mesaEntrada->estado = 3;
-                $mesaEntrada->save();
+                // $mesaEntrada->estado = 3;
+                // $mesaEntrada->save();
                 date_default_timezone_set('America/Asuncion'); // Cambia 'America/Asuncion' por tu zona horaria
 
                 // Obtener la fecha y hora actual en el formato deseado
                 $destino = Destino::find($mapaRecorrido->id_actual);
+
+                $userId = auth()->id();
 
                 $fechaHoraActual = date('Y-m-d H:i:s');
                 $recorridodoc = new RecorridoDoc();
                 $recorridodoc->id_mentrada = $mapaRecorrido->id_mentrada;
                 $recorridodoc->fecha = $fechaHoraActual;
                 $recorridodoc->descripcion = 'Confirmado Recepcion: ' . $destino->nombre;
+                $recorridodoc->id_usuario = $userId;
 
                 // Guardar el nuevo registro en la base de datos
                 $recorridodoc->save();
@@ -690,31 +755,40 @@ class MesaEntradaController extends Controller
     public function finalizar($id)
     {
         DB::beginTransaction();
-
+        
         try {
             // Buscar el mapa de recorrido por id_mentrada
+            $contador = MapaRecorrido::where('id_mentrada', $id)
+                ->where('estado','>', 0) 
+                ->count();
+            $userId = Auth::id();
+            $userDestino = UserDestino::where('user_id', $userId)->first();
             $mapaRecorrido = MapaRecorrido::where('id_mentrada', $id)
-                ->where('estado', 1)
-                ->first();
-
-
+                ->where('estado', 2)
+                ->where('id_actual', $userDestino->destino_id)
+                ->first();     
             if ($mapaRecorrido) {
                 $mapaRecorrido->estado = 0;
                 $mapaRecorrido->save();
-
-                $mesaEntrada = MesaEntrada::findOrFail($id);
-                $mesaEntrada->estado = 0;
-                $mesaEntrada->save();
+                
+                if($contador == 1){
+                    $mesaEntrada = MesaEntrada::findOrFail($id);
+                    $mesaEntrada->estado = 0;
+                    $mesaEntrada->save();
+                }
                 date_default_timezone_set('America/Asuncion'); // Cambia 'America/Asuncion' por tu zona horaria
 
                 // Obtener la fecha y hora actual en el formato deseado
                 $destino = Destino::find($mapaRecorrido->id_actual);
+
+                $userId = auth()->id();
 
                 $fechaHoraActual = date('Y-m-d H:i:s');
                 $recorridodoc = new RecorridoDoc();
                 $recorridodoc->id_mentrada = $mapaRecorrido->id_mentrada;
                 $recorridodoc->fecha = $fechaHoraActual;
                 $recorridodoc->descripcion = 'Trámite  Documental Finalizado: ' . $destino->nombre;
+                $recorridodoc->id_usuario = $userId;
 
                 // Guardar el nuevo registro en la base de datos
                 $recorridodoc->save();
@@ -728,7 +802,6 @@ class MesaEntradaController extends Controller
                 return redirect()->route('recepciondoc')->with('error', 'Mesa de Entrada no se pudo actualizar.');
             }
         } catch (\Exception $e) {
-            dd($e);
             DB::rollBack();
             return redirect()->route('recepciondoc')->with('error', 'Mesa de Entrada no se pudo actualizar.');
         }
@@ -737,14 +810,31 @@ class MesaEntradaController extends Controller
     {
 
         DB::beginTransaction();
-
         try {
             // Buscar el mapa de recorrido por id_mentrada
             $id = $request->post('idmentrada');
+            $userId = Auth::id();
+            $userDestino = UserDestino::where('user_id', $userId)->first();
+
+            
             $mapaRecorrido = MapaRecorrido::where('id_mentrada', $id)
-                ->where('estado', 1)
+                ->where('estado', 2)
+                ->where('id_actual', $userDestino->destino_id)
                 ->first();
 
+            if($request->post('masdestinos') == 1 ){
+                date_default_timezone_set('America/Asuncion');
+
+                $mapaRecorrido = MapaRecorrido::create([
+                    'id_mentrada' => $id,
+                    'fecha_recepcion' => now(),
+                    'id_actual' => $userDestino->destino_id,
+                    'id_destino' => null,
+                    'observacion' => 'Nuevo recorrido creado',
+                    'estado' => 1,
+                ]);
+
+            }
             if ($mapaRecorrido) {
 
                 $mapaRecorrido->id_destino = $request->post('id_destino');
@@ -764,19 +854,21 @@ class MesaEntradaController extends Controller
 
                 // Obtener la fecha y hora actual en el formato deseado
                 $destino = Destino::find($request->post('id_destino'));
+                $userId = auth()->id();
 
                 $fechaHoraActual = date('Y-m-d H:i:s');
                 $recorridodoc = new RecorridoDoc();
                 $recorridodoc->id_mentrada = $mapaRecorrido->id_mentrada;
                 $recorridodoc->fecha = $fechaHoraActual;
                 $recorridodoc->descripcion = 'Enviado: ' . $destino->nombre;
+                $recorridodoc->id_usuario = $userId;
 
                 // Guardar el nuevo registro en la base de datos
                 $recorridodoc->save();
                 $mesaEntrada = MesaEntrada::findOrFail($id);
                 $mesaEntrada->estado = 2;
                 $mesaEntrada->save();
-                //dd($nuevoMapaRecorrido);
+                
                 DB::commit();
                 return redirect()->route('recepciondoc')->with('success', 'Mesa de Entrada actualizada exitosamente.');
             } else {
@@ -790,7 +882,7 @@ class MesaEntradaController extends Controller
     }
     function recorrido(MesaEntrada $row)
     {
-        $recorridos = RecorridoDoc::where('id_mentrada', $row->id)->get();
+        $recorridos = RecorridoDoc::with('user')->where('id_mentrada', $row->id)->get();
         $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
         $pdf->SetPrintHeader(false); // Deshabilita la impresión del encabezado
         $pdf->SetFont('Times', 'IU', 14);
@@ -829,7 +921,7 @@ class MesaEntradaController extends Controller
             // Escribir la descripción en negrita
             $pdf->SetX($xPosition + 10);
             $pdf->SetFont('Times', 'B', 12);
-            $pdf->Write(0, $recorrido->descripcion);
+            $pdf->Write(0, $recorrido->descripcion . ' - Usuario: ' . $recorrido->user->name);
 
             // Escribir la fecha debajo de la descripción
             $pdf->Ln(7); // Espacio para la fecha
@@ -861,6 +953,7 @@ class MesaEntradaController extends Controller
                     $docCount = 0;
                     $zipCount = 0;
                     $linkCount = 0;
+                    $comentario = '';
 
                     foreach ($documentos as $documento) {
                         if (!empty($documento->link)) {
@@ -879,6 +972,9 @@ class MesaEntradaController extends Controller
                                 $zipCount++;
                                 break;
                         }
+                        if (!empty($documento->observacion)) {
+                            $comentario .= ' (' . $documento->observacion . ') ';
+                        }
                     }
 
                     // Escribir los tipos de documentos
@@ -894,6 +990,9 @@ class MesaEntradaController extends Controller
                     $pdf->Ln(5);
                     $pdf->SetX(32);
                     $pdf->Write(0, "$zipCount ZIP(s)");
+                    $pdf->Ln(10); // Espacio después de los documentos
+
+                    $pdf->Write(0, $comentario);
                     $pdf->Ln(20); // Espacio después de los documentos
                 }
             }
@@ -914,5 +1013,12 @@ class MesaEntradaController extends Controller
     {
         $mesaEntrada = MesaEntrada::with('documentos')->findOrFail($id);
         return response()->json($mesaEntrada->documentos);
+    }
+    public function firmantes($id)
+    {
+        $firmantes = MesaEntradaFirmante::where('id_mentrada', $id)
+        ->with('firmante') // Cargar la relación firmante
+        ->get();
+        return response()->json($firmantes);
     }
 }

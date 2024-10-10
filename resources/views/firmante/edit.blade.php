@@ -47,12 +47,12 @@
                                 placeholder="Ingresar" fgroup-class="col-md-8"
                                 value="{{ $firmante->nombre }}" required/>
                             <x-adminlte-input name="cedula" label="Cedula" placeholder="Ingresar "
-                                fgroup-class="col-md-4" value="{{ $firmante->cedula }}" required />
+                                fgroup-class="col-md-4" value="{{ $firmante->cedula }}" />
                         </div>
 
                         <div class="row">
                             <x-adminlte-input name="telefono" label="Telefono" placeholder="Ingresar"
-                                fgroup-class="col-md-3" value="{{ $firmante->telefono }}"  required/>
+                                fgroup-class="col-md-3" value="{{ $firmante->telefono }}"  />
                             <x-adminlte-input name="correo" type="email" label="Email"
                                 placeholder="Ingresar " fgroup-class="col-md-3"
                                 value="{{ $firmante->correo }}" />

@@ -12,4 +12,8 @@ class Firmante extends Model
     protected $table = 'firmantes';
 
     protected $fillable = ['nombre', 'correo', 'cedula', 'telefono', 'codigo'];
+    public function mesaEntradaFirmantes()
+    {
+        return $this->hasMany(MesaEntradaFirmante::class, 'id_firmante');
+    }
 }

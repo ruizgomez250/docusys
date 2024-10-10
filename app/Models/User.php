@@ -48,5 +48,13 @@ class User extends Authenticatable
     {
         return $this->hasMany(ArchivosDocumento::class, 'id_usuario');
     }
+    public function recorridoDocs()
+    {
+        return $this->hasMany(RecorridoDoc::class, 'id_usuario');
+    }
+    public function mesaEntrada()
+    {
+        return $this->hasMany(MesaEntrada::class, 'id_usuario');
+    }
 
 }

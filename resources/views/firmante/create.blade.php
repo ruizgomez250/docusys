@@ -49,7 +49,7 @@
                                 placeholder="Ingresar" fgroup-class="col-md-8"
                                 value="{{ old('nombre') }}" required/>
                             <x-adminlte-input name="cedula" label="Cedula" placeholder="Ingresar "
-                                fgroup-class="col-md-4" value="{{ old('ruc') }}" required />
+                                fgroup-class="col-md-4" value="{{ old('ruc') }}" />
                         </div>
 
                         <div class="row">
