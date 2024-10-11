@@ -15,6 +15,7 @@ class MesaEntradaFirmante extends Model
     protected $fillable = [
         'id_mentrada',
         'id_firmante',
+        'tipo',
     ];
 
     // Definir las relaciones (asumiendo que existen modelos para 'MesaEntrada' y 'Firmante')

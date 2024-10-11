@@ -39,7 +39,8 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-body">
-                    <form action="{{ route('mesaentrada.store') }}" method="post" enctype="multipart/form-data"  autocomplete="off">
+                    <form action="{{ route('mesaentrada.store') }}" method="post" enctype="multipart/form-data"
+                        autocomplete="off">
                         @csrf
                         @method('POST')
                         <div class="row">
@@ -50,7 +51,7 @@
                             </div>
                             <div class="col-md-5 form-group">
                                 <label for="documento">Documento (PDF o DOC)</label>
-                                <input type="file" name="documento" id="documento" accept=".pdf, .doc, .docx" >
+                                <input type="file" name="documento" id="documento" accept=".pdf, .doc, .docx">
                             </div>
                             {{-- <div class="col-md-5 form-group">
                                 <label for="archivo">Archivo (ZIP o RAR)</label>
@@ -61,7 +62,8 @@
                         <div class="row">
                             <x-adminlte-select2 name="id_origen" label="Origen" fgroup-class="col-md-4" required>
                                 @foreach ($origenes as $origen)
-                                    <option value="{{ $origen->id }}">{{ $origen->indice.'.'.$origen->subindice.' - '.$origen->nombre }}</option>
+                                    <option value="{{ $origen->id }}">
+                                        {{ $origen->indice . '.' . $origen->subindice . ' - ' . $origen->nombre }}</option>
                                 @endforeach
                             </x-adminlte-select2>
 
@@ -89,8 +91,8 @@
                         <div id="items">
                             <div class="item" style="background-color: #343A40;">
                                 <div class="row ml-2">
-                                    <label for="" class="col-2" style="color: white;">NUMERO</label>
-                                    <label for="" class="col-2" style="color: white;">CEDULA</label>
+                                    <label for="" class="col-1" style="color: white;">NUMERO</label>
+                                    <label for="" class="col-1" style="color: white;">CEDULA</label>
                                     <label for="" class="col-3" style="color: white;">NOMBRE</label>
                                     <label for="" class="col-2" style="color: white;">TELEFONO</label>
                                     <label for="" class="col-2" style="color: white;">EMAIL</label>
@@ -131,18 +133,31 @@
 
 
             newItem.innerHTML = `
-                <div class="row ml-1">
-                                    <input type="number" name="item[]" class="codigo_id form-control col-2"
-                                    placeholder="Código" value="` + itemn + `" required readonly>
-                                    <input type="text" name="cedula[]" class="autocomplete-cedula form-control col-2">
-                                    <input type="hidden" name="idfirmante[]" value="0" class="codigo_id form-control col-1" required>
-                                    <input type="text" name="nombre[]" class="autocomplete-nombre form-control col-3"
-                                      required>
-                                    <input type="text" name="telefono[]" step="any" class="form-control col-2">
-                                    <input type="text" name="email[]" class=" form-control col-2 " >                                    
-                                     <button class="btn-remove btn btn-outline-danger ml-2" type="button"><i class="fa fa-trash" aria-hidden="true"></i></button>                                           
-                                </div>
-            `;
+    <div class="row ml-1">
+        <input type="number" name="item[]" class="codigo_id form-control col-1"
+        placeholder="Código" value="` + itemn + `" required readonly>
+        
+        <input type="text" name="cedula[]" class="autocomplete-cedula form-control col-1">
+        
+        <input type="hidden" name="idfirmante[]" value="0" class="codigo_id form-control col-1" required>
+        
+        <input type="text" name="nombre[]" class="autocomplete-nombre form-control col-3" required>
+        
+        <input type="text" name="telefono[]" step="any" class="form-control col-2">
+        
+        <input type="text" name="email[]" class="form-control col-2">
+        
+        <select name="tipo[]" class="form-control col-2">
+            <option value="FIRMANTE">FIRMANTE</option>
+            <option value="SOLICITANTE">SOLICITANTE</option>
+        </select>
+        
+        <button class="btn-remove btn btn-outline-danger ml-2" type="button">
+            <i class="fa fa-trash" aria-hidden="true"></i>
+        </button>
+    </div>
+`;
+
 
 
             const codigoInput = newItem.querySelector('input[name="cedula[]"]');
@@ -244,7 +259,7 @@
                 select: function(event, ui) {
                     // Aquí puedes manejar lo que sucede cuando se selecciona un elemento
                     //traerCargarDatosProducto(ui.item.codigo, this);
-                   //console.log(ui.item);
+                    //console.log(ui.item);
                     $(this).closest('.row').find('input[name="cedula[]"]').val(ui.item.cedula);
                     $(this).closest('.row').find('input[name="nombre[]"]').val(ui.item.value);
                     $(this).closest('.row').find('input[name="telefono[]"]').val(ui.item.telefono);
@@ -291,7 +306,7 @@
                 select: function(event, ui) {
                     // Aquí puedes manejar lo que sucede cuando se selecciona un elemento
                     //traerCargarDatosProducto(ui.item.codigo, this);
-                   //console.log(ui.item);
+                    //console.log(ui.item);
                     $(this).closest('.row').find('input[name="cedula[]"]').val(ui.item.cedula);
                     $(this).closest('.row').find('input[name="nombre[]"]').val(ui.item.nombre);
                     $(this).closest('.row').find('input[name="telefono[]"]').val(ui.item.telefono);
