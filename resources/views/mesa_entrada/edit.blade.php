@@ -43,6 +43,11 @@
                         @csrf
                         @method('PUT')
                         <div class="row">
+                            <div class="form-group">
+                                <label for="fechaemision">FECHA DE EMISIÓN</label>
+                                <input type="date" class="form-control" id="fechaemision" name="fechaemision"
+                                    value="{{ $mesaEntrada->fechaemision }}" required>
+                            </div>
                         </div>
 
                         <div class="row">
@@ -92,7 +97,7 @@
                                         <input type="text" name="nombre[]" class="autocomplete-nombre form-control col-3"
                                             value="{{ $firmante->nombre }}" required>
                                         <input type="text" name="telefono[]" class="form-control col-2"
-                                            value="{{ $firmante->telefono }}" required>
+                                            value="{{ $firmante->telefono }}" >
                                         <input type="text" name="email[]" class="form-control col-2"
                                             value="{{ $firmante->email }}">
                                         <button class="btn-remove btn btn-outline-danger ml-2" type="button"><i class="fa fa-trash" aria-hidden="true"></i></button>

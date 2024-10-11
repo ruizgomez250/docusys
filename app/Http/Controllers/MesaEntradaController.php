@@ -13,6 +13,7 @@ use App\Models\Origen;
 use App\Models\RecorridoDoc;
 use App\Models\TipoDoc;
 use App\Models\UserDestino;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Exception;
 use Illuminate\Contracts\View\View;
@@ -449,6 +450,7 @@ class MesaEntradaController extends Controller
     {
         try {
             $mesaEntrada = MesaEntrada::findOrFail($id);
+            $mesaEntrada->fechaemision = Carbon::parse($mesaEntrada->fechaemision)->format('Y-m-d');
             $origenes = Origen::all();
             $tiposdoc = TipoDoc::all();
             $destinos = Destino::all();
