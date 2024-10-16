@@ -39,7 +39,8 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-body">
-                    <form action="{{ route('mesaentrada.store') }}" method="post" enctype="multipart/form-data"  autocomplete="off">
+                    <form action="{{ route('mesaentrada.store') }}" method="post" enctype="multipart/form-data"
+                        autocomplete="off" id="miFormulario">
                         @csrf
                         @method('POST')
                         <div class="row">
@@ -50,7 +51,7 @@
                             </div>
                             <div class="col-md-5 form-group">
                                 <label for="documento">Documento (PDF o DOC)</label>
-                                <input type="file" name="documento" id="documento" accept=".pdf, .doc, .docx" >
+                                <input type="file" name="documento" id="documento" accept=".pdf, .doc, .docx">
                             </div>
                             {{-- <div class="col-md-5 form-group">
                                 <label for="archivo">Archivo (ZIP o RAR)</label>
@@ -61,7 +62,8 @@
                         <div class="row">
                             <x-adminlte-select2 name="id_origen" label="Origen" fgroup-class="col-md-4" required>
                                 @foreach ($origenes as $origen)
-                                    <option value="{{ $origen->id }}">{{ $origen->indice.'.'.$origen->subindice.' - '.$origen->nombre }}</option>
+                                    <option value="{{ $origen->id }}">
+                                        {{ $origen->indice . '.' . $origen->subindice . ' - ' . $origen->nombre }}</option>
                                 @endforeach
                             </x-adminlte-select2>
 
@@ -83,6 +85,11 @@
                         <div class="row">
                             <x-adminlte-textarea name="observacion" label="Observación" placeholder="Ingresar Observación"
                                 fgroup-class="col-md-12">{{ old('observacion') }}</x-adminlte-textarea>
+                        </div>
+                        <div class="row">
+                            <x-adminlte-textarea name="duplicado" label="Verificar Duplicación"
+                                placeholder="Ingresar Duplicación"
+                                fgroup-class="col-md-12">{{ old('duplicado') }}</x-adminlte-textarea>
                         </div>
                         <hr>
 
@@ -117,6 +124,54 @@
 @push('js')
     <script src="{{ asset('vendor/jquery-ui-1.13.2/jquery-ui.min.js') }}"></script>
     <script>
+        function checkForDuplicateObservacion() {
+            const duplicado = document.querySelector('textarea[name="duplicado"]').value;
+            //console.log(observacion);
+
+            // Realizar una llamada AJAX al servidor
+            fetch('/docusys/public/verificar-duplicado', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({
+                        duplicado: duplicado
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.duplicado) {
+                        Swal.fire({
+                            title: "Desea Guardar de todos modos?",
+                            text: "ya existe un documento con esos datos!",
+                            icon: "warning",
+                            showCancelButton: true,
+                            confirmButtonColor: "#3085d6",
+                            cancelButtonColor: "#d33",
+                            confirmButtonText: "Si, Guardar!"
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                form.submit();
+                            }
+                        });
+                        return false; // Prevenir el envío del formulario
+                    } else {
+                        form.submit(); // Si no hay duplicados, continuar con el envío
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+
+            return false; // Evitar el envío inmediato del formulario
+        }
+
+        const form = document.getElementById('miFormulario');
+        form.addEventListener('submit', function(event) {
+            event.preventDefault();
+            checkForDuplicateObservacion(); // Verificar antes de enviar
+        });
         itemn = 0;
         const itemsContainer = document.getElementById('items');
         addNewItem();
@@ -244,7 +299,7 @@
                 select: function(event, ui) {
                     // Aquí puedes manejar lo que sucede cuando se selecciona un elemento
                     //traerCargarDatosProducto(ui.item.codigo, this);
-                   //console.log(ui.item);
+                    //console.log(ui.item);
                     $(this).closest('.row').find('input[name="cedula[]"]').val(ui.item.cedula);
                     $(this).closest('.row').find('input[name="nombre[]"]').val(ui.item.value);
                     $(this).closest('.row').find('input[name="telefono[]"]').val(ui.item.telefono);
@@ -291,7 +346,7 @@
                 select: function(event, ui) {
                     // Aquí puedes manejar lo que sucede cuando se selecciona un elemento
                     //traerCargarDatosProducto(ui.item.codigo, this);
-                   //console.log(ui.item);
+                    //console.log(ui.item);
                     $(this).closest('.row').find('input[name="cedula[]"]').val(ui.item.cedula);
                     $(this).closest('.row').find('input[name="nombre[]"]').val(ui.item.nombre);
                     $(this).closest('.row').find('input[name="telefono[]"]').val(ui.item.telefono);

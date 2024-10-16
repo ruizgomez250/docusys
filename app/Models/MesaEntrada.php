@@ -31,6 +31,7 @@ class MesaEntrada extends Model
         'observacion',
         'estado',
         'id_usuario',
+        'duplicado',
     ];
 
     /**

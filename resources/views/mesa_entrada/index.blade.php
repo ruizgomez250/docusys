@@ -239,7 +239,6 @@
                 var row = table.row(tr);
                 var id = tr.data('child-id'); // Obtener el ID del elemento (Mesa de entrada)
                 var iconElement = $(this).find('i'); // Guardar el elemento del ícono
-
                 if (row.child.isShown()) {
                     // Si el detalle está visible, lo ocultamos
                     row.child.hide();
