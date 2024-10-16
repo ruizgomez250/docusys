@@ -74,7 +74,7 @@
                                 <th>Fecha Recepción</th>
                                 <th>Origen</th>
                                 <th>Tipo Doc</th>
-                                <th>Destino</th>
+                                <th>Firmantes</th>
                                 <th>Observación</th>
                                 <th>Estado</th>
                                 <th>Usuario</th>
@@ -93,7 +93,7 @@
                                 <td>{{ $row->fecha_recepcion }}</td>
                                 <td>{{ $row->origen->nombre ?? 'N/A' }}</td>
                                 <td>{{ $row->tipoDoc->nombre ?? 'N/A' }}</td>
-                                <td></td>
+                                <td>{{ $row->nombres_firmantes ?? 'N/A' }}</td>
                                 <td>{{ $row->observacion }}</td>
                                 <td class="{{ $row->estado_recorrido == '2' ? 'text-danger' : 'text-success' }}">
                                     @if ($row->estado_recorrido == '2')

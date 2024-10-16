@@ -75,22 +75,57 @@ class MesaEntradaController extends Controller
         $iddest = $userDestino->destino_id;
         $destinos = Destino::all();
         $mesasEntrada = MesaEntrada::join('mapa_recorrido', 'mesa_entrada.id', '=', 'mapa_recorrido.id_mentrada')
+            ->leftJoin('mesa_entrada_firmante as mef', 'mesa_entrada.id', '=', 'mef.id_mentrada')
+            ->leftJoin('firmantes as f', 'mef.id_firmante', '=', 'f.id')
             ->where('mapa_recorrido.estado', '!=', 0)
             ->where('mapa_recorrido.id_actual', $iddest)
             ->select(
-                'mesa_entrada.*',
+                'mesa_entrada.id',
+                'mesa_entrada.nro_mentrada',
+                'mesa_entrada.anho',
+                'mesa_entrada.fecha_recepcion',
+                'mesa_entrada.id_origen',
+                'mesa_entrada.id_tipo_doc',
+                'mesa_entrada.id_destino',
+                'mesa_entrada.observacion',
+                'mesa_entrada.estado',
+                'mesa_entrada.id_usuario',
+                'mesa_entrada.created_at',
+                'mesa_entrada.updated_at',
                 'mapa_recorrido.estado as mapa_estado',
                 'mapa_recorrido.observacion as mapa_observacion',
                 'mapa_recorrido.id_actual as origeninterno',
                 'mapa_recorrido.id_destino as destinointerno',
-                'mapa_recorrido.created_at as mapa_created_at'
+                'mapa_recorrido.created_at as mapa_created_at',
+                DB::raw('GROUP_CONCAT(f.nombre SEPARATOR ", ") as nombres_firmantes')
             )
-            ->with('documentos') // Cargar la relación documentos
+            ->groupBy(
+                'mesa_entrada.id',
+                'mesa_entrada.nro_mentrada',
+                'mesa_entrada.anho',
+                'mesa_entrada.fecha_recepcion',
+                'mesa_entrada.id_origen',
+                'mesa_entrada.id_tipo_doc',
+                'mesa_entrada.id_destino',
+                'mesa_entrada.observacion',
+                'mesa_entrada.estado',
+                'mesa_entrada.id_usuario',
+                'mesa_entrada.created_at',
+                'mesa_entrada.updated_at',
+                'mapa_recorrido.estado',
+                'mapa_recorrido.observacion',
+                'mapa_recorrido.id_actual',
+                'mapa_recorrido.id_destino',
+                'mapa_recorrido.created_at'
+            )
+            ->with('documentos')
             ->get()
             ->map(function ($mesaEntrada) {
                 $mesaEntrada->tiene_documentos = $mesaEntrada->documentos->isNotEmpty();
                 return $mesaEntrada;
             });
+
+
         //dd($mesasEntrada);
         return view('mesa_entrada.recepcionado', ['mesasEntrada' => $mesasEntrada, 'destinos' => $destinos, 'heads' => $heads]);
     }
@@ -103,7 +138,7 @@ class MesaEntradaController extends Controller
             'Fecha Recepción',
             'Origen',
             'Tipo Doc',
-            'Destino',
+            'Firmantes',
             'Observación',
             'Estado',
             'Usuario',
@@ -146,9 +181,20 @@ class MesaEntradaController extends Controller
                 $mesaEntrada->estado_recorrido = $recorrido ? $recorrido->estado : null;
                 $mesaEntrada->destino_nombre = $recorrido ? $recorrido->destino_nombre : null; // Nombre del destino
 
+                // Obtener los nombres de los firmantes concatenados
+                $nombresFirmantes = DB::table('mesa_entrada_firmante AS mef')
+                    ->join('firmantes AS f', 'f.id', '=', 'mef.id_firmante')
+                    ->where('mef.id_mentrada', $mesaEntrada->id)
+                    ->select(DB::raw('GROUP_CONCAT(f.nombre SEPARATOR ", ") AS nombres_firmantes'))
+                    ->pluck('nombres_firmantes')
+                    ->first();
+
+                // Asignar los nombres de los firmantes a la entrada de mesa
+                $mesaEntrada->nombres_firmantes = $nombresFirmantes;
+
                 return $mesaEntrada;
             });
-        // dd($mesasEntrada);
+        //dd($mesasEntrada);
 
 
         return view('mesa_entrada.reenviado', ['mesasEntrada' => $mesasEntrada, 'destinos' => $destinos, 'heads' => $heads]);
@@ -1028,7 +1074,7 @@ class MesaEntradaController extends Controller
         $duplicado = $request->input('duplicado');
         if (empty($duplicado)) {
             return response()->json(['duplicado' => false]);
-        }else{
+        } else {
             $numeroDuplicado = DB::table('mesa_entrada')
                 ->where('duplicado', 'like', '%' . $duplicado . '%')
                 ->count();
@@ -1045,7 +1091,7 @@ class MesaEntradaController extends Controller
         // Buscar cualquier número en la observación
         preg_match_all('/\d+/', $observacion, $matches);
         $numeroDuplicado = 0;
-       
+
         // return response()->json([
         //     'duplicado' => true,
         //     'numero_duplicado' => DB::table('mesa_entrada')
