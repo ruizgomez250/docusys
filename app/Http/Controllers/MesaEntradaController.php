@@ -242,7 +242,13 @@ class MesaEntradaController extends Controller
         $destinos = Destino::all();
         return view('mesa_entrada.create', ['origenes' => $origenes, 'tiposDoc' => $tiposdoc, 'destinos' => $destinos]);
     }
-
+    public function aux(): View
+    {
+        $origenes = $origenes = Origen::orderBy('indice')->orderBy('subindice')->get();
+        $tiposdoc = TipoDoc::all();
+        $destinos = Destino::all();
+        return view('mesa_entrada.createaux', ['origenes' => $origenes, 'tiposDoc' => $tiposdoc, 'destinos' => $destinos]);
+    }
     /**
      * Store a newly created resource in storage.
      */
@@ -415,6 +421,179 @@ class MesaEntradaController extends Controller
             return redirect()->route('mesaentrada.create')->with('success', 'Operación exitosa');
         } catch (Exception $e) {
             return redirect()->route('mesaentrada.create')->with('error', 'Hubo un problema con la operación. Por favor, inténtelo de nuevo.');
+        }
+    }
+    public function storeaux(Request $request)
+    {
+        
+        try {
+            DB::transaction(function () use ($request) {
+                $validatedData = $request->validate([
+                    'id_origen' => 'required|integer',
+                    'id_tipo_doc' => 'required|integer',
+                    'nromesaentrada' => 'required|integer',
+                    'id_destino' => 'required|integer',
+                    'observacion' => 'nullable|string',
+                    'idfirmante' => 'required|array',
+                    'cedula' => 'nullable|array',
+                    'nombre' => 'required|array',
+                    'telefono' => 'nullable|array',
+                    'email.*' => 'nullable|email',
+                ]);
+                $anho = date('Y');
+                $maxSuplementario = MesaEntrada::where('nro_mentrada', $request->input('nromesaentrada'))
+                                    ->max('nro_suplementario');
+
+                // Si no existe, asignar 1, si existe, sumar 1
+                $nuevoSuplementario = $maxSuplementario ? $maxSuplementario + 1 : 1;
+                // Obtener el mayor número de 'nro_mentrada' para el año especificado
+                
+
+                $fechaAct = date('Y-m-d');
+                $userId = auth()->id();
+                $destinoactual = UserDestino::where('user_id', $userId)->first();
+
+                // Crear una nueva instancia del modelo MesaEntrada
+                $mesaEntrada = new MesaEntrada();
+
+                // Asignar cada campo individualmente
+                $mesaEntrada->nro_mentrada = $request->input('nromesaentrada');
+                $mesaEntrada->nro_suplementario = $nuevoSuplementario;
+                $mesaEntrada->anho = $anho;
+                $mesaEntrada->fecha_recepcion = $request->input('fechaemision');
+                $mesaEntrada->id_origen = $request->input('id_origen');
+                $mesaEntrada->id_tipo_doc = $request->input('id_tipo_doc');
+                $mesaEntrada->id_destino = $request->input('id_destino');
+                $mesaEntrada->observacion = $request->input('observacion');
+                $mesaEntrada->duplicado = $request->input('duplicado');
+                $mesaEntrada->estado = 1;
+                $mesaEntrada->id_usuario = $userId;
+
+                // Guardar el nuevo registro en la base de datos
+                $mesaEntrada->save();
+
+
+
+
+
+                // if ($request->hasFile('archivo')) {
+                //     $archivo = $request->file('archivo');
+
+                //     // Crear nuevo nombre de archivo
+                //     $descripcion = substr($request->input('descripcion'), 0, 15);
+                //     $descripcionSinEspacios = str_replace(' ', '_', $descripcion);
+                //     $fechaHora = date('Ymd_His');
+                //     $extension = $archivo->getClientOriginalExtension();
+                //     $nombreNuevoArchivo = $descripcionSinEspacios . '_' . $fechaHora . '.' . $extension;
+
+                //     // Mover archivo a la carpeta 'archivos'
+                //     $rutaArchivo = $archivo->move(public_path('archivos'), $nombreNuevoArchivo);
+
+                //     // Crear registro en la base de datos
+                //     ArchivosDocumento::create([
+                //         'id_mentrada' => $mesaEntrada->id,
+                //         'nombre_archivo' => $nombreNuevoArchivo,
+                //         'ruta_archivo' => 'archivos/' . $nombreNuevoArchivo,
+                //     ]);
+                // }
+                $mapaRecorrido = new MapaRecorrido();
+                $mapaRecorrido->id_mentrada = $mesaEntrada->id;
+                $mapaRecorrido->fecha_recepcion = $fechaAct;
+                $mapaRecorrido->id_actual = $destinoactual->destino_id;
+                $mapaRecorrido->id_destino =  $request->input('id_destino');
+                $mapaRecorrido->observacion = $request->input('observacion');
+                $mapaRecorrido->estado = 1;
+                //dd('a');
+                // Guardar el nuevo registro en la base de datos
+                $mapaRecorrido->save();
+
+                date_default_timezone_set('America/Asuncion'); // Cambia 'America/Asuncion' por tu zona horaria
+
+                // Obtener la fecha y hora actual en el formato deseado
+                $destino = Destino::find($destinoactual->destino_id);
+                $userId = auth()->id();
+                $fechaHoraActual = date('Y-m-d H:i:s');
+                $recorridodoc = new RecorridoDoc();
+                $recorridodoc->id_mentrada = $mesaEntrada->id;
+                $recorridodoc->fecha = $fechaHoraActual;
+                $recorridodoc->descripcion = 'Recepcionado: ' . $destino->nombre;
+                $recorridodoc->id_usuario = $userId;
+
+                // Guardar el nuevo registro en la base de datos
+                $recorridodoc->save();
+
+                if ($request->hasFile('documento')) {
+                    $file = $request->file('documento');
+
+                    // Crear nuevo nombre de archivo
+                    $descripcion = substr($request->input('descripcion'), 0, 15);
+                    $descripcionSinEspacios = str_replace(' ', '_', $descripcion);
+                    $fechaHora = date('Ymd_His');
+                    $extension = $file->getClientOriginalExtension();
+                    $nombreNuevo = $descripcionSinEspacios . '_' . $fechaHora . '.' . $extension;
+
+                    // Mover archivo a la carpeta 'documentos'
+                    $rutaDocumento = $file->move(public_path('documentos'), $nombreNuevo);
+
+                    // Crear registro en la base de datos
+                    ArchivosDocumento::create([
+                        'id_recorrido' => $recorridodoc->id,
+                        'id_mentrada' => $mesaEntrada->id,
+                        'nombre_archivo' => $nombreNuevo,
+                        'ruta_archivo' => 'documentos/' . $nombreNuevo,
+                        'id_usuario' => $userId,
+                    ]);
+                }
+
+                foreach ($validatedData['idfirmante'] as $index => $idfirmante) {
+                    // Si el idfirmante es 0, crear un nuevo registro de Firmante
+
+                    if ($idfirmante == 0) {
+                        $firmanteData = [
+                            'nombre' => $validatedData['nombre'][$index],
+                        ];
+
+                        // Agregar el correo electrónico si está presente y no es null
+                        if (isset($validatedData['email'][$index])) {
+                            $firmanteData['correo'] = $validatedData['email'][$index];
+                        }
+                        if (isset($validatedData['cedula'][$index])) {
+                            $firmanteData['cedula'] = $validatedData['cedula'][$index];
+                        } else {
+                            $firmanteData['cedula'] = 0;
+                        }
+                        if (isset($validatedData['telefono'][$index])) {
+                            $firmanteData['telefono'] = $validatedData['telefono'][$index];
+                        }
+                        $firmante = Firmante::create($firmanteData);
+                    } else {
+                        // Buscar el firmante en la base de datos y actualizar si existe
+                        $firmante = Firmante::find($idfirmante);
+                        if ($firmante) {
+                            $firmante->update([
+                                'nombre' => $validatedData['nombre'][$index],
+                                'cedula' => $validatedData['cedula'][$index],
+                                'telefono' => $validatedData['telefono'][$index],
+                                'correo' => $validatedData['email'][$index] ?? null, // Actualizar el correo solo si está presente
+                            ]);
+                        }
+                    }
+
+                    // Guardar en mesa_entrada_firmante
+                    if ($firmante) {
+                        MesaEntradaFirmante::updateOrCreate(
+                            ['id_mentrada' => $mesaEntrada->id, 'id_firmante' => $firmante->id],
+                            ['created_at' => now(), 'updated_at' => now()]
+                        );
+                    }
+                }
+            });
+
+            return redirect()->route('createaux')->with('success', 'Operación exitosa');
+        } catch (Exception $e) {
+            dd($request->input());
+            dd($e);
+            return redirect()->route('createaux')->with('error', 'Hubo un problema con la operación. Por favor, inténtelo de nuevo.');
         }
     }
     public function storedocs(Request $request)

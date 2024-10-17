@@ -390,6 +390,10 @@ return [
                     'text' => 'Registrar Documento',
                     'url'  => '/mesaentrada/create',
                 ],
+                [
+                    'text' => 'Registrar Doc. Auxiliar',
+                    'url'  => '/createaux',
+                ],
             ],
         ],
         
