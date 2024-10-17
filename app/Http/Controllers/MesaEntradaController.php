@@ -425,7 +425,7 @@ class MesaEntradaController extends Controller
     }
     public function storeaux(Request $request)
     {
-        
+
         try {
             DB::transaction(function () use ($request) {
                 $validatedData = $request->validate([
@@ -442,25 +442,20 @@ class MesaEntradaController extends Controller
                 ]);
                 $anho = date('Y');
                 $maxSuplementario = MesaEntrada::where('nro_mentrada', $request->input('nromesaentrada'))
-                                    ->max('nro_suplementario');
+                    ->max('nro_suplementario');
 
-                // Si no existe, asignar 1, si existe, sumar 1
                 $nuevoSuplementario = $maxSuplementario ? $maxSuplementario + 1 : 1;
-                // Obtener el mayor número de 'nro_mentrada' para el año especificado
-                
 
-                $fechaAct = date('Y-m-d');
+                // Usar la fecha de recepción ingresada por el usuario
+                $fechaRecepcion = $request->input('fechaemision'); // Asume que es una fecha válida en formato 'Y-m-d'
                 $userId = auth()->id();
                 $destinoactual = UserDestino::where('user_id', $userId)->first();
 
-                // Crear una nueva instancia del modelo MesaEntrada
                 $mesaEntrada = new MesaEntrada();
-
-                // Asignar cada campo individualmente
                 $mesaEntrada->nro_mentrada = $request->input('nromesaentrada');
                 $mesaEntrada->nro_suplementario = $nuevoSuplementario;
                 $mesaEntrada->anho = $anho;
-                $mesaEntrada->fecha_recepcion = $request->input('fechaemision');
+                $mesaEntrada->fecha_recepcion = $fechaRecepcion; // Asignar la fecha de recepción
                 $mesaEntrada->id_origen = $request->input('id_origen');
                 $mesaEntrada->id_tipo_doc = $request->input('id_tipo_doc');
                 $mesaEntrada->id_destino = $request->input('id_destino');
@@ -469,41 +464,24 @@ class MesaEntradaController extends Controller
                 $mesaEntrada->estado = 1;
                 $mesaEntrada->id_usuario = $userId;
 
-                // Guardar el nuevo registro en la base de datos
+                // Asignar fecha de creación y actualización
+                $mesaEntrada->created_at = $fechaRecepcion;
+                $mesaEntrada->updated_at = $fechaRecepcion;
+
                 $mesaEntrada->save();
 
-
-
-
-
-                // if ($request->hasFile('archivo')) {
-                //     $archivo = $request->file('archivo');
-
-                //     // Crear nuevo nombre de archivo
-                //     $descripcion = substr($request->input('descripcion'), 0, 15);
-                //     $descripcionSinEspacios = str_replace(' ', '_', $descripcion);
-                //     $fechaHora = date('Ymd_His');
-                //     $extension = $archivo->getClientOriginalExtension();
-                //     $nombreNuevoArchivo = $descripcionSinEspacios . '_' . $fechaHora . '.' . $extension;
-
-                //     // Mover archivo a la carpeta 'archivos'
-                //     $rutaArchivo = $archivo->move(public_path('archivos'), $nombreNuevoArchivo);
-
-                //     // Crear registro en la base de datos
-                //     ArchivosDocumento::create([
-                //         'id_mentrada' => $mesaEntrada->id,
-                //         'nombre_archivo' => $nombreNuevoArchivo,
-                //         'ruta_archivo' => 'archivos/' . $nombreNuevoArchivo,
-                //     ]);
-                // }
                 $mapaRecorrido = new MapaRecorrido();
                 $mapaRecorrido->id_mentrada = $mesaEntrada->id;
-                $mapaRecorrido->fecha_recepcion = $fechaAct;
+                $mapaRecorrido->fecha_recepcion = $fechaRecepcion; // Usar la fecha ingresada
                 $mapaRecorrido->id_actual = $destinoactual->destino_id;
-                $mapaRecorrido->id_destino =  $request->input('id_destino');
+                $mapaRecorrido->id_destino = $request->input('id_destino');
                 $mapaRecorrido->observacion = $request->input('observacion');
                 $mapaRecorrido->estado = 1;
-                //dd('a');
+
+                // Asignar fecha de creación y actualización
+                $mapaRecorrido->created_at = $fechaRecepcion;
+                $mapaRecorrido->updated_at = $fechaRecepcion;
+
                 // Guardar el nuevo registro en la base de datos
                 $mapaRecorrido->save();
 
@@ -511,13 +489,17 @@ class MesaEntradaController extends Controller
 
                 // Obtener la fecha y hora actual en el formato deseado
                 $destino = Destino::find($destinoactual->destino_id);
-                $userId = auth()->id();
                 $fechaHoraActual = date('Y-m-d H:i:s');
+
                 $recorridodoc = new RecorridoDoc();
                 $recorridodoc->id_mentrada = $mesaEntrada->id;
                 $recorridodoc->fecha = $fechaHoraActual;
                 $recorridodoc->descripcion = 'Recepcionado: ' . $destino->nombre;
                 $recorridodoc->id_usuario = $userId;
+
+                // Asignar fecha de creación y actualización
+                $recorridodoc->created_at = $fechaRecepcion;
+                $recorridodoc->updated_at = $fechaRecepcion;
 
                 // Guardar el nuevo registro en la base de datos
                 $recorridodoc->save();
@@ -542,29 +524,23 @@ class MesaEntradaController extends Controller
                         'nombre_archivo' => $nombreNuevo,
                         'ruta_archivo' => 'documentos/' . $nombreNuevo,
                         'id_usuario' => $userId,
+                        'created_at' => $fechaRecepcion, // Asignar fecha de creación
+                        'updated_at' => $fechaRecepcion, // Asignar fecha de actualización
                     ]);
                 }
 
                 foreach ($validatedData['idfirmante'] as $index => $idfirmante) {
                     // Si el idfirmante es 0, crear un nuevo registro de Firmante
-
                     if ($idfirmante == 0) {
                         $firmanteData = [
                             'nombre' => $validatedData['nombre'][$index],
+                            'correo' => $validatedData['email'][$index] ?? null,
+                            'cedula' => $validatedData['cedula'][$index] ?? 0,
+                            'telefono' => $validatedData['telefono'][$index] ?? null,
+                            'created_at' => $fechaRecepcion, // Asignar fecha de creación
+                            'updated_at' => $fechaRecepcion, // Asignar fecha de actualización
                         ];
 
-                        // Agregar el correo electrónico si está presente y no es null
-                        if (isset($validatedData['email'][$index])) {
-                            $firmanteData['correo'] = $validatedData['email'][$index];
-                        }
-                        if (isset($validatedData['cedula'][$index])) {
-                            $firmanteData['cedula'] = $validatedData['cedula'][$index];
-                        } else {
-                            $firmanteData['cedula'] = 0;
-                        }
-                        if (isset($validatedData['telefono'][$index])) {
-                            $firmanteData['telefono'] = $validatedData['telefono'][$index];
-                        }
                         $firmante = Firmante::create($firmanteData);
                     } else {
                         // Buscar el firmante en la base de datos y actualizar si existe
@@ -575,6 +551,7 @@ class MesaEntradaController extends Controller
                                 'cedula' => $validatedData['cedula'][$index],
                                 'telefono' => $validatedData['telefono'][$index],
                                 'correo' => $validatedData['email'][$index] ?? null, // Actualizar el correo solo si está presente
+                                'updated_at' => $fechaRecepcion, // Asignar fecha de actualización
                             ]);
                         }
                     }
@@ -583,7 +560,7 @@ class MesaEntradaController extends Controller
                     if ($firmante) {
                         MesaEntradaFirmante::updateOrCreate(
                             ['id_mentrada' => $mesaEntrada->id, 'id_firmante' => $firmante->id],
-                            ['created_at' => now(), 'updated_at' => now()]
+                            ['created_at' => $fechaRecepcion, 'updated_at' => $fechaRecepcion]
                         );
                     }
                 }
@@ -591,8 +568,6 @@ class MesaEntradaController extends Controller
 
             return redirect()->route('createaux')->with('success', 'Operación exitosa');
         } catch (Exception $e) {
-            dd($request->input());
-            dd($e);
             return redirect()->route('createaux')->with('error', 'Hubo un problema con la operación. Por favor, inténtelo de nuevo.');
         }
     }
