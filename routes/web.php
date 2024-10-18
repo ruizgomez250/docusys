@@ -72,8 +72,10 @@ Route::middleware('auth')->group(function () {
     Route::put('roles/{role}/give-permissions', [App\Http\Controllers\RolesController::class, 'givePermissionToRole'])->name('roles.updatepermissionrole');
     Route::resource('permissions', App\Http\Controllers\PermissionController::class);
     Route::get('/mesaentrada/documentos/{id}', [MesaEntradaController::class, 'documentos'])->name('mesaentrada.documentos');
-    
+    Route::get('/createaux', [MesaEntradaController::class, 'aux'])->name('createaux');
+    Route::post('/mesaentradastoreaux', [MesaEntradaController::class, 'storeaux'])->name('mesaentradastoreaux');
 });
+Route::post('/verificar-duplicado', [MesaEntradaController::class, 'verificarDuplicado'])->name('verificar-duplicado');
 Route::get('/mesaentrada/firmantes/{id}', [MesaEntradaController::class, 'firmantes'])->name('mesaentrada.firmantes');
 Route::get('/sinpermiso', function () {
     return view('sinpermiso.index');

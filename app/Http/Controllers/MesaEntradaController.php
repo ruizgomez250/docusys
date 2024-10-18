@@ -13,6 +13,7 @@ use App\Models\Origen;
 use App\Models\RecorridoDoc;
 use App\Models\TipoDoc;
 use App\Models\UserDestino;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Exception;
 use Illuminate\Contracts\View\View;
@@ -47,8 +48,13 @@ class MesaEntradaController extends Controller
         ];
 
         // Obtener todas las entradas de mesa junto con la información de si tienen documentos o no
-        $mesasEntrada = MesaEntrada::with('documentos')->get()->map(function ($mesaEntrada) {
+        $mesasEntrada = MesaEntrada::with(['documentos', 'firmantes'])->get()->map(function ($mesaEntrada) {
+            // Agregar una propiedad indicando si tiene documentos
             $mesaEntrada->tiene_documentos = $mesaEntrada->documentos->isNotEmpty();
+        
+            // Agregar una propiedad indicando si tiene firmantes
+            $mesaEntrada->tiene_firmantes = $mesaEntrada->firmantes->isNotEmpty();
+        
             return $mesaEntrada;
         });
 
@@ -74,22 +80,57 @@ class MesaEntradaController extends Controller
         $iddest = $userDestino->destino_id;
         $destinos = Destino::all();
         $mesasEntrada = MesaEntrada::join('mapa_recorrido', 'mesa_entrada.id', '=', 'mapa_recorrido.id_mentrada')
+            ->leftJoin('mesa_entrada_firmante as mef', 'mesa_entrada.id', '=', 'mef.id_mentrada')
+            ->leftJoin('firmantes as f', 'mef.id_firmante', '=', 'f.id')
             ->where('mapa_recorrido.estado', '!=', 0)
             ->where('mapa_recorrido.id_actual', $iddest)
             ->select(
-                'mesa_entrada.*',
+                'mesa_entrada.id',
+                'mesa_entrada.nro_mentrada',
+                'mesa_entrada.anho',
+                'mesa_entrada.fecha_recepcion',
+                'mesa_entrada.id_origen',
+                'mesa_entrada.id_tipo_doc',
+                'mesa_entrada.id_destino',
+                'mesa_entrada.observacion',
+                'mesa_entrada.estado',
+                'mesa_entrada.id_usuario',
+                'mesa_entrada.created_at',
+                'mesa_entrada.updated_at',
                 'mapa_recorrido.estado as mapa_estado',
                 'mapa_recorrido.observacion as mapa_observacion',
                 'mapa_recorrido.id_actual as origeninterno',
                 'mapa_recorrido.id_destino as destinointerno',
-                'mapa_recorrido.created_at as mapa_created_at'
+                'mapa_recorrido.created_at as mapa_created_at',
+                DB::raw('GROUP_CONCAT(f.nombre SEPARATOR ", ") as nombres_firmantes')
             )
-            ->with('documentos') // Cargar la relación documentos
+            ->groupBy(
+                'mesa_entrada.id',
+                'mesa_entrada.nro_mentrada',
+                'mesa_entrada.anho',
+                'mesa_entrada.fecha_recepcion',
+                'mesa_entrada.id_origen',
+                'mesa_entrada.id_tipo_doc',
+                'mesa_entrada.id_destino',
+                'mesa_entrada.observacion',
+                'mesa_entrada.estado',
+                'mesa_entrada.id_usuario',
+                'mesa_entrada.created_at',
+                'mesa_entrada.updated_at',
+                'mapa_recorrido.estado',
+                'mapa_recorrido.observacion',
+                'mapa_recorrido.id_actual',
+                'mapa_recorrido.id_destino',
+                'mapa_recorrido.created_at'
+            )
+            ->with('documentos')
             ->get()
             ->map(function ($mesaEntrada) {
                 $mesaEntrada->tiene_documentos = $mesaEntrada->documentos->isNotEmpty();
                 return $mesaEntrada;
             });
+
+
         //dd($mesasEntrada);
         return view('mesa_entrada.recepcionado', ['mesasEntrada' => $mesasEntrada, 'destinos' => $destinos, 'heads' => $heads]);
     }
@@ -102,7 +143,7 @@ class MesaEntradaController extends Controller
             'Fecha Recepción',
             'Origen',
             'Tipo Doc',
-            'Destino',
+            'Firmantes',
             'Observación',
             'Estado',
             'Usuario',
@@ -113,7 +154,7 @@ class MesaEntradaController extends Controller
         $userDestino = UserDestino::where('user_id', $userId)->first();
         $iddest = $userDestino->destino_id;
         $destinos = Destino::all();
-        $mesasEntrada = MesaEntrada::whereIn('id', function ($query) use ($iddest) { 
+        $mesasEntrada = MesaEntrada::whereIn('id', function ($query) use ($iddest) {
             $query->select('me.id')
                 ->from('mesa_entrada as me')
                 ->join('mapa_recorrido as mr', 'mr.id_mentrada', '=', 'me.id')
@@ -121,35 +162,46 @@ class MesaEntradaController extends Controller
                 ->where('mr.estado', '=', 0) // Excluir estado 1
                 ->distinct();
         })
-        ->with([
-            'documentos', // Cargar la relación con documentos
-            'recorridoDocs' => function ($query) {
-                $query->orderBy('created_at', 'desc');
-            },
-            'user' // Cargar la relación con el usuario
-        ])
-        ->get()
-        ->map(function ($mesaEntrada) {
-            // Agregar la propiedad si tiene documentos
-            $mesaEntrada->tiene_documentos = $mesaEntrada->documentos->isNotEmpty();
-        
-            // Obtener el último recorrido con el destino
-            $recorrido = DB::table('mapa_recorrido as mr')
-                ->leftJoin('destinos as d', 'mr.id_destino', '=', 'd.id') // Unir con la tabla destinos
-                ->where('mr.id_mentrada', $mesaEntrada->id)
-                ->orderBy('mr.created_at', 'desc') // Ordenar por la fecha de creación más reciente
-                ->first(['mr.created_at', 'mr.estado', 'd.nombre as destino_nombre']); // Traer también el nombre del destino
-        
-            // Asignar la fecha de creación del recorrido, estado y nombre del destino
-            $mesaEntrada->fecha_creacion_recorrido = $recorrido ? $recorrido->created_at : null;
-            $mesaEntrada->estado_recorrido = $recorrido ? $recorrido->estado : null;
-            $mesaEntrada->destino_nombre = $recorrido ? $recorrido->destino_nombre : null; // Nombre del destino
-        
-            return $mesaEntrada;
-        });
-        // dd($mesasEntrada);
-              
-        
+            ->with([
+                'documentos', // Cargar la relación con documentos
+                'recorridoDocs' => function ($query) {
+                    $query->orderBy('created_at', 'desc');
+                },
+                'user' // Cargar la relación con el usuario
+            ])
+            ->get()
+            ->map(function ($mesaEntrada) {
+                // Agregar la propiedad si tiene documentos
+                $mesaEntrada->tiene_documentos = $mesaEntrada->documentos->isNotEmpty();
+
+                // Obtener el último recorrido con el destino
+                $recorrido = DB::table('mapa_recorrido as mr')
+                    ->leftJoin('destinos as d', 'mr.id_destino', '=', 'd.id') // Unir con la tabla destinos
+                    ->where('mr.id_mentrada', $mesaEntrada->id)
+                    ->orderBy('mr.created_at', 'desc') // Ordenar por la fecha de creación más reciente
+                    ->first(['mr.created_at', 'mr.estado', 'd.nombre as destino_nombre']); // Traer también el nombre del destino
+
+                // Asignar la fecha de creación del recorrido, estado y nombre del destino
+                $mesaEntrada->fecha_creacion_recorrido = $recorrido ? $recorrido->created_at : null;
+                $mesaEntrada->estado_recorrido = $recorrido ? $recorrido->estado : null;
+                $mesaEntrada->destino_nombre = $recorrido ? $recorrido->destino_nombre : null; // Nombre del destino
+
+                // Obtener los nombres de los firmantes concatenados
+                $nombresFirmantes = DB::table('mesa_entrada_firmante AS mef')
+                    ->join('firmantes AS f', 'f.id', '=', 'mef.id_firmante')
+                    ->where('mef.id_mentrada', $mesaEntrada->id)
+                    ->select(DB::raw('GROUP_CONCAT(f.nombre SEPARATOR ", ") AS nombres_firmantes'))
+                    ->pluck('nombres_firmantes')
+                    ->first();
+
+                // Asignar los nombres de los firmantes a la entrada de mesa
+                $mesaEntrada->nombres_firmantes = $nombresFirmantes;
+
+                return $mesaEntrada;
+            });
+        //dd($mesasEntrada);
+
+
         return view('mesa_entrada.reenviado', ['mesasEntrada' => $mesasEntrada, 'destinos' => $destinos, 'heads' => $heads]);
     }
     public function finalizado()
@@ -195,7 +247,13 @@ class MesaEntradaController extends Controller
         $destinos = Destino::all();
         return view('mesa_entrada.create', ['origenes' => $origenes, 'tiposDoc' => $tiposdoc, 'destinos' => $destinos]);
     }
-
+    public function aux(): View
+    {
+        $origenes = $origenes = Origen::orderBy('indice')->orderBy('subindice')->get();
+        $tiposdoc = TipoDoc::all();
+        $destinos = Destino::all();
+        return view('mesa_entrada.createaux', ['origenes' => $origenes, 'tiposDoc' => $tiposdoc, 'destinos' => $destinos]);
+    }
     /**
      * Store a newly created resource in storage.
      */
@@ -241,6 +299,7 @@ class MesaEntradaController extends Controller
                 $mesaEntrada->id_tipo_doc = $request->input('id_tipo_doc');
                 $mesaEntrada->id_destino = $request->input('id_destino');
                 $mesaEntrada->observacion = $request->input('observacion');
+                $mesaEntrada->duplicado = $request->input('duplicado');
                 $mesaEntrada->estado = 1;
                 $mesaEntrada->id_usuario = $userId;
 
@@ -369,6 +428,154 @@ class MesaEntradaController extends Controller
             return redirect()->route('mesaentrada.create')->with('error', 'Hubo un problema con la operación. Por favor, inténtelo de nuevo.');
         }
     }
+    public function storeaux(Request $request)
+    {
+
+        try {
+            DB::transaction(function () use ($request) {
+                $validatedData = $request->validate([
+                    'id_origen' => 'required|integer',
+                    'id_tipo_doc' => 'required|integer',
+                    'nromesaentrada' => 'required|integer',
+                    'id_destino' => 'required|integer',
+                    'observacion' => 'nullable|string',
+                    'idfirmante' => 'required|array',
+                    'cedula' => 'nullable|array',
+                    'nombre' => 'required|array',
+                    'telefono' => 'nullable|array',
+                    'email.*' => 'nullable|email',
+                ]);
+                $anho = date('Y');
+                $maxSuplementario = MesaEntrada::where('nro_mentrada', $request->input('nromesaentrada'))
+                    ->max('nro_suplementario');
+
+                $nuevoSuplementario = $maxSuplementario ? $maxSuplementario + 1 : 1;
+
+                // Usar la fecha de recepción ingresada por el usuario
+                $fechaRecepcion = $request->input('fechaemision'); // Asume que es una fecha válida en formato 'Y-m-d'
+                $userId = auth()->id();
+                $destinoactual = UserDestino::where('user_id', $userId)->first();
+
+                $mesaEntrada = new MesaEntrada();
+                $mesaEntrada->nro_mentrada = $request->input('nromesaentrada');
+                $mesaEntrada->nro_suplementario = $nuevoSuplementario;
+                $mesaEntrada->anho = $anho;
+                $mesaEntrada->fecha_recepcion = $fechaRecepcion; // Asignar la fecha de recepción
+                $mesaEntrada->id_origen = $request->input('id_origen');
+                $mesaEntrada->id_tipo_doc = $request->input('id_tipo_doc');
+                $mesaEntrada->id_destino = $request->input('id_destino');
+                $mesaEntrada->observacion = $request->input('observacion');
+                $mesaEntrada->duplicado = $request->input('duplicado');
+                $mesaEntrada->estado = 1;
+                $mesaEntrada->id_usuario = $userId;
+
+                // Asignar fecha de creación y actualización
+                $mesaEntrada->created_at = $fechaRecepcion;
+                $mesaEntrada->updated_at = $fechaRecepcion;
+
+                $mesaEntrada->save();
+
+                $mapaRecorrido = new MapaRecorrido();
+                $mapaRecorrido->id_mentrada = $mesaEntrada->id;
+                $mapaRecorrido->fecha_recepcion = $fechaRecepcion; // Usar la fecha ingresada
+                $mapaRecorrido->id_actual = $destinoactual->destino_id;
+                $mapaRecorrido->id_destino = $request->input('id_destino');
+                $mapaRecorrido->observacion = $request->input('observacion');
+                $mapaRecorrido->estado = 1;
+
+                // Asignar fecha de creación y actualización
+                $mapaRecorrido->created_at = $fechaRecepcion;
+                $mapaRecorrido->updated_at = $fechaRecepcion;
+
+                // Guardar el nuevo registro en la base de datos
+                $mapaRecorrido->save();
+
+                date_default_timezone_set('America/Asuncion'); // Cambia 'America/Asuncion' por tu zona horaria
+
+                // Obtener la fecha y hora actual en el formato deseado
+                $destino = Destino::find($destinoactual->destino_id);
+                $fechaHoraActual = date('Y-m-d H:i:s');
+
+                $recorridodoc = new RecorridoDoc();
+                $recorridodoc->id_mentrada = $mesaEntrada->id;
+                $recorridodoc->fecha = $fechaHoraActual;
+                $recorridodoc->descripcion = 'Recepcionado: ' . $destino->nombre;
+                $recorridodoc->id_usuario = $userId;
+
+                // Asignar fecha de creación y actualización
+                $recorridodoc->created_at = $fechaRecepcion;
+                $recorridodoc->updated_at = $fechaRecepcion;
+
+                // Guardar el nuevo registro en la base de datos
+                $recorridodoc->save();
+
+                if ($request->hasFile('documento')) {
+                    $file = $request->file('documento');
+
+                    // Crear nuevo nombre de archivo
+                    $descripcion = substr($request->input('descripcion'), 0, 15);
+                    $descripcionSinEspacios = str_replace(' ', '_', $descripcion);
+                    $fechaHora = date('Ymd_His');
+                    $extension = $file->getClientOriginalExtension();
+                    $nombreNuevo = $descripcionSinEspacios . '_' . $fechaHora . '.' . $extension;
+
+                    // Mover archivo a la carpeta 'documentos'
+                    $rutaDocumento = $file->move(public_path('documentos'), $nombreNuevo);
+
+                    // Crear registro en la base de datos
+                    ArchivosDocumento::create([
+                        'id_recorrido' => $recorridodoc->id,
+                        'id_mentrada' => $mesaEntrada->id,
+                        'nombre_archivo' => $nombreNuevo,
+                        'ruta_archivo' => 'documentos/' . $nombreNuevo,
+                        'id_usuario' => $userId,
+                        'created_at' => $fechaRecepcion, // Asignar fecha de creación
+                        'updated_at' => $fechaRecepcion, // Asignar fecha de actualización
+                    ]);
+                }
+
+                foreach ($validatedData['idfirmante'] as $index => $idfirmante) {
+                    // Si el idfirmante es 0, crear un nuevo registro de Firmante
+                    if ($idfirmante == 0) {
+                        $firmanteData = [
+                            'nombre' => $validatedData['nombre'][$index],
+                            'correo' => $validatedData['email'][$index] ?? null,
+                            'cedula' => $validatedData['cedula'][$index] ?? 0,
+                            'telefono' => $validatedData['telefono'][$index] ?? null,
+                            'created_at' => $fechaRecepcion, // Asignar fecha de creación
+                            'updated_at' => $fechaRecepcion, // Asignar fecha de actualización
+                        ];
+
+                        $firmante = Firmante::create($firmanteData);
+                    } else {
+                        // Buscar el firmante en la base de datos y actualizar si existe
+                        $firmante = Firmante::find($idfirmante);
+                        if ($firmante) {
+                            $firmante->update([
+                                'nombre' => $validatedData['nombre'][$index],
+                                'cedula' => $validatedData['cedula'][$index],
+                                'telefono' => $validatedData['telefono'][$index],
+                                'correo' => $validatedData['email'][$index] ?? null, // Actualizar el correo solo si está presente
+                                'updated_at' => $fechaRecepcion, // Asignar fecha de actualización
+                            ]);
+                        }
+                    }
+
+                    // Guardar en mesa_entrada_firmante
+                    if ($firmante) {
+                        MesaEntradaFirmante::updateOrCreate(
+                            ['id_mentrada' => $mesaEntrada->id, 'id_firmante' => $firmante->id],
+                            ['created_at' => $fechaRecepcion, 'updated_at' => $fechaRecepcion]
+                        );
+                    }
+                }
+            });
+
+            return redirect()->route('createaux')->with('success', 'Operación exitosa');
+        } catch (Exception $e) {
+            return redirect()->route('createaux')->with('error', 'Hubo un problema con la operación. Por favor, inténtelo de nuevo.');
+        }
+    }
     public function storedocs(Request $request)
     {
         try {
@@ -449,6 +656,7 @@ class MesaEntradaController extends Controller
     {
         try {
             $mesaEntrada = MesaEntrada::findOrFail($id);
+            $mesaEntrada->fechaemision = Carbon::parse($mesaEntrada->fechaemision)->format('Y-m-d');
             $origenes = Origen::all();
             $tiposdoc = TipoDoc::all();
             $destinos = Destino::all();
@@ -711,7 +919,7 @@ class MesaEntradaController extends Controller
                 ->where('estado', 1)
                 ->where('id_actual', $userDestino->destino_id)
                 ->first();
-            
+
 
 
             if ($mapaRecorrido) {
@@ -755,23 +963,23 @@ class MesaEntradaController extends Controller
     public function finalizar($id)
     {
         DB::beginTransaction();
-        
+
         try {
             // Buscar el mapa de recorrido por id_mentrada
             $contador = MapaRecorrido::where('id_mentrada', $id)
-                ->where('estado','>', 0) 
+                ->where('estado', '>', 0)
                 ->count();
             $userId = Auth::id();
             $userDestino = UserDestino::where('user_id', $userId)->first();
             $mapaRecorrido = MapaRecorrido::where('id_mentrada', $id)
                 ->where('estado', 2)
                 ->where('id_actual', $userDestino->destino_id)
-                ->first();     
+                ->first();
             if ($mapaRecorrido) {
                 $mapaRecorrido->estado = 0;
                 $mapaRecorrido->save();
-                
-                if($contador == 1){
+
+                if ($contador == 1) {
                     $mesaEntrada = MesaEntrada::findOrFail($id);
                     $mesaEntrada->estado = 0;
                     $mesaEntrada->save();
@@ -816,13 +1024,13 @@ class MesaEntradaController extends Controller
             $userId = Auth::id();
             $userDestino = UserDestino::where('user_id', $userId)->first();
 
-            
+
             $mapaRecorrido = MapaRecorrido::where('id_mentrada', $id)
                 ->where('estado', 2)
                 ->where('id_actual', $userDestino->destino_id)
                 ->first();
 
-            if($request->post('masdestinos') == 1 ){
+            if ($request->post('masdestinos') == 1) {
                 date_default_timezone_set('America/Asuncion');
 
                 $mapaRecorrido = MapaRecorrido::create([
@@ -833,7 +1041,6 @@ class MesaEntradaController extends Controller
                     'observacion' => 'Nuevo recorrido creado',
                     'estado' => 1,
                 ]);
-
             }
             if ($mapaRecorrido) {
 
@@ -868,7 +1075,7 @@ class MesaEntradaController extends Controller
                 $mesaEntrada = MesaEntrada::findOrFail($id);
                 $mesaEntrada->estado = 2;
                 $mesaEntrada->save();
-                
+
                 DB::commit();
                 return redirect()->route('recepciondoc')->with('success', 'Mesa de Entrada actualizada exitosamente.');
             } else {
@@ -1017,8 +1224,40 @@ class MesaEntradaController extends Controller
     public function firmantes($id)
     {
         $firmantes = MesaEntradaFirmante::where('id_mentrada', $id)
-        ->with('firmante') // Cargar la relación firmante
-        ->get();
+            ->with('firmante') // Cargar la relación firmante
+            ->get();
         return response()->json($firmantes);
+    }
+    public function verificarDuplicado(Request $request)
+    {
+        $duplicado = $request->input('duplicado');
+        if (empty($duplicado)) {
+            return response()->json(['duplicado' => false]);
+        } else {
+            $numeroDuplicado = DB::table('mesa_entrada')
+                ->where('duplicado', 'like', '%' . $duplicado . '%')
+                ->count();
+
+            if ($numeroDuplicado > 0) {
+                return response()->json([
+                    'duplicado' => true,
+                    'numero_duplicado' => $numeroDuplicado
+                ]);
+            }
+        }
+        return response()->json(['duplicado' => false]);
+
+        // Buscar cualquier número en la observación
+        preg_match_all('/\d+/', $observacion, $matches);
+        $numeroDuplicado = 0;
+
+        // return response()->json([
+        //     'duplicado' => true,
+        //     'numero_duplicado' => DB::table('mesa_entrada')
+        //         ->whereIn('observacion', $matches[0])
+        //         ->toSql()
+        // ]);
+        // No se encontraron duplicados
+        //return response()->json(['duplicado' => false]);
     }
 }

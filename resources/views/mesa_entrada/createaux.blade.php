@@ -1,7 +1,7 @@
 @extends('adminlte::page')
 
 @section('content_header')
-    <h1 class="m-0 custom-heading">Registrar Nueva Mesa de Entrada</h1>
+    <h1 class="m-0 custom-heading">Registrar Nueva Mesa de Entrada Auxiliar</h1>
 @stop
 @section('plugins.Sweetalert2', true)
 
@@ -39,7 +39,7 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-body">
-                    <form action="{{ route('mesaentrada.store') }}" method="post" enctype="multipart/form-data"
+                    <form action="{{ route('mesaentradastoreaux') }}" method="post" enctype="multipart/form-data"
                         autocomplete="off" id="miFormulario">
                         @csrf
                         @method('POST')
@@ -53,6 +53,11 @@
                                 <label for="documento">Documento (PDF o DOC)</label>
                                 <input type="file" name="documento" id="documento" accept=".pdf, .doc, .docx">
                             </div>
+                            <div class="col-md-3 form-group">
+                                <label for="documento">N° Mesa Entrada</label>
+                                <input type="number" name="nromesaentrada" id="nromesaentrada" required>
+                            </div>
+                            
                             {{-- <div class="col-md-5 form-group">
                                 <label for="archivo">Archivo (ZIP o RAR)</label>
                                 <input type="file" name="archivo" id="archivo" accept=".zip, .rar" required>
@@ -96,8 +101,8 @@
                         <div id="items">
                             <div class="item" style="background-color: #343A40;">
                                 <div class="row ml-2">
-                                    <label for="" class="col-1" style="color: white;">NUMERO</label>
-                                    <label for="" class="col-1" style="color: white;">CEDULA</label>
+                                    <label for="" class="col-2" style="color: white;">NUMERO</label>
+                                    <label for="" class="col-2" style="color: white;">CEDULA</label>
                                     <label for="" class="col-3" style="color: white;">NOMBRE</label>
                                     <label for="" class="col-2" style="color: white;">TELEFONO</label>
                                     <label for="" class="col-2" style="color: white;">EMAIL</label>
@@ -186,31 +191,18 @@
 
 
             newItem.innerHTML = `
-    <div class="row ml-1">
-        <input type="number" name="item[]" class="codigo_id form-control col-1"
-        placeholder="Código" value="` + itemn + `" required readonly>
-        
-        <input type="text" name="cedula[]" class="autocomplete-cedula form-control col-1">
-        
-        <input type="hidden" name="idfirmante[]" value="0" class="codigo_id form-control col-1" required>
-        
-        <input type="text" name="nombre[]" class="autocomplete-nombre form-control col-3" required>
-        
-        <input type="text" name="telefono[]" step="any" class="form-control col-2">
-        
-        <input type="text" name="email[]" class="form-control col-2">
-        
-        <select name="tipo[]" class="form-control col-2">
-            <option value="FIRMANTE">FIRMANTE</option>
-            <option value="SOLICITANTE">SOLICITANTE</option>
-        </select>
-        
-        <button class="btn-remove btn btn-outline-danger ml-2" type="button">
-            <i class="fa fa-trash" aria-hidden="true"></i>
-        </button>
-    </div>
-`;
-
+                <div class="row ml-1">
+                                    <input type="number" name="item[]" class="codigo_id form-control col-2"
+                                    placeholder="Código" value="` + itemn + `" required readonly>
+                                    <input type="text" name="cedula[]" class="autocomplete-cedula form-control col-2">
+                                    <input type="hidden" name="idfirmante[]" value="0" class="codigo_id form-control col-1" required>
+                                    <input type="text" name="nombre[]" class="autocomplete-nombre form-control col-3"
+                                      required>
+                                    <input type="text" name="telefono[]" step="any" class="form-control col-2">
+                                    <input type="text" name="email[]" class=" form-control col-2 " >                                    
+                                     <button class="btn-remove btn btn-outline-danger ml-2" type="button"><i class="fa fa-trash" aria-hidden="true"></i></button>                                           
+                                </div>
+            `;
 
 
             const codigoInput = newItem.querySelector('input[name="cedula[]"]');

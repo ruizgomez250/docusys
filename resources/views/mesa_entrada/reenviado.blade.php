@@ -74,7 +74,7 @@
                                 <th>Fecha Recepción</th>
                                 <th>Origen</th>
                                 <th>Tipo Doc</th>
-                                <th>Destino</th>
+                                <th>Firmantes</th>
                                 <th>Observación</th>
                                 <th>Estado</th>
                                 <th>Usuario</th>
@@ -88,12 +88,17 @@
                                 <td class="details-control text-center">
                                     <i class="fa fa-plus-circle text-primary"></i> <!-- Ícono de expansión -->
                                 </td>
-                                <td>{{ $row->nro_mentrada }}</td>
+                                <td>
+                                    {{ $row->nro_mentrada }}
+                                    @if ($row->nro_suplementario !== null)
+                                        .{{ $row->nro_suplementario }}
+                                    @endif
+                                </td>
                                 <td>{{ $row->anho }}</td>
                                 <td>{{ $row->fecha_recepcion }}</td>
                                 <td>{{ $row->origen->nombre ?? 'N/A' }}</td>
                                 <td>{{ $row->tipoDoc->nombre ?? 'N/A' }}</td>
-                                <td></td>
+                                <td>{{ $row->nombres_firmantes ?? 'N/A' }}</td>
                                 <td>{{ $row->observacion }}</td>
                                 <td class="{{ $row->estado_recorrido == '2' ? 'text-danger' : 'text-success' }}">
                                     @if ($row->estado_recorrido == '2')
