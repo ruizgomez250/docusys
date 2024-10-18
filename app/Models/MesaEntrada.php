@@ -74,4 +74,9 @@ class MesaEntrada extends Model
     {
         return $this->hasMany(ArchivosDocumento::class, 'id_mentrada');
     }
+    public function firmantes()
+    {
+        return $this->belongsToMany(Firmante::class, 'mesa_entrada_firmante', 'id_mentrada', 'id_firmante');
+    }
+    
 }

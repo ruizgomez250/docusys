@@ -48,8 +48,13 @@ class MesaEntradaController extends Controller
         ];
 
         // Obtener todas las entradas de mesa junto con la información de si tienen documentos o no
-        $mesasEntrada = MesaEntrada::with('documentos')->get()->map(function ($mesaEntrada) {
+        $mesasEntrada = MesaEntrada::with(['documentos', 'firmantes'])->get()->map(function ($mesaEntrada) {
+            // Agregar una propiedad indicando si tiene documentos
             $mesaEntrada->tiene_documentos = $mesaEntrada->documentos->isNotEmpty();
+        
+            // Agregar una propiedad indicando si tiene firmantes
+            $mesaEntrada->tiene_firmantes = $mesaEntrada->firmantes->isNotEmpty();
+        
             return $mesaEntrada;
         });
 
