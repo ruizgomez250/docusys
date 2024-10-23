@@ -94,7 +94,7 @@ return [
     'auth_logo' => [
         'enabled' => true,
         'img' => [
-            'path' => 'vendor/adminlte/dist/img/camara.png',
+            'path' => 'vendor/adminlte/dist/img/rrhh.png',
             'alt' => 'Auth Logo',
             'class' => '',
             'width' => 180,
@@ -117,7 +117,7 @@ return [
     'preloader' => [
         'enabled' => false,
         'img' => [
-            'path' => 'vendor/adminlte/dist/img/camara.png',
+            'path' => 'vendor/adminlte/dist/img/rrhh.png',
             'alt' => 'AdminLTE Preloader Image',
             'effect' => 'animation__shake',
             'width' => 370,
