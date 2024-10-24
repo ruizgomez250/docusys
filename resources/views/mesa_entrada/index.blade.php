@@ -42,40 +42,9 @@
             @endif
 
             // Agregar confirmación de eliminación
-            $('.delete-button').on('click', function() {
-                var form = $(this).closest('.delete-form');
-                Swal.fire({
-                    title: 'Confirmar eliminación',
-                    text: '¿Estás seguro de que deseas eliminar esta mesa de entrada?',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#3085d6',
-                    cancelButtonColor: '#d33',
-                    confirmButtonText: 'Sí, eliminar',
-                    cancelButtonText: 'Cancelar'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        form.submit();
-                    }
-                });
-            });
-            $('.enviar-button').on('click', function() {
-                var form = $(this).closest('.enviar-form');
-                Swal.fire({
-                    title: 'Confirmar',
-                    text: '¿Estás seguro de que ya envio el formulario?',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#3085d6',
-                    cancelButtonColor: '#d33',
-                    confirmButtonText: 'Sí, enviar',
-                    cancelButtonText: 'Cancelar'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        form.submit();
-                    }
-                });
-            });
+
+
+
         });
     </script>
 @endpush
@@ -88,7 +57,6 @@
                     <table id="table1" class="table table-bordered table-hover" theme="light">
                         <thead>
                             <tr>
-                                <th></th> <!-- Columna para el botón de expansión -->
                                 <th>Nro MEntrada</th>
                                 <th>Año</th>
                                 <th>Fecha Recepción</th>
@@ -103,80 +71,9 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach ($mesasEntrada as $row)
-                                <tr data-child-id="{{ $row->id }}">
-                                    <td class="details-control text-center">
-                                        <i class="fa fa-plus-circle text-primary"></i> <!-- Ícono de expansión -->
-                                    </td>
-                                    <td>
-                                        {{ $row->nro_mentrada }}
-                                        @if ($row->nro_suplementario !== null)
-                                            .{{ $row->nro_suplementario }}
-                                        @endif
-                                    </td>
-                                    <td>{{ $row->anho }}</td>
-                                    <td>{{ $row->fecha_recepcion }}</td>
-                                    <td>{{ $row->origen->nombre ?? 'N/A' }}</td>
-                                    <td>{{ $row->tipoDoc->nombre ?? 'N/A' }}</td>
-
-                                    <!-- Mostrar los firmantes separados por coma -->
-                                    <td>
-                                        @if ($row->firmantes->isNotEmpty())
-                                            {{ $row->firmantes->pluck('nombre')->join(', ') }}
-                                        @else
-                                            N/A
-                                        @endif
-                                    </td>
-
-                                    <td>{{ $row->destino->nombre ?? 'N/A' }}</td>
-                                    <td>{{ $row->observacion }}</td>
-                                    <td class="{{ $row->estado == '1' ? 'text-danger' : 'text-success' }}">
-                                        {{ $row->estado == '1' ? 'Recepcionado' : 'Enviado' }}</td>
-                                    <td>{{ $row->user->name ?? 'N/A' }}</td>
-                                    <td style="float:right;">
-                                        <a href="{{ route('reporte.recorrido', $row) }}" target="_blank"
-                                            class="btn btn-sm btn-outline-secondary">
-                                            <i class="fa fa-file-pdf"></i>
-                                        </a>
-                                        @if ($row->estado == 1)
-                                            <a href="{{ route('mesaentrada.edit', $row->id) }}"
-                                                class="btn btn-sm  btn-outline-secondary">
-                                                <i class="fa fa-sm fa-fw fa-pen"></i>
-                                            </a>
-                                            <form action="{{ route('mesaentrada.destroy', $row->id) }}" method="post"
-                                                class="d-inline delete-form">
-                                                @csrf
-                                                @method('DELETE')
-                                                <input type="hidden" name="id_mentrada" value="{{ $row->id }}" />
-                                                <button type="button"
-                                                    class="btn btn-sm  btn-outline-secondary delete-button">
-                                                    <ion-icon name="trash-outline"><i
-                                                            class="fa fa-sm fa-fw fa-trash"></i></ion-icon>
-                                                </button>
-                                            </form>
-                                            <form action="{{ route('mesaentrada.enviar', $row->id) }}" method="post"
-                                                class="d-inline enviar-form">
-                                                @csrf
-                                                <button type="button"
-                                                    class="btn btn-sm  btn-outline-secondary enviar-button">
-                                                    <i class="fas fa-paper-plane"></i>
-                                                </button>
-                                            </form>
-                                        @endif
-                                        @if ($row->tiene_documentos)
-                                            <button type="button" class="btn btn-sm btn-outline-secondary"
-                                                onclick="openDocumentosModal({{ $row->id }})">
-                                                <i class="fa fa-sm fa-fw fa-print"></i>
-                                            </button>
-                                        @endif
-                                    </td>
-                                </tr>
-                            @endforeach
-
+                            <!-- DataTables llenará esta sección -->
                         </tbody>
                     </table>
-
-
                 </div>
             </div>
         </div>
@@ -207,88 +104,103 @@
         $(document).ready(function() {
             // Inicialización de DataTables
             var table = $('#table1').DataTable({
+                processing: true,
+                serverSide: true,
+                ajax: {
+                    url: '{{ route('mesas-entrada.data') }}',
+                    type: 'GET'
+                },
                 responsive: true,
                 autoWidth: false,
-                columnDefs: [{
-                        className: 'details-control', // Agrega clase de control de detalles
-                        orderable: false, // No se puede ordenar por esta columna
-                        targets: 0 // Índice de la columna de flechita
+                columns: [{
+                        data: 'nro_mentrada'
                     },
                     {
+                        data: 'anho'
+                    },
+                    {
+                        data: 'fecha_recepcion'
+                    },
+                    {
+                        data: 'origen'
+                    },
+                    {
+                        data: 'tipo_doc'
+                    },
+                    {
+                        data: 'firmantes'
+                    },
+                    {
+                        data: 'destino'
+                    },
+                    {
+                        data: 'observacion'
+                    },
+                    {
+                        data: 'estado'
+                    },
+                    {
+                        data: 'usuario'
+                    },
+                    {
+                        data: 'acciones',
                         orderable: false,
-                        targets: -1 // Última columna (acciones)
+                        searchable: false
                     }
                 ],
+                columnDefs: [{
+                        orderable: false,
+                        targets: -1
+                    } // Última columna (acciones)
+                ],
                 order: [
-                    [3, 'desc']
-                ], // Ordenar por el ID (columna 1)
+                    [2, 'desc']
+                ] // Ordenar por la columna de Fecha Recepción
             });
 
-            // Función para generar HTML de detalles adicionales
-            function format(details) {
-                var detalleHTML = '<table class="table table-bordered table-hover table-sm">' +
-                    '<thead>' +
-                    '<tr>' +
-                    '<th>N</th>' +
-                    '<th>Cedula</th>' +
-                    '<th>Nombre</th>' +
-                    '<th>Telefono</th>' +
-                    '<th>Email</th>' +
-                    '</tr>' +
-                    '</thead>' +
-                    '<tbody>';
-                details.forEach(function(detalle, index) {
-                    detalleHTML += '<tr>' +
-                        '<td>' + (index + 1) + '</td>' + // N
-                        '<td>' + (detalle.firmante.cedula || '-') + '</td>' + // Cedula
-                        '<td>' + (detalle.firmante.nombre || '-') + '</td>' + // Nombre
-                        '<td>' + (detalle.firmante.telefono || '-') + '</td>' + // Telefono
-                        '<td>' + (detalle.firmante.correo || '-') + '</td>' + // Email
-                        '</tr>';
+            // Detener el envío del formulario y usar SweetAlert para confirmación
+            $(document).on('submit', '.enviar-form', function(e) {
+                e.preventDefault(); // Detiene el envío por defecto
+
+                var form = this; // Guarda referencia del formulario
+
+                Swal.fire({
+                    title: 'Confirmar',
+                    text: '¿Estás seguro de que deseas enviar este formulario?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Sí, enviar',
+                    cancelButtonText: 'Cancelar'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        form.submit(); // Envía el formulario si el usuario confirma
+                    }
                 });
-                detalleHTML += '</tbody></table>';
-                return detalleHTML;
-            }
+            });
+            $(document).on('submit', '.delete-form', function(e) {
+                e.preventDefault(); // Detener el envío por defecto
 
-            // Evento de clic en la flechita para mostrar/ocultar detalles
-            $('#table1 tbody').on('click', 'td.details-control', function() {
-                var tr = $(this).closest('tr');
-                var row = table.row(tr);
-                var id = tr.data('child-id'); // Obtener el ID del elemento (Mesa de entrada)
-                var iconElement = $(this).find('i'); // Guardar el elemento del ícono
-                if (row.child.isShown()) {
-                    // Si el detalle está visible, lo ocultamos
-                    row.child.hide();
-                    tr.removeClass('shown');
-                    iconElement.removeClass('fa-minus-circle').addClass('fa-plus-circle');
-                } else {
-                    // Si el detalle está oculto, lo mostramos
-                    $.ajax({
-                        url: '{{ route('mesaentrada.firmantes', '') }}/' +
-                            id, // Verificar si la ruta se forma correctamente
-                        method: 'GET',
-                        success: function(response) {
+                var form = this; // Guarda referencia del formulario
 
-                            // Utilizar el objeto de respuesta directamente como array de detalles
-                            var detalles =
-                                response; // Aquí 'response' ya es un array de objetos, no 'response.detalles'
-                            if (detalles.length > 0) {
-                                // Mostramos el detalle
-                                row.child(format(detalles)).show();
-                                tr.addClass('shown');
-                                iconElement.removeClass('fa-plus-circle').addClass(
-                                    'fa-minus-circle');
-                            } else {
-                                console.log('No se encontraron detalles.');
-                            }
-                        },
-                        error: function() {
-                            console.log('Error al obtener detalles.');
-                        }
-                    });
-                }
+                Swal.fire({
+                    title: 'Eliminar',
+                    text: '¿Estás seguro de que deseas eliminar este registro?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Sí, eliminar',
+                    cancelButtonText: 'Cancelar'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        form.submit(); // Enviar el formulario si el usuario confirma
+                    }
+                });
             });
         });
+
 
 
         function openDocumentosModal(id) {
