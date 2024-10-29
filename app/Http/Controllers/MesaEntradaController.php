@@ -745,9 +745,8 @@ class MesaEntradaController extends Controller
 
                     // Guardar el registro en la base de datos
                     $recorridoDoc->save();
-
                 }
-                
+
                 $destinoactual = UserDestino::where('user_id', $userId)->first();
 
                 // Actualizar MapaRecorrido
@@ -1155,7 +1154,7 @@ class MesaEntradaController extends Controller
         // Establecer título del documento
         $pdf->SetTextColor(0, 0, 0);
         $pdf->SetTitle('Recorrido del Documento');
-        $pdf->Cell(0, 10, 'Mapa Recorrido', 0, 1, 'C'); // Celda centrada con el título
+        $pdf->Cell(0, 10, 'Mapa Recorrido Mesa Entrada Nº: '.$row->nro_mentrada.'/'.$row->anho, 0, 1, 'C'); // Celda centrada con el título
         $pdf->SetFont('Times', '', 12);
 
         $pdf->Ln(10); // Espacio antes de comenzar el diagrama
@@ -1168,7 +1167,7 @@ class MesaEntradaController extends Controller
 
         // Iterar sobre los recorridos y dibujar el diagrama
         foreach ($recorridos as $recorrido) {
-
+            $currentPage = $pdf->getPage();
             // Dibujar el círculo
             $pdf->Circle($xPosition, $pdf->GetY() + 5, 5); // Ajustar la posición vertical para el círculo
 
@@ -1258,6 +1257,12 @@ class MesaEntradaController extends Controller
             // Incrementar el número del estado y la posición vertical
             $stateNumber++;
             $pdf->Ln(10); // Ajustar el espacio vertical entre los estados
+            if ($pdf->getPage() > $currentPage) {
+                // Insertar marca de agua
+                $pdf->SetAlpha(0.3); // Establece la opacidad al 10%
+                $pdf->Image('vendor/adminlte/dist/img/icono camara.png', 10, 50, 190); // Ajusta la posición y tamaño de la imagen
+                $pdf->SetAlpha(1); // Restablece la opacidad al 100%
+            }
         }
 
         // Salida del PDF
