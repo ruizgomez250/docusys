@@ -281,6 +281,7 @@ class MesaEntradaController extends Controller
             DB::transaction(function () use ($request) {
                 $validatedData = $request->validate([
                     'id_origen' => 'required|integer',
+                    'nromesaentrada' => 'required|integer',
                     'id_tipo_doc' => 'required|integer',
                     'id_destino' => 'required|integer',
                     'observacion' => 'nullable|string',
@@ -310,7 +311,7 @@ class MesaEntradaController extends Controller
                 $mesaEntrada = new MesaEntrada();
 
                 // Asignar cada campo individualmente
-                $mesaEntrada->nro_mentrada = $maxNroMentrada;
+                $mesaEntrada->nro_mentrada = $request->input('nromesaentrada');//$maxNroMentrada;
                 $mesaEntrada->anho = $anho;
                 $mesaEntrada->fecha_recepcion = $request->input('fechaemision');
                 $mesaEntrada->id_origen = $request->input('id_origen');

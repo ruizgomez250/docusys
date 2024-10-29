@@ -53,6 +53,10 @@
                                 <label for="documento">Documento (PDF o DOC)</label>
                                 <input type="file" name="documento" id="documento" accept=".pdf, .doc, .docx">
                             </div>
+                            <div class="col-md-3 form-group">
+                                <label for="documento">N° Mesa Entrada</label>
+                                <input type="number" name="nromesaentrada" id="nromesaentrada" required>
+                            </div>
                             {{-- <div class="col-md-5 form-group">
                                 <label for="archivo">Archivo (ZIP o RAR)</label>
                                 <input type="file" name="archivo" id="archivo" accept=".zip, .rar" required>
