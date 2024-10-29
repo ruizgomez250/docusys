@@ -138,7 +138,7 @@
                                             class="btn btn-sm btn-outline-secondary">
                                             <i class="fa fa-file-pdf"></i>
                                         </a>
-                                        @if ($row->estado == 1)
+                                        @if ($row->estado == 1 || $row->modificar == 1)
                                             <a href="{{ route('mesaentrada.edit', $row->id) }}"
                                                 class="btn btn-sm  btn-outline-secondary">
                                                 <i class="fa fa-sm fa-fw fa-pen"></i>
