@@ -730,7 +730,7 @@ class MesaEntradaController extends Controller
                 ]);
 
                 $mesaEntrada = MesaEntrada::findOrFail($id);
-                $modificar = $request->input('modificar');
+
                 // Actualizar los campos de MesaEntrada
                 $mesaEntrada->update([
                     'id_origen' => $validatedData['id_origen'],
@@ -740,70 +740,20 @@ class MesaEntradaController extends Controller
                     'modificar' => 0,
                 ]);
 
-                $fechaAct = date('Y-m-d');
-                $userId = auth()->id();
-                $usuario = User::find($userId);
-                $recorridoDoc = new RecorridoDoc();
+                // Obtener los firmantes actuales
+                $currentFirmantes = MesaEntradaFirmante::where('id_mentrada', $mesaEntrada->id)
+                    ->pluck('id_firmante')
+                    ->toArray();
 
+                // Determinar los firmantes que se eliminarán
+                $newFirmantes = $validatedData['idfirmante'];
+                $firmantesToDelete = array_diff($currentFirmantes, $newFirmantes);
 
-                // Asignar valores manualmente
-                if ($mesaEntrada->estado == 2) {
-                    $recorridoDoc->descripcion = 'Modificado por : ' . $usuario->name;
-                    $recorridoDoc->id_mentrada = $id;  // Asegúrate de que este ID existe en la tabla mesa_entrada
-                    $recorridoDoc->fecha = Carbon::now(); // Fecha actual, también puedes especificar una fecha fija
-                    $recorridoDoc->id_usuario = $userId;  // Asegúrate de que este ID existe en la tabla users
-
-                    // Guardar el registro en la base de datos
-                    $recorridoDoc->save();
-                }
-
-                $destinoactual = UserDestino::where('user_id', $userId)->first();
-
-                // Actualizar MapaRecorrido
-                $mapaRecorrido = MapaRecorrido::where('id_mentrada', $id)->first();
-                if ($mapaRecorrido) {
-                    $mapaRecorrido->update([
-                        'fecha_recepcion' => $fechaAct,
-                        'id_actual' => $destinoactual->destino_id,
-                        'id_destino' => $validatedData['id_destino'],
-                        'observacion' => $validatedData['observacion'],
-                        'estado' => 1,
-                    ]);
-                } else {
-                    // Crear nuevo MapaRecorrido si no existe
-                    MapaRecorrido::create([
-                        'id_mentrada' => $id,
-                        'fecha_recepcion' => $fechaAct,
-                        'id_actual' => $destinoactual->destino_id,
-                        'id_destino' => $validatedData['id_destino'],
-                        'observacion' => $validatedData['observacion'],
-                        'estado' => 1,
-                    ]);
-                }
-
-                date_default_timezone_set('America/Asuncion'); // Cambia 'America/Asuncion' por tu zona horaria
-
-                // Obtener la fecha y hora actual en el formato deseado
-                $destino = Destino::find($destinoactual->destino_id);
-                $fechaHoraActual = date('Y-m-d H:i:s');
-
-                // Actualizar RecorridoDoc
-                $userId = auth()->id();
-                $recorridodoc = RecorridoDoc::where('id_mentrada', $id)->first();
-                if ($recorridodoc) {
-                    $recorridodoc->update([
-                        'fecha' => $fechaHoraActual,
-                        'descripcion' => 'Actualizado: ' . $destino->nombre,
-                        'id_usuario' => $userId,
-                    ]);
-                } else {
-                    // Crear nuevo RecorridoDoc si no existe
-                    RecorridoDoc::create([
-                        'id_mentrada' => $id,
-                        'fecha' => $fechaHoraActual,
-                        'descripcion' => 'Actualizado: ' . $destino->nombre,
-                        'id_usuario' => $userId,
-                    ]);
+                // Eliminar firmantes que ya no están en la lista
+                if (!empty($firmantesToDelete)) {
+                    MesaEntradaFirmante::whereIn('id_firmante', $firmantesToDelete)
+                        ->where('id_mentrada', $mesaEntrada->id)
+                        ->delete();
                 }
 
                 foreach ($validatedData['idfirmante'] as $index => $idfirmante) {
@@ -829,7 +779,7 @@ class MesaEntradaController extends Controller
                                 'nombre' => $validatedData['nombre'][$index],
                                 'cedula' => $validatedData['cedula'][$index],
                                 'telefono' => $validatedData['telefono'][$index],
-                                'correo' => $validatedData['email'][$index] ?? null, // Actualizar el correo solo si está presente
+                                'correo' => $validatedData['email'][$index] ?? null,
                             ]);
                         }
                     }
@@ -850,6 +800,7 @@ class MesaEntradaController extends Controller
             return redirect()->route('mesaentrada.index')->with('error', 'No se pudo completar la operación.');
         }
     }
+
 
 
 
@@ -1164,7 +1115,7 @@ class MesaEntradaController extends Controller
         // Establecer título del documento
         $pdf->SetTextColor(0, 0, 0);
         $pdf->SetTitle('Recorrido del Documento');
-        $pdf->Cell(0, 10, 'Mapa Recorrido Mesa Entrada Nº: '.$row->nro_mentrada.'/'.$row->anho, 0, 1, 'C'); // Celda centrada con el título
+        $pdf->Cell(0, 10, 'Mapa Recorrido Mesa Entrada Nº: ' . $row->nro_mentrada . '/' . $row->anho, 0, 1, 'C'); // Celda centrada con el título
         $pdf->SetFont('Times', '', 12);
 
         $pdf->Ln(10); // Espacio antes de comenzar el diagrama
