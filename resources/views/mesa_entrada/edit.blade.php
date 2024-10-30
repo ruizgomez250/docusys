@@ -1,37 +1,37 @@
 @extends('adminlte::page')
 
 @section('content_header')
-<h1 class="m-0 custom-heading">Editar Mesa de Entrada</h1>
+    <h1 class="m-0 custom-heading">Editar Mesa de Entrada</h1>
 @stop
 @section('plugins.Sweetalert2', true)
 
 @push('js')
-<script>
-    $(document).ready(function() {
-        var Toast = Swal.mixin({
-            toast: true,
-            position: 'bottom-end',
-            showConfirmButton: false,
-            timer: 3000
+    <script>
+        $(document).ready(function() {
+            var Toast = Swal.mixin({
+                toast: true,
+                position: 'bottom-end',
+                showConfirmButton: false,
+                timer: 3000
+            });
+
+            @if (session('success'))
+                Toast.fire({
+                    icon: 'success',
+                    title: '<label style="font-size: 1.6rem !important;">Operación Exitosa!</label>',
+                    text: '{{ session('success') }}',
+                });
+            @endif
+
+            @if (session('error'))
+                Toast.fire({
+                    icon: 'error',
+                    title: '<label style="font-size: 1.6rem !important;">Error Inesperado!</label>',
+                    text: '{{ session('error') }}',
+                });
+            @endif
         });
-
-        @if (session('success'))
-            Toast.fire({
-                icon: 'success',
-                title: '<label style="font-size: 1.6rem !important;">Operación Exitosa!</label>',
-                text: '{{ session('success') }}',
-            });
-        @endif
-
-        @if (session('error'))
-            Toast.fire({
-                icon: 'error',
-                title: '<label style="font-size: 1.6rem !important;">Error Inesperado!</label>',
-                text: '{{ session('error') }}',
-            });
-        @endif
-    });
-</script>
+    </script>
 @endpush
 
 @section('content')
@@ -52,26 +52,34 @@
 
                         <div class="row">
                             <x-adminlte-select2 name="id_origen" label="Origen" fgroup-class="col-md-4" required>
-                                @foreach($origenes as $origen)
-                                    <option value="{{ $origen->id }}" {{ $mesaEntrada->id_origen == $origen->id ? 'selected' : '' }}>{{ $origen->nombre }}</option>
+                                @foreach ($origenes as $origen)
+                                    <option value="{{ $origen->id }}"
+                                        {{ $mesaEntrada->id_origen == $origen->id ? 'selected' : '' }}>{{ $origen->nombre }}
+                                    </option>
                                 @endforeach
                             </x-adminlte-select2>
 
-                            <x-adminlte-select2 name="id_tipo_doc" label="Tipo de Documento" fgroup-class="col-md-4" required>
-                                @foreach($tiposDoc as $tipoDoc)
-                                    <option value="{{ $tipoDoc->id }}" {{ $mesaEntrada->id_tipo_doc == $tipoDoc->id ? 'selected' : '' }}>{{ $tipoDoc->nombre }}</option>
+                            <x-adminlte-select2 name="id_tipo_doc" label="Tipo de Documento" fgroup-class="col-md-4"
+                                required>
+                                @foreach ($tiposDoc as $tipoDoc)
+                                    <option value="{{ $tipoDoc->id }}"
+                                        {{ $mesaEntrada->id_tipo_doc == $tipoDoc->id ? 'selected' : '' }}>
+                                        {{ $tipoDoc->nombre }}</option>
                                 @endforeach
                             </x-adminlte-select2>
 
                             <x-adminlte-select2 name="id_destino" label="Destino" fgroup-class="col-md-4" required>
-                                @foreach($destinos as $destino)
-                                    <option value="{{ $destino->id }}" {{ $mesaEntrada->id_destino == $destino->id ? 'selected' : '' }}>{{ $destino->nombre }}</option>
+                                @foreach ($destinos as $destino)
+                                    <option value="{{ $destino->id }}"
+                                        {{ $mesaEntrada->id_destino == $destino->id ? 'selected' : '' }}>
+                                        {{ $destino->nombre }}</option>
                                 @endforeach
                             </x-adminlte-select2>
                         </div>
 
                         <div class="row">
-                            <x-adminlte-textarea name="observacion" label="Observación" placeholder="Ingresar Observación" fgroup-class="col-md-12">{{ old('observacion', $mesaEntrada->observacion) }}</x-adminlte-textarea>
+                            <x-adminlte-textarea name="observacion" label="Observación" placeholder="Ingresar Observación"
+                                fgroup-class="col-md-12">{{ old('observacion', $mesaEntrada->observacion) }}</x-adminlte-textarea>
                         </div>
 
                         <hr>
@@ -86,21 +94,23 @@
                                     <label for="" class="col-2" style="color: white;">EMAIL</label>
                                 </div>
                             </div>
-                            @foreach($firmantes as $index => $firmante)
+                            @foreach ($firmantes as $index => $firmante)
                                 <div class="item">
                                     <div class="row ml-1">
                                         <input type="number" name="item[]" class="codigo_id form-control col-2"
                                             placeholder="Código" value="{{ $index + 1 }}" required readonly>
                                         <input type="text" name="cedula[]" class="autocomplete-cedula form-control col-2"
                                             value="{{ $firmante->cedula }}" required>
-                                        <input type="hidden" name="idfirmante[]" value="{{ $firmante->id }}" class="codigo_id form-control col-1" required>
+                                        <input type="hidden" name="idfirmante[]" value="{{ $firmante->id }}"
+                                            class="codigo_id form-control col-1" required>
                                         <input type="text" name="nombre[]" class="autocomplete-nombre form-control col-3"
                                             value="{{ $firmante->nombre }}" required>
                                         <input type="text" name="telefono[]" class="form-control col-2"
-                                            value="{{ $firmante->telefono }}" >
+                                            value="{{ $firmante->telefono }}">
                                         <input type="text" name="email[]" class="form-control col-2"
                                             value="{{ $firmante->email }}">
-                                        <button class="btn-remove btn btn-outline-danger ml-2" type="button"><i class="fa fa-trash" aria-hidden="true"></i></button>
+                                        <button class="btn-remove btn btn-outline-danger ml-2" type="button"><i
+                                                class="fa fa-trash" aria-hidden="true"></i></button>
                                     </div>
                                 </div>
                             @endforeach
@@ -111,8 +121,10 @@
 
                         <div class="row">
                             <div class="form-group col-md-12">
-                                <a class="btn btn-danger" style="float: right;" href="{{ route('mesaentrada.index') }}">Cancelar</a>
-                                <x-adminlte-button class="btn-group" style="float: right;" type="submit" label="Actualizar" theme="primary" icon="fas fa-lg fa-save" />
+                                <a class="btn btn-danger" style="float: right;"
+                                    href="{{ route('mesaentrada.index') }}">Cancelar</a>
+                                <x-adminlte-button class="btn-group" style="float: right;" type="submit" label="Actualizar"
+                                    theme="primary" icon="fas fa-lg fa-save" />
                             </div>
                         </div>
                     </form>
@@ -123,18 +135,24 @@
 @stop
 
 @push('js')
-<script src="{{ asset('vendor/jquery-ui-1.13.2/jquery-ui.min.js') }}"></script>
-<script>
-    itemn = {{ count($firmantes) }};
-    const itemsContainer = document.getElementById('items');
-    
-    // Función para agregar un nuevo ítem de compra
-    function addNewItem() {
-        itemn++;
-        const newItem = document.createElement("div");
-        newItem.classList.add("item");
+    <script src="{{ asset('vendor/jquery-ui-1.13.2/jquery-ui.min.js') }}"></script>
+    <script>
+        document.querySelectorAll('.btn-remove').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const itemToRemove = btn.closest('.item'); // Obtiene el contenedor más cercano
+                removeItem(itemToRemove);
+            });
+        });
+        itemn = {{ count($firmantes) }};
+        const itemsContainer = document.getElementById('items');
 
-        newItem.innerHTML = `
+        // Función para agregar un nuevo ítem de compra
+        function addNewItem() {
+            itemn++;
+            const newItem = document.createElement("div");
+            newItem.classList.add("item");
+
+            newItem.innerHTML = `
             <div class="row ml-1">
                 <input type="number" name="item[]" class="codigo_id form-control col-2" placeholder="Código" value="${itemn}" required readonly>
                 <input type="text" name="cedula[]" class="autocomplete-cedula form-control col-2" value="" required>
@@ -146,116 +164,125 @@
             </div>
         `;
 
-        const codigoInput = newItem.querySelector('input[name="cedula[]"]');
-        codigoInput.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                const cantidadInput = newItem.querySelector('input[name="nombre[]"]');
-                cantidadInput.focus();
+            const codigoInput = newItem.querySelector('input[name="cedula[]"]');
+            codigoInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const cantidadInput = newItem.querySelector('input[name="nombre[]"]');
+                    cantidadInput.focus();
+                }
+            });
+
+            const cantidadInput = newItem.querySelector('input[name="nombre[]"]');
+            cantidadInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const descripcionInput = newItem.querySelector('input[name="telefono[]"]');
+                    descripcionInput.focus();
+                }
+            });
+
+            const descripcionInput = newItem.querySelector('input[name="telefono[]"]');
+            descripcionInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const precioInput = newItem.querySelector('input[name="email[]"]');
+                    precioInput.focus();
+                    precioInput.select();
+                }
+            });
+
+            const emailInput = newItem.querySelector('input[name="email[]"]');
+            emailInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addNewItem();
+                    const precioInput = newItem.querySelector('input[name="cedula[]"]');
+                }
+            });
+
+            itemsContainer.appendChild(newItem);
+
+            const btnRemove = newItem.querySelector(".btn-remove");
+            btnRemove.addEventListener("click", function() {
+                console.log("Eliminando item:", newItem);
+                removeItem(newItem);
+            });
+
+            $('input[name="cedula[]"]').focus();
+        }
+
+        function removeItem(itemToRemove) {
+            if (itemToRemove) {
+                itemsContainer.removeChild(itemToRemove);
+                itemn--; // Decrementa si es necesario
             }
+        }
+
+        $(document).on('focus', '.autocomplete-nombre', function() {
+            $(this).autocomplete({
+                minLength: 0,
+                source: function(request, response) {
+                    $.ajax({
+                        url: "{{ route('obtenerfirmante') }}",
+                        contentType: "application/json; charset=utf-8",
+                        data: {
+                            term: request.term,
+                        },
+                        success: function(data) {
+                            response(data);
+                        },
+                        error: function(result) {
+                            response([{
+                                label: 'No se encontraron resultados.',
+                                value: ''
+                            }]);
+                        },
+                    });
+                },
+                select: function(event, ui) {
+                    var name = ui.item.value;
+                    $(this).val(name);
+                    $(this).siblings('.autocomplete-cedula').val(ui.item.cedula);
+                    $(this).siblings('.autocomplete-idfirmante').val(ui.item.id);
+                    $(this).siblings('.autocomplete-telefono').val(ui.item.telefono);
+                    $(this).siblings('.autocomplete-email').val(ui.item.email);
+                    return false;
+                },
+            });
         });
 
-        const cantidadInput = newItem.querySelector('input[name="nombre[]"]');
-        cantidadInput.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                const descripcionInput = newItem.querySelector('input[name="telefono[]"]');
-                descripcionInput.focus();
-            }
+        $(document).on('focus', '.autocomplete-cedula', function() {
+            $(this).autocomplete({
+                minLength: 0,
+                source: function(request, response) {
+                    $.ajax({
+                        url: "{{ route('obtenerfirmante') }}",
+                        contentType: "application/json; charset=utf-8",
+                        data: {
+                            term: request.term,
+                        },
+                        success: function(data) {
+                            response(data);
+                        },
+                        error: function(result) {
+                            response([{
+                                label: 'No se encontraron resultados.',
+                                value: ''
+                            }]);
+                        },
+                    });
+                },
+                select: function(event, ui) {
+                    var cedula = ui.item.value;
+                    $(this).val(cedula);
+                    $(this).siblings('.autocomplete-nombre').val(ui.item.nombre);
+                    $(this).siblings('.autocomplete-idfirmante').val(ui.item.id);
+                    $(this).siblings('.autocomplete-telefono').val(ui.item.telefono);
+                    $(this).siblings('.autocomplete-email').val(ui.item.email);
+                    return false;
+                },
+            });
         });
-
-        const descripcionInput = newItem.querySelector('input[name="telefono[]"]');
-        descripcionInput.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                const precioInput = newItem.querySelector('input[name="email[]"]');
-                precioInput.focus();
-                precioInput.select();
-            }
-        });
-
-        const emailInput = newItem.querySelector('input[name="email[]"]');
-        emailInput.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                addNewItem();
-                const precioInput = newItem.querySelector('input[name="cedula[]"]');
-            }
-        });
-
-        itemsContainer.appendChild(newItem);
-
-        const btnRemove = newItem.querySelector(".btn-remove");
-        btnRemove.addEventListener("click", function() {
-            removeItem(newItem);
-        });
-
-        $('input[name="cedula[]"]').focus();
-    }
-
-    function removeItem(itemToRemove) {
-        itemsContainer.removeChild(itemToRemove);
-        itemn--;
-    }
-
-    $(document).on('focus', '.autocomplete-nombre', function() {
-        $(this).autocomplete({
-            minLength: 0,
-            source: function(request, response) {
-                $.ajax({
-                    url: "{{ route('obtenerfirmante') }}",
-                    contentType: "application/json; charset=utf-8",
-                    data: {
-                        term: request.term,
-                    },
-                    success: function(data) {
-                        response(data);
-                    },
-                    error: function(result) {
-                        response([{ label: 'No se encontraron resultados.', value: '' }]);
-                    },
-                });
-            },
-            select: function(event, ui) {
-                var name = ui.item.value;
-                $(this).val(name);
-                $(this).siblings('.autocomplete-cedula').val(ui.item.cedula);
-                $(this).siblings('.autocomplete-idfirmante').val(ui.item.id);
-                $(this).siblings('.autocomplete-telefono').val(ui.item.telefono);
-                $(this).siblings('.autocomplete-email').val(ui.item.email);
-                return false;
-            },
-        });
-    });
-
-    $(document).on('focus', '.autocomplete-cedula', function() {
-        $(this).autocomplete({
-            minLength: 0,
-            source: function(request, response) {
-                $.ajax({
-                    url: "{{ route('obtenerfirmante') }}",
-                    contentType: "application/json; charset=utf-8",
-                    data: {
-                        term: request.term,
-                    },
-                    success: function(data) {
-                        response(data);
-                    },
-                    error: function(result) {
-                        response([{ label: 'No se encontraron resultados.', value: '' }]);
-                    },
-                });
-            },
-            select: function(event, ui) {
-                var cedula = ui.item.value;
-                $(this).val(cedula);
-                $(this).siblings('.autocomplete-nombre').val(ui.item.nombre);
-                $(this).siblings('.autocomplete-idfirmante').val(ui.item.id);
-                $(this).siblings('.autocomplete-telefono').val(ui.item.telefono);
-                $(this).siblings('.autocomplete-email').val(ui.item.email);
-                return false;
-            },
-        });
-    });
-</script>
+    </script>
 @endpush
