@@ -74,6 +74,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/mesaentrada/documentos/{id}', [MesaEntradaController::class, 'documentos'])->name('mesaentrada.documentos');
     Route::get('/createaux', [MesaEntradaController::class, 'aux'])->name('createaux');
     Route::post('/mesaentradastoreaux', [MesaEntradaController::class, 'storeaux'])->name('mesaentradastoreaux');
+    Route::get('/buscar-firmante/{codigo}', [FirmanteController::class, 'buscarPorCodigo']);
 });
 Route::post('/verificar-duplicado', [MesaEntradaController::class, 'verificarDuplicado'])->name('verificar-duplicado');
 Route::get('/mesaentrada/firmantes/{id}', [MesaEntradaController::class, 'firmantes'])->name('mesaentrada.firmantes');

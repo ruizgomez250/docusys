@@ -1,7 +1,7 @@
 @extends('adminlte::page')
 
 @section('content_header')
-    <h1 class="m-0 custom-heading">Registrar Nueva Mesa de Entrada Auxiliar</h1>
+    <h1 class="m-0 custom-heading">Registrar Mesa de Entrada Auxiliar</h1>
 @stop
 @section('plugins.Sweetalert2', true)
 
@@ -45,7 +45,7 @@
                         @method('POST')
                         <div class="row">
                             <div class="form-group">
-                                <label for="fechaemision">FECHA DE EMISIÓN</label>
+                                <label for="fechaemision">FECHA DEL DOCUMENTO</label>
                                 <input type="date" class="form-control" id="fechaemision" name="fechaemision"
                                     value="{{ date('Y-m-d') }}" required>
                             </div>
@@ -57,7 +57,6 @@
                                 <label for="documento">N° Mesa Entrada</label>
                                 <input type="number" name="nromesaentrada" id="nromesaentrada" required>
                             </div>
-                            
                             {{-- <div class="col-md-5 form-group">
                                 <label for="archivo">Archivo (ZIP o RAR)</label>
                                 <input type="file" name="archivo" id="archivo" accept=".zip, .rar" required>
@@ -101,8 +100,8 @@
                         <div id="items">
                             <div class="item" style="background-color: #343A40;">
                                 <div class="row ml-2">
-                                    <label for="" class="col-2" style="color: white;">NUMERO</label>
-                                    <label for="" class="col-2" style="color: white;">CEDULA</label>
+                                    <label for="" class="col-1" style="color: white;">CODIGO</label>
+                                    <label for="" class="col-1" style="color: white;">CEDULA</label>
                                     <label for="" class="col-3" style="color: white;">NOMBRE</label>
                                     <label for="" class="col-2" style="color: white;">TELEFONO</label>
                                     <label for="" class="col-2" style="color: white;">EMAIL</label>
@@ -191,18 +190,31 @@
 
 
             newItem.innerHTML = `
-                <div class="row ml-1">
-                                    <input type="number" name="item[]" class="codigo_id form-control col-2"
-                                    placeholder="Código" value="` + itemn + `" required readonly>
-                                    <input type="text" name="cedula[]" class="autocomplete-cedula form-control col-2">
-                                    <input type="hidden" name="idfirmante[]" value="0" class="codigo_id form-control col-1" required>
-                                    <input type="text" name="nombre[]" class="autocomplete-nombre form-control col-3"
-                                      required>
-                                    <input type="text" name="telefono[]" step="any" class="form-control col-2">
-                                    <input type="text" name="email[]" class=" form-control col-2 " >                                    
-                                     <button class="btn-remove btn btn-outline-danger ml-2" type="button"><i class="fa fa-trash" aria-hidden="true"></i></button>                                           
-                                </div>
+            <div class="row ml-1">
+                <input type="number" name="codigo[]" class="codigo_id form-control col-1"
+                placeholder="Código" value="" onchange="buscarporcod(this)">
+                
+                <input type="text" name="cedula[]" class="autocomplete-cedula form-control col-1">
+                
+                <input type="hidden" name="idfirmante[]" value="0" class="codigo_id form-control col-1" required>
+                
+                <input type="text" name="nombre[]" class="autocomplete-nombre form-control col-3" required>
+                
+                <input type="text" name="telefono[]" step="any" class="form-control col-2">
+                
+                <input type="text" name="email[]" class="form-control col-2">
+                
+                <select name="tipo[]" class="form-control col-2">
+                    <option value="FIRMANTE">FIRMANTE</option>
+                    <option value="SOLICITANTE">SOLICITANTE</option>
+                </select>
+                
+                <button class="btn-remove btn btn-outline-danger ml-2" type="button">
+                    <i class="fa fa-trash" aria-hidden="true"></i>
+                </button>
+            </div>
             `;
+
 
 
             const codigoInput = newItem.querySelector('input[name="cedula[]"]');
@@ -289,9 +301,11 @@
                         success: function(data) {
                             var filteredData = Object.keys(data).map(function(key) {
                                 return {
-                                    label: data[key].nombre,
+                                    label: data[key].nombre + ' - Cod. ' + data[key]
+                                        .codigo,
                                     value: data[key].nombre,
                                     cedula: data[key].cedula,
+                                    codigo: data[key].codigo,
                                     telefono: data[key].telefono,
                                     email: data[key].email,
                                     id: data[key].id,
@@ -310,6 +324,7 @@
                     $(this).closest('.row').find('input[name="telefono[]"]').val(ui.item.telefono);
                     $(this).closest('.row').find('input[name="email[]"]').val(ui.item.email);
                     $(this).closest('.row').find('input[name="idfirmante[]"]').val(ui.item.id);
+                    $(this).closest('.row').find('input[name="codigo[]"]').val(ui.item.codigo);
                     $('input[name="email[]"]').focus(); // Movemos el foco al campo de cantidad
                 },
                 autoFocus: true, // Activamos el enfoque automático para facilitar la navegación con teclado
@@ -323,7 +338,7 @@
         });
         $(document).on('focus', '.autocomplete-cedula', function() {
             $(this).autocomplete({
-                minLength: 0, // Cambiamos a 0 para que se dispare el autocompletado sin escribir
+                minLength: 0, // Se activa el autocompletado sin necesidad de escribir
                 source: function(request, response) {
                     $.ajax({
                         url: "{{ route('obtenerfirmante') }}",
@@ -339,6 +354,7 @@
                                     value: data[key].cedula,
                                     cedula: data[key].cedula,
                                     nombre: data[key].nombre,
+                                    codigo: data[key].codigo,
                                     telefono: data[key].telefono,
                                     email: data[key].email,
                                     id: data[key].id,
@@ -349,24 +365,57 @@
                     });
                 },
                 select: function(event, ui) {
-                    // Aquí puedes manejar lo que sucede cuando se selecciona un elemento
-                    //traerCargarDatosProducto(ui.item.codigo, this);
-                    //console.log(ui.item);
+                    // Completa los campos en la fila actual
                     $(this).closest('.row').find('input[name="cedula[]"]').val(ui.item.cedula);
                     $(this).closest('.row').find('input[name="nombre[]"]').val(ui.item.nombre);
                     $(this).closest('.row').find('input[name="telefono[]"]').val(ui.item.telefono);
                     $(this).closest('.row').find('input[name="email[]"]').val(ui.item.email);
                     $(this).closest('.row').find('input[name="idfirmante[]"]').val(ui.item.id);
-                    $('input[name="email[]"]').focus(); // Movemos el foco al campo de cantidad
+                    $(this).closest('.row').find('input[name="codigo[]"]').val(ui.item.codigo);
+
+                    $('input[name="email[]"]').focus(); // Mueve el foco al siguiente campo
+
+                    return false; // Previene el autocompletado en el campo original
                 },
-                autoFocus: true, // Activamos el enfoque automático para facilitar la navegación con teclado
+                autoFocus: true // Enfoque automático para facilitar la navegación con teclado
             }).keydown(function(event) {
-                // Capturamos el evento keydown para verificar si se presionó Enter
-                if (event.keyCode === 13 && !$(this).val()) {
-                    // Si se presionó Enter y el campo está vacío
-                    $('input[name="cantidad[]"]').focus(); // Movemos el foco al campo de cantidad
+                if (event.keyCode === 13) { // Si se presiona Enter
+                    event.preventDefault(); // Evita el envío del formulario
+
+                    // Si no se ha seleccionado nada, pero se presiona Enter, hace una acción por defecto
+                    if (!$(this).data("ui-autocomplete").selectedItem) {
+                        $(this).autocomplete("search", $(this).val());
+                    }
                 }
             });
         });
+
+        function buscarporcod(inputElement) {
+            const codigo = inputElement.value;
+            // Llama a la ruta de búsqueda
+            fetch(`/docusys/public/buscar-firmante/${codigo}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const firmante = data.data;
+
+                        // Encuentra el contenedor de la fila actual
+                        const parentRow = inputElement.closest('.row');
+
+                        // Llena los campos correspondientes
+                        parentRow.querySelector('input[name="cedula[]"]').value = firmante.cedula || '';
+                        parentRow.querySelector('input[name="nombre[]"]').value = firmante.nombre || '';
+                        parentRow.querySelector('input[name="telefono[]"]').value = firmante.telefono || '';
+                        parentRow.querySelector('input[name="email[]"]').value = firmante.correo || '';
+                        parentRow.querySelector('input[name="idfirmante[]"]').value = firmante.id || '';
+
+                    } else {
+                        console.log('Firmante no encontrado');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error al buscar el firmante:', error);
+                });
+        }
     </script>
 @endpush

@@ -59,7 +59,6 @@ class FirmanteController extends Controller
 
         try {
             return view('firmante.edit', ['firmante' => $firmante]);
-            
         } catch (Exception $e) {
             return view('firmante.index')->with('message', 'No se pudo completar la operación.');
         }
@@ -117,6 +116,26 @@ class FirmanteController extends Controller
 
             // Redirigir con un mensaje de error
             return redirect()->route('firmante.index')->with('error', 'Hubo un problema al intentar eliminar el firmante. Por favor, inténtelo de nuevo.');
+        }
+    }
+    public function buscarPorCodigo($codigo)
+    {
+        // Busca el firmante por el campo 'codigo'
+        $firmante = Firmante::where('codigo', $codigo)->first();
+
+        // Verifica si el firmante existe
+        if ($firmante) {
+            return response()->json([
+                'success' => true,
+                'codigo' => $codigo,
+                'data' => $firmante
+            ]);
+        } else {
+            return response()->json([
+                'success' => false,
+                'codigo' => $codigo,
+                'message' => 'Firmante no encontrado'
+            ]);
         }
     }
 }

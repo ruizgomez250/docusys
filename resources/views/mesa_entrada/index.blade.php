@@ -59,7 +59,7 @@
                             <tr>
                                 <th>Nro MEntrada</th>
                                 <th>Año</th>
-                                <th>Fecha Recepción</th>
+                                <th>Fecha Del Documento</th>
                                 <th>Origen</th>
                                 <th>Tipo Doc</th>
                                 <th>Firmantes</th>
