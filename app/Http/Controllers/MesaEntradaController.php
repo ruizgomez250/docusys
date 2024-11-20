@@ -32,6 +32,35 @@ class MesaEntradaController extends Controller
         $this->middleware('permission:Mesa de Entrada', ['only' => ['update', 'edit']]);
         $this->middleware('permission:Mesa de Entrada', ['only' => ['destroy']]);
     }
+    // public function index()
+    // {
+    //     $heads = [
+    //         '',
+    //         'Nro MEntrada',
+    //         'Año',
+    //         'Fecha Recepción',
+    //         'Origen',
+    //         'Tipo Doc',
+    //         'Destino',
+    //         'Observación',
+    //         'Estado',
+    //         'Usuario',
+    //         'Acción'
+    //     ];
+
+    //     // Obtener todas las entradas de mesa junto con la información de si tienen documentos o no
+    //     $mesasEntrada = MesaEntrada::with(['documentos', 'firmantes'])->get()->map(function ($mesaEntrada) {
+    //         // Agregar una propiedad indicando si tiene documentos
+    //         $mesaEntrada->tiene_documentos = $mesaEntrada->documentos->isNotEmpty();
+
+    //         // Agregar una propiedad indicando si tiene firmantes
+    //         $mesaEntrada->tiene_firmantes = $mesaEntrada->firmantes->isNotEmpty();
+
+    //         return $mesaEntrada;
+    //     });
+
+    //     return view('mesa_entrada.index', ['mesasEntrada' => $mesasEntrada, 'heads' => $heads]);
+    // }
     public function index()
     {
         $heads = [
