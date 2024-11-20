@@ -301,6 +301,7 @@ class MesaEntradaController extends Controller
     public function store(Request $request)
     {
         try {
+            //dd($request->input());
             DB::transaction(function () use ($request) {
                 $validatedData = $request->validate([
                     'id_origen' => 'required|integer',
@@ -467,6 +468,7 @@ class MesaEntradaController extends Controller
 
             return redirect()->route('mesaentrada.create')->with('success', 'Operación exitosa');
         } catch (Exception $e) {
+            dd($e);
             return redirect()->route('mesaentrada.create')->with('error', 'Hubo un problema con la operación. Por favor, inténtelo de nuevo.');
         }
     }
@@ -1027,7 +1029,6 @@ class MesaEntradaController extends Controller
     }
     public function reenviardoc(Request $request)
     {
-
         DB::beginTransaction();
         try {
             // Buscar el mapa de recorrido por id_mentrada
@@ -1035,9 +1036,8 @@ class MesaEntradaController extends Controller
             $userId = Auth::id();
             $userDestino = UserDestino::where('user_id', $userId)->first();
 
-
             $mapaRecorrido = MapaRecorrido::where('id_mentrada', $id)
-                ->where('estado', 2)
+               
                 ->where('id_actual', $userDestino->destino_id)
                 ->first();
 
@@ -1067,7 +1067,6 @@ class MesaEntradaController extends Controller
                     'observacion' => 'Nuevo recorrido creado',
                     'estado' => 1,
                 ]);
-
                 date_default_timezone_set('America/Asuncion'); // Cambia 'America/Asuncion' por tu zona horaria
 
                 // Obtener la fecha y hora actual en el formato deseado
@@ -1086,16 +1085,17 @@ class MesaEntradaController extends Controller
                 $mesaEntrada = MesaEntrada::findOrFail($id);
                 $mesaEntrada->estado = 2;
                 $mesaEntrada->save();
-
                 DB::commit();
-                return redirect()->route('recepciondoc')->with('success', 'Mesa de Entrada actualizada exitosamente.');
+                return redirect()->route('reenviado')->with('success', 'Mesa de Entrada actualizada exitosamente.');
             } else {
+                dd('pos');
                 DB::rollBack();
-                return redirect()->route('recepciondoc')->with('error', 'Mesa de Entrada no se pudo actualizar.');
+                return redirect()->route('reenviado')->with('error', 'Mesa de Entrada no se pudo actualizar.');
             }
         } catch (\Exception $e) {
+            dd($e);
             DB::rollBack();
-            return redirect()->route('recepciondoc')->with('error', 'Mesa de Entrada no se pudo actualizar.');
+            return redirect()->route('reenviado')->with('error', 'Mesa de Entrada no se pudo actualizar.');
         }
     }
     function recorrido(MesaEntrada $row)
