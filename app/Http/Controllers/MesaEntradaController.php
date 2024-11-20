@@ -152,6 +152,76 @@ class MesaEntradaController extends Controller
         //dd($mesasEntrada);
         return view('mesa_entrada.recepcionado', ['mesasEntrada' => $mesasEntrada, 'destinos' => $destinos, 'heads' => $heads]);
     }
+    // public function reenviado()
+    // {
+    //     $heads = [
+    //         '',
+    //         'Nro MEntrada',
+    //         'Año',
+    //         'Fecha Recepción',
+    //         'Origen',
+    //         'Tipo Doc',
+    //         'Firmantes',
+    //         'Observación',
+    //         'Estado',
+    //         'Usuario',
+    //         'Acción',
+    //         'Ult. Act.'
+    //     ];
+    //     $userId = auth()->id();
+    //     $userDestino = UserDestino::where('user_id', $userId)->first();
+    //     $iddest = $userDestino->destino_id;
+    //     $destinos = Destino::all();
+    //     $mesasEntrada = MesaEntrada::whereIn('id', function ($query) use ($iddest) {
+    //         $query->select('me.id')
+    //             ->from('mesa_entrada as me')
+    //             ->join('mapa_recorrido as mr', 'mr.id_mentrada', '=', 'me.id')
+    //             ->where('mr.id_actual', $iddest)
+    //             ->where('mr.estado', '=', 0) // Excluir estado 1
+    //             ->distinct();
+    //     })
+    //         ->with([
+    //             'documentos', // Cargar la relación con documentos
+    //             'recorridoDocs' => function ($query) {
+    //                 $query->orderBy('created_at', 'desc');
+    //             },
+    //             'user' // Cargar la relación con el usuario
+    //         ])
+    //         ->get()
+    //         ->map(function ($mesaEntrada) {
+    //             // Agregar la propiedad si tiene documentos
+    //             $mesaEntrada->tiene_documentos = $mesaEntrada->documentos->isNotEmpty();
+
+    //             // Obtener el último recorrido con el destino
+    //             $recorrido = DB::table('mapa_recorrido as mr')
+    //                 ->leftJoin('destinos as d', 'mr.id_destino', '=', 'd.id') // Unir con la tabla destinos
+    //                 ->where('mr.id_mentrada', $mesaEntrada->id)
+    //                 ->orderBy('mr.created_at', 'desc') // Ordenar por la fecha de creación más reciente
+    //                 ->first(['mr.created_at', 'mr.estado', 'd.nombre as destino_nombre']); // Traer también el nombre del destino
+
+    //             // Asignar la fecha de creación del recorrido, estado y nombre del destino
+    //             $mesaEntrada->fecha_creacion_recorrido = $recorrido ? $recorrido->created_at : null;
+    //             $mesaEntrada->estado_recorrido = $recorrido ? $recorrido->estado : null;
+    //             $mesaEntrada->destino_nombre = $recorrido ? $recorrido->destino_nombre : null; // Nombre del destino
+
+    //             // Obtener los nombres de los firmantes concatenados
+    //             $nombresFirmantes = DB::table('mesa_entrada_firmante AS mef')
+    //                 ->join('firmantes AS f', 'f.id', '=', 'mef.id_firmante')
+    //                 ->where('mef.id_mentrada', $mesaEntrada->id)
+    //                 ->select(DB::raw('GROUP_CONCAT(f.nombre SEPARATOR ", ") AS nombres_firmantes'))
+    //                 ->pluck('nombres_firmantes')
+    //                 ->first();
+
+    //             // Asignar los nombres de los firmantes a la entrada de mesa
+    //             $mesaEntrada->nombres_firmantes = $nombresFirmantes;
+
+    //             return $mesaEntrada;
+    //         });
+    //     //dd($mesasEntrada);
+
+
+    //     return view('mesa_entrada.reenviado', ['mesasEntrada' => $mesasEntrada, 'destinos' => $destinos, 'heads' => $heads]);
+    // }
     public function reenviado()
     {
         $heads = [
@@ -168,59 +238,8 @@ class MesaEntradaController extends Controller
             'Acción',
             'Ult. Act.'
         ];
-        $userId = auth()->id();
-        $userDestino = UserDestino::where('user_id', $userId)->first();
-        $iddest = $userDestino->destino_id;
         $destinos = Destino::all();
-        $mesasEntrada = MesaEntrada::whereIn('id', function ($query) use ($iddest) {
-            $query->select('me.id')
-                ->from('mesa_entrada as me')
-                ->join('mapa_recorrido as mr', 'mr.id_mentrada', '=', 'me.id')
-                ->where('mr.id_actual', $iddest)
-                ->where('mr.estado', '=', 0) // Excluir estado 1
-                ->distinct();
-        })
-            ->with([
-                'documentos', // Cargar la relación con documentos
-                'recorridoDocs' => function ($query) {
-                    $query->orderBy('created_at', 'desc');
-                },
-                'user' // Cargar la relación con el usuario
-            ])
-            ->get()
-            ->map(function ($mesaEntrada) {
-                // Agregar la propiedad si tiene documentos
-                $mesaEntrada->tiene_documentos = $mesaEntrada->documentos->isNotEmpty();
-
-                // Obtener el último recorrido con el destino
-                $recorrido = DB::table('mapa_recorrido as mr')
-                    ->leftJoin('destinos as d', 'mr.id_destino', '=', 'd.id') // Unir con la tabla destinos
-                    ->where('mr.id_mentrada', $mesaEntrada->id)
-                    ->orderBy('mr.created_at', 'desc') // Ordenar por la fecha de creación más reciente
-                    ->first(['mr.created_at', 'mr.estado', 'd.nombre as destino_nombre']); // Traer también el nombre del destino
-
-                // Asignar la fecha de creación del recorrido, estado y nombre del destino
-                $mesaEntrada->fecha_creacion_recorrido = $recorrido ? $recorrido->created_at : null;
-                $mesaEntrada->estado_recorrido = $recorrido ? $recorrido->estado : null;
-                $mesaEntrada->destino_nombre = $recorrido ? $recorrido->destino_nombre : null; // Nombre del destino
-
-                // Obtener los nombres de los firmantes concatenados
-                $nombresFirmantes = DB::table('mesa_entrada_firmante AS mef')
-                    ->join('firmantes AS f', 'f.id', '=', 'mef.id_firmante')
-                    ->where('mef.id_mentrada', $mesaEntrada->id)
-                    ->select(DB::raw('GROUP_CONCAT(f.nombre SEPARATOR ", ") AS nombres_firmantes'))
-                    ->pluck('nombres_firmantes')
-                    ->first();
-
-                // Asignar los nombres de los firmantes a la entrada de mesa
-                $mesaEntrada->nombres_firmantes = $nombresFirmantes;
-
-                return $mesaEntrada;
-            });
-        //dd($mesasEntrada);
-
-
-        return view('mesa_entrada.reenviado', ['mesasEntrada' => $mesasEntrada, 'destinos' => $destinos, 'heads' => $heads]);
+        return view('mesa_entrada.reenviado', ['heads' => $heads, 'destinos' => $destinos]);
     }
     public function finalizado()
     {
@@ -311,7 +330,7 @@ class MesaEntradaController extends Controller
                 $mesaEntrada = new MesaEntrada();
 
                 // Asignar cada campo individualmente
-                $mesaEntrada->nro_mentrada = $request->input('nromesaentrada');//$maxNroMentrada;
+                $mesaEntrada->nro_mentrada = $request->input('nromesaentrada'); //$maxNroMentrada;
                 $mesaEntrada->anho = $anho;
                 $mesaEntrada->fecha_recepcion = $request->input('fechaemision');
                 $mesaEntrada->id_origen = $request->input('id_origen');
@@ -1354,6 +1373,105 @@ class MesaEntradaController extends Controller
         }
 
         // Respuesta JSON
+        return response()->json([
+            'draw' => intval($request->input('draw')),
+            'recordsTotal' => $totalData,
+            'recordsFiltered' => $totalFiltered,
+            'data' => $data,
+        ]);
+    }
+    public function getDatareenv(Request $request)
+    {
+        $userId = auth()->id();
+        $userDestino = UserDestino::where('user_id', $userId)->first();
+        $iddest = $userDestino->destino_id;
+
+        $query = MesaEntrada::join('mapa_recorrido', 'mesa_entrada.id', '=', 'mapa_recorrido.id_mentrada')
+            ->leftJoin('mesa_entrada_firmante as mef', 'mesa_entrada.id', '=', 'mef.id_mentrada')
+            ->leftJoin('firmantes as f', 'mef.id_firmante', '=', 'f.id')
+            ->where('mapa_recorrido.estado', '!=', 0)
+            ->where('mapa_recorrido.id_actual', $iddest)
+            ->select(
+                'mesa_entrada.id',
+                'mesa_entrada.nro_mentrada',
+                'mesa_entrada.anho',
+                'mesa_entrada.fecha_recepcion',
+                'mesa_entrada.id_origen',
+                'mesa_entrada.id_tipo_doc',
+                'mesa_entrada.id_destino',
+                'mesa_entrada.observacion',
+                'mesa_entrada.estado',
+                'mesa_entrada.id_usuario',
+                'mesa_entrada.created_at',
+                'mesa_entrada.updated_at',
+                'mapa_recorrido.estado as estado_recorrido',
+                'mapa_recorrido.created_at as fecha_creacion_recorrido',
+                DB::raw('GROUP_CONCAT(f.nombre SEPARATOR ", ") as nombres_firmantes')
+            )
+            ->groupBy(
+                'mesa_entrada.id',
+                'mesa_entrada.nro_mentrada',
+                'mesa_entrada.anho',
+                'mesa_entrada.fecha_recepcion',
+                'mesa_entrada.id_origen',
+                'mesa_entrada.id_tipo_doc',
+                'mesa_entrada.id_destino',
+                'mesa_entrada.observacion',
+                'mesa_entrada.estado',
+                'mesa_entrada.id_usuario',
+                'mesa_entrada.created_at',
+                'mesa_entrada.updated_at',
+                'mapa_recorrido.estado',
+                'mapa_recorrido.created_at'
+            );
+
+        // Filtro de búsqueda
+        if ($request->has('search.value') && $request->input('search.value') !== '') {
+            $search = $request->input('search.value');
+            $query->where(function ($q) use ($search) {
+                $q->where('mesa_entrada.nro_mentrada', 'like', "%{$search}%")
+                    ->orWhere('mesa_entrada.observacion', 'like', "%{$search}%");
+            });
+        }
+
+        // Contar total de registros
+        $totalData = $query->count();
+        $totalFiltered = $totalData;
+
+        // Paginación
+        $query->offset($request->input('start'))
+            ->limit($request->input('length'));
+
+        // Obtener datos
+        $mesasEntrada = $query->get();
+
+        // Formatear datos para DataTables
+        $data = $mesasEntrada->map(function ($row) {
+            $acciones = '<a href="' . route('reporte.recorrido', $row->id) . '" target="_blank" class="btn btn-sm btn-outline-secondary">
+                        <i class="fa fa-file-pdf"></i>
+                    </a>';
+
+            if ($row->tiene_documentos) {
+                $acciones .= '<button type="button" class="btn btn-sm btn-outline-secondary" onclick="openDocumentosModal(' . $row->id . ')">
+                            <i class="fa fa-sm fa-fw fa-print"></i>
+                        </button>';
+            }
+
+            return [
+                'nro_mentrada' => $row->nro_mentrada,
+                'anho' => $row->anho,
+                'fecha_recepcion' => $row->fecha_recepcion,
+                'origen' => $row->origen->nombre ?? 'N/A',
+                'tipo_doc' => $row->tipoDoc->nombre ?? 'N/A',
+                'firmantes' => $row->nombres_firmantes ?? 'N/A',
+                'observacion' => $row->observacion,
+                'estado' => $row->estado_recorrido == '2' ? 'Enviado' : 'Recepcionado',
+                'usuario' => $row->user->name ?? 'N/A',
+                'acciones' => $acciones,
+                'fecha_actualizacion' => $row->fecha_creacion_recorrido,
+            ];
+        });
+
         return response()->json([
             'draw' => intval($request->input('draw')),
             'recordsTotal' => $totalData,

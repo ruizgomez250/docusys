@@ -67,27 +67,6 @@
                     <table id="table1" class="table table-bordered table-hover" theme="light">
                         <thead>
                             <tr>
-                                <th style="display: none;"></th> <!-- Columna vacía (oculta) -->
-                                <th>Nro MEntrada</th>
-                                <th>Año</th>
-                                <th>Fecha Recepción</th>
-                                <th>Origen</th>
-                                <th>Tipo Doc</th>
-                                <th>Firmantes</th>
-                                <th>Observación</th>
-                                <th>Estado</th>
-                                <th>Usuario</th>
-                                <th>Acción</th>
-                                <th>Ult. Act.</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- DataTables llenará esta sección -->
-                        </tbody>
-                    </table>
-                    {{-- <table id="table1" class="table table-bordered table-hover" theme="light">
-                        <thead>
-                            <tr>
                                 
                                 <th></th> <!-- Columna para el botón de expansión -->
                                 <th>Nro MEntrada</th>
@@ -158,7 +137,7 @@
                             
 
                         </tbody>
-                    </table> --}}
+                    </table>
                     
                 </div>
             </div>
@@ -229,100 +208,87 @@
         $(document).ready(function() {
             // Inicialización de DataTables
             var table = $('#table1').DataTable({
-                processing: true,
-                serverSide: true,
-                ajax: {
-                    url: '{{ route('mesas-entrada.datareenv') }}',
-                    type: 'GET'
-                },
                 responsive: true,
                 autoWidth: false,
-                columns: [{
-                        data: 'nro_mentrada'
-                    },
-                    {
-                        data: 'anho'
-                    },
-                    {
-                        data: 'fecha_recepcion'
-                    },
-                    {
-                        data: 'origen'
-                    },
-                    {
-                        data: 'tipo_doc'
-                    },
-                    {
-                        data: 'firmantes'
-                    },
-                    {
-                        data: 'observacion'
-                    },
-                    {
-                        data: 'estado'
-                    },
-                    {
-                        data: 'usuario'
-                    },
-                    {
-                        data: 'acciones',
-                        orderable: false,
-                        searchable: false
-                    },
-                    {
-                        data: 'fecha_actualizacion'
-                    }
-                ],
                 columnDefs: [{
+                        className: 'details-control', // Agrega clase de control de detalles
+                        orderable: false, // No se puede ordenar por esta columna
+                        targets: 0 // Índice de la columna de flechita
+                    },
+                    {
                         orderable: false,
-                        targets: -1
-                    } // Última columna (acciones)
+                        targets: -1 // Última columna (acciones)
+                    }
                 ],
                 order: [
-                    [2, 'desc']
-                ] // Ordenar por la columna de Fecha Recepción
+                    [11, 'desc']
+                ], // Ordenar por el ID (columna 1)
             });
 
-            // Detener el envío del formulario y usar SweetAlert para confirmación
-            $(document).on('submit', '.enviar-form', function(e) {
-                e.preventDefault(); // Detiene el envío por defecto
-
-                var form = this; // Guarda referencia del formulario
-
-                Swal.fire({
-                    title: 'Confirmar',
-                    text: '¿Estás seguro de que deseas enviar este formulario?',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#3085d6',
-                    cancelButtonColor: '#d33',
-                    confirmButtonText: 'Sí, enviar',
-                    cancelButtonText: 'Cancelar'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        form.submit(); // Envía el formulario si el usuario confirma
-                    }
+            // Función para generar HTML de detalles adicionales
+            function format(details) {
+                var detalleHTML = '<table class="table table-bordered table-hover table-sm">' +
+                    '<thead>' +
+                    '<tr>' +
+                    '<th>N</th>' +
+                    '<th>Cedula</th>' +
+                    '<th>Nombre</th>' +
+                    '<th>Telefono</th>' +
+                    '<th>Email</th>' +
+                    '</tr>' +
+                    '</thead>' +
+                    '<tbody>';
+                details.forEach(function(detalle, index) {
+                    detalleHTML += '<tr>' +
+                        '<td>' + (index + 1) + '</td>' + // N
+                        '<td>' + (detalle.firmante.cedula || '-') + '</td>' + // Cedula
+                        '<td>' + (detalle.firmante.nombre || '-') + '</td>' + // Nombre
+                        '<td>' + (detalle.firmante.telefono || '-') + '</td>' + // Telefono
+                        '<td>' + (detalle.firmante.correo || '-') + '</td>' + // Email
+                        '</tr>';
                 });
-            });
-            $(document).on('submit', '.delete-form', function(e) {
-                e.preventDefault(); // Detener el envío por defecto
+                detalleHTML += '</tbody></table>';
+                return detalleHTML;
+            }
 
-                var form = this; // Guarda referencia del formulario
+            // Evento de clic en la flechita para mostrar/ocultar detalles
+            $('#table1 tbody').on('click', 'td.details-control', function() {
+                var tr = $(this).closest('tr');
+                var row = table.row(tr);
+                var id = tr.data('child-id'); // Obtener el ID del elemento (Mesa de entrada)
+                var iconElement = $(this).find('i'); // Guardar el elemento del ícono
 
-                Swal.fire({
-                    title: 'Eliminar',
-                    text: '¿Estás seguro de que deseas eliminar este registro?',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#d33',
-                    cancelButtonColor: '#3085d6',
-                    confirmButtonText: 'Sí, eliminar',
-                    cancelButtonText: 'Cancelar'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        form.submit(); // Enviar el formulario si el usuario confirma
-                    }
-                });
+                if (row.child.isShown()) {
+                    // Si el detalle está visible, lo ocultamos
+                    row.child.hide();
+                    tr.removeClass('shown');
+                    iconElement.removeClass('fa-minus-circle').addClass('fa-plus-circle');
+                } else {
+                    // Si el detalle está oculto, lo mostramos
+                    $.ajax({
+                        url: '{{ route('mesaentrada.firmantes', '') }}/' +
+                        id, // Verificar si la ruta se forma correctamente
+                        method: 'GET',
+                        success: function(response) {
+
+                            // Utilizar el objeto de respuesta directamente como array de detalles
+                            var detalles =
+                            response; // Aquí 'response' ya es un array de objetos, no 'response.detalles'
+                            if (detalles.length > 0) {
+                                // Mostramos el detalle
+                                row.child(format(detalles)).show();
+                                tr.addClass('shown');
+                                iconElement.removeClass('fa-plus-circle').addClass(
+                                    'fa-minus-circle');
+                            } else {
+                                console.log('No se encontraron detalles.');
+                            }
+                        },
+                        error: function() {
+                            console.log('Error al obtener detalles.');
+                        }
+                    });
+                }
             });
         });
         function setMasDestinos(value) {
