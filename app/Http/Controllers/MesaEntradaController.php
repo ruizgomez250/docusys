@@ -32,6 +32,35 @@ class MesaEntradaController extends Controller
         $this->middleware('permission:Mesa de Entrada', ['only' => ['update', 'edit']]);
         $this->middleware('permission:Mesa de Entrada', ['only' => ['destroy']]);
     }
+    // public function index()
+    // {
+    //     $heads = [
+    //         '',
+    //         'Nro MEntrada',
+    //         'Año',
+    //         'Fecha Recepción',
+    //         'Origen',
+    //         'Tipo Doc',
+    //         'Destino',
+    //         'Observación',
+    //         'Estado',
+    //         'Usuario',
+    //         'Acción'
+    //     ];
+
+    //     // Obtener todas las entradas de mesa junto con la información de si tienen documentos o no
+    //     $mesasEntrada = MesaEntrada::with(['documentos', 'firmantes'])->get()->map(function ($mesaEntrada) {
+    //         // Agregar una propiedad indicando si tiene documentos
+    //         $mesaEntrada->tiene_documentos = $mesaEntrada->documentos->isNotEmpty();
+
+    //         // Agregar una propiedad indicando si tiene firmantes
+    //         $mesaEntrada->tiene_firmantes = $mesaEntrada->firmantes->isNotEmpty();
+
+    //         return $mesaEntrada;
+    //     });
+
+    //     return view('mesa_entrada.index', ['mesasEntrada' => $mesasEntrada, 'heads' => $heads]);
+    // }
     public function index()
     {
         $heads = [
@@ -48,18 +77,23 @@ class MesaEntradaController extends Controller
             'Acción'
         ];
 
-        // Obtener todas las entradas de mesa junto con la información de si tienen documentos o no
-        $mesasEntrada = MesaEntrada::with(['documentos', 'firmantes'])->get()->map(function ($mesaEntrada) {
-            // Agregar una propiedad indicando si tiene documentos
-            $mesaEntrada->tiene_documentos = $mesaEntrada->documentos->isNotEmpty();
+        
+        $heads = [
+            '',
+            'Nro MEntrada',
+            'Año',
+            'Fecha Recepción',
+            'Origen',
+            'Tipo Doc',
+            'Firmantes',
+            'Destino',
+            'Observación',
+            'Estado',
+            'Usuario',
+            'Acciones'
+        ];
 
-            // Agregar una propiedad indicando si tiene firmantes
-            $mesaEntrada->tiene_firmantes = $mesaEntrada->firmantes->isNotEmpty();
-
-            return $mesaEntrada;
-        });
-
-        return view('mesa_entrada.index', ['mesasEntrada' => $mesasEntrada, 'heads' => $heads]);
+        return view('mesa_entrada.index', ['heads' => $heads]);
     }
     public function recepcionado()
     {
@@ -1266,5 +1300,87 @@ class MesaEntradaController extends Controller
         // ]);
         // No se encontraron duplicados
         //return response()->json(['duplicado' => false]);
+    }
+    public function getData(Request $request)
+    {
+        $query = MesaEntrada::with(['documentos', 'firmantes', 'origen', 'tipoDoc', 'destino', 'user'])
+            ->orderBy('nro_mentrada', 'desc');
+
+        // Filtrar y buscar
+        if ($request->has('search.value') && $request->input('search.value') !== '') {
+            $search = $request->input('search.value');
+            $query->where(function ($q) use ($search) {
+                $q->where('nro_mentrada', 'like', "%{$search}%")
+                    ->orWhere('observacion', 'like', "%{$search}%");
+            });
+        }
+
+        // Contar total de registros
+        $totalData = $query->count();
+        $totalFiltered = $totalData;
+
+        // Paginación
+        $query->offset($request->input('start'))
+            ->limit($request->input('length'));
+
+        // Obtener los datos
+        $mesasEntrada = $query->get();
+
+        // Formatear los datos para DataTables
+        $data = [];
+        foreach ($mesasEntrada as $row) {
+            $actions = '<a href="' . route('reporte.recorrido', $row->id) . '" target="_blank" class="btn btn-sm btn-outline-secondary">
+                        <i class="fa fa-file-pdf"></i>
+                    </a>';
+
+            if ($row->estado == 1) {
+                $actions .= '<a href="' . route('mesaentrada.edit', $row->id) . '" class="btn btn-sm btn-outline-secondary">
+                            <i class="fa fa-sm fa-fw fa-pen"></i>
+                        </a>
+                        <form action="' . route('mesaentrada.destroy', $row->id) . '" method="post" class="d-inline delete-form">
+                            ' . csrf_field() . '
+                            ' . method_field('DELETE') . '
+                            <input type="hidden" name="id_mentrada" value="' . $row->id . '" />
+                            <button type="submit" class="btn btn-sm btn-outline-secondary delete-button">
+                                <ion-icon name="trash-outline"><i class="fa fa-sm fa-fw fa-trash"></i></ion-icon>
+                            </button>
+                        </form>
+                        <form action="' . route('mesaentrada.enviar', $row->id) . '" method="post" class="d-inline enviar-form">
+                            ' . csrf_field() . '
+                            <button type="submit" class="btn btn-sm btn-outline-secondary enviar-button">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </form>';
+            }
+
+            if ($row->tiene_documentos) {
+                $actions .= '<button type="button" class="btn btn-sm btn-outline-secondary" onclick="openDocumentosModal(' . $row->id . ')">
+                            <i class="fa fa-sm fa-fw fa-print"></i>
+                        </button>';
+            }
+
+            $data[] = [
+                'nro_mentrada' => $row->nro_mentrada . ($row->nro_suplementario !== null ? '.' . $row->nro_suplementario : ''),
+                'anho' => $row->anho,
+                'fecha_recepcion' => $row->fecha_recepcion,
+                'origen' => $row->origen->nombre ?? 'N/A',
+                'tipo_doc' => $row->tipoDoc->nombre ?? 'N/A',
+                'firmantes' => $row->firmantes->isNotEmpty() ? $row->firmantes->pluck('nombre')->join(', ') : 'N/A',
+                'destino' => $row->destino->nombre ?? 'N/A',
+                'observacion' => $row->observacion,
+                'estado' => $row->estado == '1' ? 'Recepcionado' : 'Enviado',
+                'usuario' => $row->user->name ?? 'N/A',
+                'acciones' => $actions,
+                'id' => $row->id // Necesario para las rutas
+            ];
+        }
+
+        // Respuesta JSON
+        return response()->json([
+            'draw' => intval($request->input('draw')),
+            'recordsTotal' => $totalData,
+            'recordsFiltered' => $totalFiltered,
+            'data' => $data,
+        ]);
     }
 }

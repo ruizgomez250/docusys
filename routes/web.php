@@ -84,7 +84,7 @@ Route::get('/sinpermiso', function () {
 
 
 
-
+Route::get('mesas-entrada/data', [MesaEntradaController::class, 'getData'])->name('mesas-entrada.data');
 Route::get('/autocomplete',  [AutocompleteController::class, 'autocomplete'])->name('autocomplete');
 Route::get('/autocomplete/proveedor',  [AutocompleteController::class, 'proveedor'])->name('obtenerproveedor');
 Route::get('/autocomplete/producto',  [AutocompleteController::class, 'getproducto'])->name('obtenerproducto');
