@@ -281,7 +281,7 @@
                     }
                 ],
                 order: [
-                    [10, 'desc']
+                    [11, 'desc']
                 ], // Ordenar por el ID (columna 1)
             });
 
@@ -375,6 +375,7 @@
         }
 
         function openDocumentosModal(id) {
+            var baseUrl = "{{ asset('') }}";
             $.ajax({
                 url: '{{ route('mesaentrada.documentos', '') }}/' + id,
                 method: 'GET',
@@ -396,7 +397,7 @@
                                 var extension = doc.nombre_archivo.split('.').pop().toLowerCase();
                                 var folder = (extension === 'pdf' || extension === 'docx' ||
                                     extension === 'doc') ? 'documentos' : 'archivos';
-                                var url = 'http://localhost/docusys/public/' + folder + '/' + doc
+                                var url = baseUrl + folder + '/' + doc
                                     .nombre_archivo;
 
                                 var iconClass = '';
