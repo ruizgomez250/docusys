@@ -54,6 +54,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('usuariodestino', UserDestinoController::class);
     Route::get('/recepciondoc',  [MesaEntradaController::class, 'recepcionado'])->name('recepciondoc');
     Route::get('/reenviadodoc',  [MesaEntradaController::class, 'reenviado'])->name('reenviado');
+    Route::get('/restipodocfechas',  [MesaEntradaController::class, 'reportetipodocfechas'])->name('restipodocfechas');
     Route::get('reporterecorrido/{row}', [MesaEntradaController::class, 'recorrido'])->name('reporte.recorrido');
     Route::get('/autocomplete/firmante',  [AutocompleteController::class, 'getfirmante'])->name('obtenerfirmante');
     Route::post('mesaentrada/{id}/enviar', [MesaEntradaController::class, 'enviar'])->name('mesaentrada.enviar');

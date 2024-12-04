@@ -394,6 +394,10 @@ return [
                     'text' => 'Registrar Doc. Auxiliar',
                     'url'  => '/createaux',
                 ],
+                [
+                    'text' => 'Resumen Fechas Tipos Doc.',
+                    'url'  => '/restipodocfechas',
+                ],
             ],
         ],
         
