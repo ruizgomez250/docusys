@@ -54,6 +54,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('usuariodestino', UserDestinoController::class);
     Route::get('/recepciondoc',  [MesaEntradaController::class, 'recepcionado'])->name('recepciondoc');
     Route::get('/reenviadodoc',  [MesaEntradaController::class, 'reenviado'])->name('reenviado');
+    Route::get('/restipodocfechas',  [MesaEntradaController::class, 'reportetipodocfechas'])->name('restipodocfechas');
     Route::get('reporterecorrido/{row}', [MesaEntradaController::class, 'recorrido'])->name('reporte.recorrido');
     Route::get('/autocomplete/firmante',  [AutocompleteController::class, 'getfirmante'])->name('obtenerfirmante');
     Route::post('mesaentrada/{id}/enviar', [MesaEntradaController::class, 'enviar'])->name('mesaentrada.enviar');
@@ -75,6 +76,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/createaux', [MesaEntradaController::class, 'aux'])->name('createaux');
     Route::post('/mesaentradastoreaux', [MesaEntradaController::class, 'storeaux'])->name('mesaentradastoreaux');
     Route::post('/mesaentrada/{id}/autorizar-modif', [MesaEntradaController::class, 'autorizarModif'])->name('mesaentrada.autorizarmodif');
+    Route::get('/generar-planilla', [MesaEntradaController::class, 'generarReporte'])->name('generar-planilla');
 });
 Route::post('/verificar-duplicado', [MesaEntradaController::class, 'verificarDuplicado'])->name('verificar-duplicado');
 Route::get('/mesaentrada/firmantes/{id}', [MesaEntradaController::class, 'firmantes'])->name('mesaentrada.firmantes');

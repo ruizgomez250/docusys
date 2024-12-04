@@ -77,7 +77,7 @@ class MesaEntradaController extends Controller
             'Acción'
         ];
 
-        
+
         $heads = [
             '',
             'Nro MEntrada',
@@ -312,6 +312,11 @@ class MesaEntradaController extends Controller
         $tiposdoc = TipoDoc::all();
         $destinos = Destino::all();
         return view('mesa_entrada.create', ['origenes' => $origenes, 'tiposDoc' => $tiposdoc, 'destinos' => $destinos]);
+    }
+    public function reportetipodocfechas(): View
+    {
+
+        return view('mesa_entrada.resporfechas');
     }
     public function aux(): View
     {
@@ -1061,7 +1066,7 @@ class MesaEntradaController extends Controller
             $userDestino = UserDestino::where('user_id', $userId)->first();
 
             $mapaRecorrido = MapaRecorrido::where('id_mentrada', $id)
-               
+
                 ->where('id_actual', $userDestino->destino_id)
                 ->first();
 
@@ -1112,16 +1117,15 @@ class MesaEntradaController extends Controller
                 DB::commit();
                 return redirect()->route('reenviado')->with('success', 'Mesa de Entrada actualizada exitosamente.');
             } else {
-                dd('pos');
                 DB::rollBack();
                 return redirect()->route('reenviado')->with('error', 'Mesa de Entrada no se pudo actualizar.');
             }
         } catch (\Exception $e) {
-            dd($e);
             DB::rollBack();
             return redirect()->route('reenviado')->with('error', 'Mesa de Entrada no se pudo actualizar.');
         }
     }
+
     function recorrido(MesaEntrada $row)
     {
         $recorridos = RecorridoDoc::with('user')->where('id_mentrada', $row->id)->get();
@@ -1253,6 +1257,83 @@ class MesaEntradaController extends Controller
         // Salida del PDF
         $pdf->Output('maparecorrido.pdf', 'I');
     }
+
+    public function generarReporte(Request $request)
+    {
+        // Obtener las fechas desde y hasta del request
+        $fechaInicio = $request->input('desde');  // "2024-12-04"
+        $fechaFin = $request->input('hasta');     // "2024-12-04"
+
+        // Obtener los datos desde la base de datos
+        $documentos = MesaEntrada::whereBetween('fecha_recepcion', [$fechaInicio, $fechaFin])
+            ->with('tipoDoc') // Obtener también el tipo de documento relacionado
+            ->get();
+
+        // Preprocesar los datos para agrupar por tipo de documento y contar las cantidades
+        $datos = $documentos->groupBy('id_tipo_doc')->map(function ($items) {
+            return [
+                'codigo' => $items->first()->id_tipo_doc,
+                'tipo_documento' => $items->first()->tipoDoc->nombre, // Obtener el nombre del tipo de documento
+                'cantidad' => $items->count(), // Contar cuántos documentos del mismo tipo
+            ];
+        });
+
+        // Crear instancia de TCPDF
+        $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
+
+        // Configuración del documento
+        $pdf->SetPrintHeader(false); // Deshabilitar encabezado
+        $pdf->SetFont('Times', '', 12);
+        $pdf->AddPage();
+        $pdf->SetAlpha(0.3); // Establece la opacidad al 10%
+        $pdf->Image('vendor/adminlte/dist/img/icono camara.png', 10, 50, 190); // Ajusta la posición y tamaño de la imagen
+        $pdf->SetAlpha(1); // Restablece la opacidad al 100%
+        // Título del reporte
+        $pdf->SetFont('Times', 'B', 14);
+        $pdf->Cell(0, 10, 'Planilla de documentos ingresados', 0, 1, 'C');
+        $pdf->Ln(5);
+
+        // Fechas
+        $pdf->SetFont('Times', '', 12);
+        $pdf->Cell(45, 10, 'Desde: ' . $fechaInicio, 0, 0, 'L');
+        $pdf->Cell(45, 10, 'Hasta: ' . $fechaFin, 0, 1, 'L');
+
+        // Agregar tabla de datos
+        $pdf->Ln(10);
+        $pdf->SetFont('Times', 'B', 12);
+
+        // Cabecera de la tabla
+        $pdf->Cell(30, 10, 'Código', 1, 0, 'C');
+        $pdf->Cell(100, 10, 'Tipo de documento', 1, 0, 'C');
+        $pdf->Cell(30, 10, 'Cantidad', 1, 1, 'C');
+
+        // Guardar la página actual
+        $currentPage = $pdf->getPage();
+
+        // Datos de la tabla
+        $pdf->SetFont('Times', '', 12);
+        foreach ($datos as $row) {
+            // Verificar si el número de página ha cambiado
+            if ($pdf->getPage() > $currentPage) {
+                // Insertar marca de agua cuando cambie de página
+                $pdf->SetAlpha(0.3); // Establecer la opacidad al 30%
+                $pdf->Image('vendor/adminlte/dist/img/icono camara.png', 10, 50, 190); // Ajusta la posición y tamaño de la imagen
+                $pdf->SetAlpha(1); // Restablecer la opacidad al 100%
+
+                // Actualizar la página actual
+                $currentPage = $pdf->getPage();
+            }
+
+            // Imprimir los datos de cada fila
+            $pdf->Cell(30, 10, $row['codigo'], 1, 0, 'C');
+            $pdf->Cell(100, 10, $row['tipo_documento'], 1, 0, 'C');
+            $pdf->Cell(30, 10, $row['cantidad'], 1, 1, 'C');
+        }
+
+        // Salida del PDF
+        $pdf->Output('planilla_documentos.pdf', 'I');
+    }
+
 
 
 
