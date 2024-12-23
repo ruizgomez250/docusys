@@ -1454,7 +1454,13 @@ class MesaEntradaController extends Controller
                     <button type="submit" class="btn btn-sm btn-outline-secondary delete-button">
                         <ion-icon name="trash-outline"><i class="fa fa-sm fa-fw fa-trash"></i></ion-icon>
                     </button>
-                </form>';
+                </form>
+                <form action="' . route('mesaentrada.enviar', $row->id) . '" method="post" class="d-inline enviar-form">
+                            ' . csrf_field() . '
+                            <button type="submit" class="btn btn-sm btn-outline-secondary enviar-button">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </form>';
             }
 
             $data[] = [
