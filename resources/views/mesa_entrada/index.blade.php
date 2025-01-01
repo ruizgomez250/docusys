@@ -151,12 +151,14 @@
                 columnDefs: [{
                         orderable: false,
                         targets: -1
-                    } // Última columna (acciones)
+                    } // Deshabilitar orden en la última columna
                 ],
                 order: [
-                    [2, 'desc']
-                ] // Ordenar por la columna de Fecha Recepción
+                    //[1, 'desc'], // Ordenar por la columna 1 (Año) en orden descendente
+                    [0, 'desc'] // Luego por la columna 0 (Nro MEntrada) en orden descendente
+                ]
             });
+
 
             // Detener el envío del formulario y usar SweetAlert para confirmación
             $(document).on('submit', '.enviar-form', function(e) {

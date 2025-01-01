@@ -1261,89 +1261,88 @@ class MesaEntradaController extends Controller
     public function generarReporte(Request $request)
     {
         // Obtener las fechas desde y hasta del request
-$fechaInicio = $request->input('desde');  // "2024-12-04"
-$fechaFin = $request->input('hasta');     // "2024-12-04"
+        $fechaInicio = $request->input('desde');  // "2024-12-04"
+        $fechaFin = $request->input('hasta');     // "2024-12-04"
 
-// Obtener los datos desde la base de datos
-$documentos = MesaEntrada::whereBetween('fecha_recepcion', [$fechaInicio, $fechaFin])
-    ->with('tipoDoc') // Obtener también el tipo de documento relacionado
-    ->get();
+        // Obtener los datos desde la base de datos
+        $documentos = MesaEntrada::whereBetween('fecha_recepcion', [$fechaInicio, $fechaFin])
+            ->with('tipoDoc') // Obtener también el tipo de documento relacionado
+            ->get();
 
-// Preprocesar los datos para agrupar por tipo de documento y contar las cantidades
-$datos = $documentos->groupBy('id_tipo_doc')->map(function ($items) {
-    return [
-        'codigo' => $items->first()->id_tipo_doc,
-        'tipo_documento' => $items->first()->tipoDoc->nombre, // Obtener el nombre del tipo de documento
-        'cantidad' => $items->count(), // Contar cuántos documentos del mismo tipo
-    ];
-});
+        // Preprocesar los datos para agrupar por tipo de documento y contar las cantidades
+        $datos = $documentos->groupBy('id_tipo_doc')->map(function ($items) {
+            return [
+                'codigo' => $items->first()->id_tipo_doc,
+                'tipo_documento' => $items->first()->tipoDoc->nombre, // Obtener el nombre del tipo de documento
+                'cantidad' => $items->count(), // Contar cuántos documentos del mismo tipo
+            ];
+        });
 
-// Crear instancia de TCPDF
-$pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
+        // Crear instancia de TCPDF
+        $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
 
-// Configuración del documento
-$pdf->SetPrintHeader(false); // Deshabilitar encabezado
-$pdf->SetFont('Times', '', 12);
-$pdf->AddPage();
-$pdf->SetAlpha(0.3); // Establece la opacidad al 10%
-$pdf->Image('vendor/adminlte/dist/img/icono camara.png', 10, 50, 190); // Ajusta la posición y tamaño de la imagen
-$pdf->SetAlpha(1); // Restablece la opacidad al 100%
-// Título del reporte
-$pdf->SetFont('Times', 'B', 14);
-$pdf->Cell(0, 10, 'Planilla de documentos ingresados', 0, 1, 'C');
-$pdf->Ln(5);
-
-// Fechas
-$pdf->SetFont('Times', '', 12);
-$pdf->Cell(45, 10, 'Desde: ' . $fechaInicio, 0, 0, 'L');
-$pdf->Cell(45, 10, 'Hasta: ' . $fechaFin, 0, 1, 'L');
-
-// Agregar tabla de datos
-$pdf->Ln(10);
-$pdf->SetFont('Times', 'B', 12);
-
-// Cabecera de la tabla
-$pdf->Cell(30, 10, 'Código', 1, 0, 'C');
-$pdf->Cell(100, 10, 'Tipo de documento', 1, 0, 'C');
-$pdf->Cell(30, 10, 'Cantidad', 1, 1, 'C');
-
-// Guardar la página actual
-$currentPage = $pdf->getPage();
-
-// Datos de la tabla
-$pdf->SetFont('Times', '', 12);
-$totalCantidad = 0; // Inicializar el total de documentos
-
-foreach ($datos as $row) {
-    // Verificar si el número de página ha cambiado
-    if ($pdf->getPage() > $currentPage) {
-        // Insertar marca de agua cuando cambie de página
-        $pdf->SetAlpha(0.3); // Establecer la opacidad al 30%
+        // Configuración del documento
+        $pdf->SetPrintHeader(false); // Deshabilitar encabezado
+        $pdf->SetFont('Times', '', 12);
+        $pdf->AddPage();
+        $pdf->SetAlpha(0.3); // Establece la opacidad al 10%
         $pdf->Image('vendor/adminlte/dist/img/icono camara.png', 10, 50, 190); // Ajusta la posición y tamaño de la imagen
-        $pdf->SetAlpha(1); // Restablecer la opacidad al 100%
+        $pdf->SetAlpha(1); // Restablece la opacidad al 100%
+        // Título del reporte
+        $pdf->SetFont('Times', 'B', 14);
+        $pdf->Cell(0, 10, 'Planilla de documentos ingresados', 0, 1, 'C');
+        $pdf->Ln(5);
 
-        // Actualizar la página actual
+        // Fechas
+        $pdf->SetFont('Times', '', 12);
+        $pdf->Cell(45, 10, 'Desde: ' . $fechaInicio, 0, 0, 'L');
+        $pdf->Cell(45, 10, 'Hasta: ' . $fechaFin, 0, 1, 'L');
+
+        // Agregar tabla de datos
+        $pdf->Ln(10);
+        $pdf->SetFont('Times', 'B', 12);
+
+        // Cabecera de la tabla
+        $pdf->Cell(30, 10, 'Código', 1, 0, 'C');
+        $pdf->Cell(100, 10, 'Tipo de documento', 1, 0, 'C');
+        $pdf->Cell(30, 10, 'Cantidad', 1, 1, 'C');
+
+        // Guardar la página actual
         $currentPage = $pdf->getPage();
-    }
 
-    // Imprimir los datos de cada fila
-    $pdf->Cell(30, 10, $row['codigo'], 1, 0, 'C');
-    $pdf->Cell(100, 10, $row['tipo_documento'], 1, 0, 'C');
-    $pdf->Cell(30, 10, $row['cantidad'], 1, 1, 'C');
+        // Datos de la tabla
+        $pdf->SetFont('Times', '', 12);
+        $totalCantidad = 0; // Inicializar el total de documentos
 
-    // Sumar la cantidad de documentos
-    $totalCantidad += $row['cantidad'];
-}
+        foreach ($datos as $row) {
+            // Verificar si el número de página ha cambiado
+            if ($pdf->getPage() > $currentPage) {
+                // Insertar marca de agua cuando cambie de página
+                $pdf->SetAlpha(0.3); // Establecer la opacidad al 30%
+                $pdf->Image('vendor/adminlte/dist/img/icono camara.png', 10, 50, 190); // Ajusta la posición y tamaño de la imagen
+                $pdf->SetAlpha(1); // Restablecer la opacidad al 100%
 
-// Agregar el total en la parte inferior de la tabla
-$pdf->Ln(5);
-$pdf->SetFont('Times', 'B', 12);
-$pdf->Cell(130, 10, 'Total de documentos', 1, 0, 'C');
-$pdf->Cell(30, 10, $totalCantidad, 1, 1, 'C');
+                // Actualizar la página actual
+                $currentPage = $pdf->getPage();
+            }
 
-// Salida del PDF
-$pdf->Output('planilla_documentos.pdf', 'I');
+            // Imprimir los datos de cada fila
+            $pdf->Cell(30, 10, $row['codigo'], 1, 0, 'C');
+            $pdf->Cell(100, 10, $row['tipo_documento'], 1, 0, 'C');
+            $pdf->Cell(30, 10, $row['cantidad'], 1, 1, 'C');
 
+            // Sumar la cantidad de documentos
+            $totalCantidad += $row['cantidad'];
+        }
+
+        // Agregar el total en la parte inferior de la tabla
+        $pdf->Ln(5);
+        $pdf->SetFont('Times', 'B', 12);
+        $pdf->Cell(130, 10, 'Total de documentos', 1, 0, 'C');
+        $pdf->Cell(30, 10, $totalCantidad, 1, 1, 'C');
+
+        // Salida del PDF
+        $pdf->Output('planilla_documentos.pdf', 'I');
     }
 
 
@@ -1396,60 +1395,61 @@ $pdf->Output('planilla_documentos.pdf', 'I');
     }
     public function getData(Request $request)
     {
-        $query = MesaEntrada::with(['documentos', 'firmantes', 'origen', 'tipoDoc', 'destino', 'user'])
-            ->orderBy('nro_mentrada', 'desc');
+        // Iniciar la consulta base
+        $query = MesaEntrada::with(['documentos', 'firmantes', 'origen', 'tipoDoc', 'destino', 'user']);
 
-        // Filtrar y buscar
+        // Filtrar y buscar en toda la base de datos
         if ($request->has('search.value') && $request->input('search.value') !== '') {
             $search = $request->input('search.value');
             $query->where(function ($q) use ($search) {
                 $q->where('nro_mentrada', 'like', "%{$search}%")
-                    ->orWhere('observacion', 'like', "%{$search}%");
+                    ->orWhere('observacion', 'like', "%{$search}%")
+                    ->orWhereHas('origen', function ($query) use ($search) {
+                        $query->where('nombre', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('destino', function ($query) use ($search) {
+                        $query->where('nombre', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('tipoDoc', function ($query) use ($search) {
+                        $query->where('nombre', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('firmantes', function ($query) use ($search) {
+                        $query->where('nombre', 'like', "%{$search}%");
+                    });
             });
         }
 
-        // Contar total de registros
+        // Ordenar por anho y nro_mentrada en orden descendente
+        $query->orderBy('anho', 'desc')->orderBy('nro_mentrada', 'desc');
+
+        // Contar registros antes de paginar
         $totalData = $query->count();
-        $totalFiltered = $totalData;
 
         // Paginación
         $query->offset($request->input('start'))
             ->limit($request->input('length'));
 
-        // Obtener los datos
+        // Obtener datos paginados
         $mesasEntrada = $query->get();
 
-        // Formatear los datos para DataTables
+        // Formatear datos para DataTables
         $data = [];
         foreach ($mesasEntrada as $row) {
             $actions = '<a href="' . route('reporte.recorrido', $row->id) . '" target="_blank" class="btn btn-sm btn-outline-secondary">
-                        <i class="fa fa-file-pdf"></i>
-                    </a>';
+                <i class="fa fa-file-pdf"></i>
+            </a>';
 
             if ($row->estado == 1) {
                 $actions .= '<a href="' . route('mesaentrada.edit', $row->id) . '" class="btn btn-sm btn-outline-secondary">
-                            <i class="fa fa-sm fa-fw fa-pen"></i>
-                        </a>
-                        <form action="' . route('mesaentrada.destroy', $row->id) . '" method="post" class="d-inline delete-form">
-                            ' . csrf_field() . '
-                            ' . method_field('DELETE') . '
-                            <input type="hidden" name="id_mentrada" value="' . $row->id . '" />
-                            <button type="submit" class="btn btn-sm btn-outline-secondary delete-button">
-                                <ion-icon name="trash-outline"><i class="fa fa-sm fa-fw fa-trash"></i></ion-icon>
-                            </button>
-                        </form>
-                        <form action="' . route('mesaentrada.enviar', $row->id) . '" method="post" class="d-inline enviar-form">
-                            ' . csrf_field() . '
-                            <button type="submit" class="btn btn-sm btn-outline-secondary enviar-button">
-                                <i class="fas fa-paper-plane"></i>
-                            </button>
-                        </form>';
-            }
-
-            if ($row->tiene_documentos) {
-                $actions .= '<button type="button" class="btn btn-sm btn-outline-secondary" onclick="openDocumentosModal(' . $row->id . ')">
-                            <i class="fa fa-sm fa-fw fa-print"></i>
-                        </button>';
+                    <i class="fa fa-sm fa-fw fa-pen"></i>
+                </a>
+                <form action="' . route('mesaentrada.destroy', $row->id) . '" method="post" class="d-inline delete-form">
+                    ' . csrf_field() . '
+                    ' . method_field('DELETE') . '
+                    <button type="submit" class="btn btn-sm btn-outline-secondary delete-button">
+                        <ion-icon name="trash-outline"><i class="fa fa-sm fa-fw fa-trash"></i></ion-icon>
+                    </button>
+                </form>';
             }
 
             $data[] = [
@@ -1464,7 +1464,6 @@ $pdf->Output('planilla_documentos.pdf', 'I');
                 'estado' => $row->estado == '1' ? 'Recepcionado' : 'Enviado',
                 'usuario' => $row->user->name ?? 'N/A',
                 'acciones' => $actions,
-                'id' => $row->id // Necesario para las rutas
             ];
         }
 
@@ -1472,7 +1471,7 @@ $pdf->Output('planilla_documentos.pdf', 'I');
         return response()->json([
             'draw' => intval($request->input('draw')),
             'recordsTotal' => $totalData,
-            'recordsFiltered' => $totalFiltered,
+            'recordsFiltered' => $totalData,
             'data' => $data,
         ]);
     }
