@@ -420,6 +420,25 @@ return [
                 ],
             ],
         ],
+        [
+            'text'       => 'Documentos Oficina',
+            'icon'       => 'fas fa-folder',
+            'icon_color' => 'primary',
+            'classes' => 'custom-icon-box-black',
+            'content' => '<i class="fas fa-box"></i>',
+            'can'  => 'Reportes',
+            'submenu'        => [
+                [
+                    'text' => 'Recepcionado',
+                    'url'  => '/recepciondoc',
+
+                ],
+                [
+                    'text' => 'Enviado/Finalizado',
+                    'url'  => '/reenviadodoc',
+                ],
+            ],
+        ],
 
         ['header' => 'account_settings'],
         [
