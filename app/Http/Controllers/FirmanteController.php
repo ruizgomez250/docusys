@@ -59,6 +59,7 @@ class FirmanteController extends Controller
 
         try {
             return view('firmante.edit', ['firmante' => $firmante]);
+            
         } catch (Exception $e) {
             return view('firmante.index')->with('message', 'No se pudo completar la operación.');
         }

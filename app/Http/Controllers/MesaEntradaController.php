@@ -135,7 +135,6 @@ class MesaEntradaController extends Controller
             ->where('mapa_recorrido.id_actual', $iddest)
             ->select(
                 'mesa_entrada.id',
-                'mesa_entrada.modificar',
                 'mesa_entrada.nro_mentrada',
                 'mesa_entrada.anho',
                 'mesa_entrada.fecha_recepcion',
@@ -156,7 +155,6 @@ class MesaEntradaController extends Controller
             )
             ->groupBy(
                 'mesa_entrada.id',
-                'mesa_entrada.modificar',
                 'mesa_entrada.nro_mentrada',
                 'mesa_entrada.anho',
                 'mesa_entrada.fecha_recepcion',
@@ -312,19 +310,19 @@ class MesaEntradaController extends Controller
      */
     public function create(): View
     {
-        $origenes = $origenes = Origen::orderBy('indice')->orderBy('subindice')->get();
+        $origenes = Origen::orderBy('indice')->orderBy('subindice')->get();
         $tiposdoc = TipoDoc::all();
         $destinos = Destino::all();
         return view('mesa_entrada.create', ['origenes' => $origenes, 'tiposDoc' => $tiposdoc, 'destinos' => $destinos]);
     }
     public function reportetipodocfechas(): View
     {
-
-        return view('mesa_entrada.resporfechas');
+        $destinos = Destino::all();
+        return view('mesa_entrada.resporfechas', ['destinos' => $destinos]);
     }
     public function aux(): View
     {
-        $origenes = $origenes = Origen::orderBy('indice')->orderBy('subindice')->get();
+        $origenes =  Origen::orderBy('indice')->orderBy('subindice')->get();
         $tiposdoc = TipoDoc::all();
         $destinos = Destino::all();
         return view('mesa_entrada.createaux', ['origenes' => $origenes, 'tiposDoc' => $tiposdoc, 'destinos' => $destinos]);
@@ -335,7 +333,6 @@ class MesaEntradaController extends Controller
     public function store(Request $request)
     {
         try {
-            //dd($request->input());
             DB::transaction(function () use ($request) {
                 $validatedData = $request->validate([
                     'id_origen' => 'required|integer',
@@ -350,10 +347,10 @@ class MesaEntradaController extends Controller
                     'email.*' => 'nullable|email',
                 ]);
                 $anho = date('Y');
-
+                
                 // Obtener el mayor número de 'nro_mentrada' para el año especificado
                 $maxNroMentrada = MesaEntrada::where('anho', $anho)->max('nro_mentrada');
-
+                
                 // Si no se encuentra ningún registro, establecer el número como 0
                 if (is_null($maxNroMentrada)) {
                     $maxNroMentrada = 1;
@@ -364,7 +361,7 @@ class MesaEntradaController extends Controller
                 $fechaAct = date('Y-m-d');
                 $userId = auth()->id();
                 $destinoactual = UserDestino::where('user_id', $userId)->first();
-
+                
                 // Crear una nueva instancia del modelo MesaEntrada
                 $mesaEntrada = new MesaEntrada();
 
@@ -379,7 +376,6 @@ class MesaEntradaController extends Controller
                 $mesaEntrada->duplicado = $request->input('duplicado');
                 $mesaEntrada->estado = 1;
                 $mesaEntrada->id_usuario = $userId;
-
                 // Guardar el nuevo registro en la base de datos
                 $mesaEntrada->save();
 
@@ -462,6 +458,7 @@ class MesaEntradaController extends Controller
                     if ($idfirmante == 0) {
                         $firmanteData = [
                             'nombre' => $validatedData['nombre'][$index],
+                            
                         ];
 
                         // Agregar el correo electrónico si está presente y no es null
@@ -476,6 +473,9 @@ class MesaEntradaController extends Controller
                         if (isset($validatedData['telefono'][$index])) {
                             $firmanteData['telefono'] = $validatedData['telefono'][$index];
                         }
+                        if (isset($request['tipo'][$index])) {
+                            $firmanteData['tipo'] = $request['tipo'][$index];
+                        }
                         $firmante = Firmante::create($firmanteData);
                     } else {
                         // Buscar el firmante en la base de datos y actualizar si existe
@@ -486,14 +486,16 @@ class MesaEntradaController extends Controller
                                 'cedula' => $validatedData['cedula'][$index],
                                 'telefono' => $validatedData['telefono'][$index],
                                 'correo' => $validatedData['email'][$index] ?? null, // Actualizar el correo solo si está presente
+                                
                             ]);
                         }
                     }
 
                     // Guardar en mesa_entrada_firmante
                     if ($firmante) {
+                        $tip = $request['tipo'][$index];
                         MesaEntradaFirmante::updateOrCreate(
-                            ['id_mentrada' => $mesaEntrada->id, 'id_firmante' => $firmante->id],
+                            ['id_mentrada' => $mesaEntrada->id, 'id_firmante' => $firmante->id, 'tipo' => $tip],
                             ['created_at' => now(), 'updated_at' => now()]
                         );
                     }
@@ -617,6 +619,7 @@ class MesaEntradaController extends Controller
                     if ($idfirmante == 0) {
                         $firmanteData = [
                             'nombre' => $validatedData['nombre'][$index],
+                            'tipo' => $request['tipo'][$index] ?? null,
                             'correo' => $validatedData['email'][$index] ?? null,
                             'cedula' => $validatedData['cedula'][$index] ?? 0,
                             'telefono' => $validatedData['telefono'][$index] ?? null,
@@ -633,6 +636,7 @@ class MesaEntradaController extends Controller
                                 'nombre' => $validatedData['nombre'][$index],
                                 'cedula' => $validatedData['cedula'][$index],
                                 'telefono' => $validatedData['telefono'][$index],
+                                'tipo' => $request['tipo'][$index] ?? null,
                                 'correo' => $validatedData['email'][$index] ?? null, // Actualizar el correo solo si está presente
                                 'updated_at' => $fechaRecepcion, // Asignar fecha de actualización
                             ]);
@@ -641,8 +645,10 @@ class MesaEntradaController extends Controller
 
                     // Guardar en mesa_entrada_firmante
                     if ($firmante) {
+                        $tip = $request['tipo'][$index];
+                        
                         MesaEntradaFirmante::updateOrCreate(
-                            ['id_mentrada' => $mesaEntrada->id, 'id_firmante' => $firmante->id],
+                            ['id_mentrada' => $mesaEntrada->id, 'id_firmante' => $firmante->id , 'tipo' => $tip], 
                             ['created_at' => $fechaRecepcion, 'updated_at' => $fechaRecepcion]
                         );
                     }
@@ -822,8 +828,11 @@ class MesaEntradaController extends Controller
 
                     // Guardar en mesa_entrada_firmante
                     if ($firmante) {
+                        $tip = $request['tipo'][$index];
+                        
+                        
                         MesaEntradaFirmante::updateOrCreate(
-                            ['id_mentrada' => $mesaEntrada->id, 'id_firmante' => $firmante->id],
+                            ['id_mentrada' => $mesaEntrada->id, 'id_firmante' => $firmante->id, 'tipo' => $tip],
                             ['created_at' => now(), 'updated_at' => now()]
                         );
                     }
@@ -1338,6 +1347,121 @@ class MesaEntradaController extends Controller
 
             // Sumar la cantidad de documentos
             $totalCantidad += $row['cantidad'];
+        }
+
+        // Agregar el total en la parte inferior de la tabla
+        $pdf->Ln(5);
+        $pdf->SetFont('Times', 'B', 12);
+        $pdf->Cell(130, 10, 'Total de documentos', 1, 0, 'C');
+        $pdf->Cell(30, 10, $totalCantidad, 1, 1, 'C');
+
+        // Salida del PDF
+        $pdf->Output('planilla_documentos.pdf', 'I');
+    }
+    public function generarReportedet(Request $request)
+    {
+        // Obtener las fechas desde y hasta del request
+        $fechaInicio = $request->input('desde');  // "2024-12-04"
+        $fechaFin = $request->input('hasta');     // "2024-12-04"
+
+        // Obtener los datos desde la base de datos
+        $destino = Destino::find($request->input('destino'));
+
+        $documentos = MesaEntrada::whereBetween('fecha_recepcion', [$fechaInicio, $fechaFin])
+                ->where('id_destino', $request->input('destino')) // Filtra por el ID del destino
+                ->with(['tipoDoc', 'user', 'destino']) // Obtiene también el objeto destino
+                ->get();
+
+
+        // Crear instancia de TCPDF
+        $pdf = new TCPDF('L', 'mm', 'LEGAL', true, 'UTF-8', false);
+
+        // Configuración del documento
+        $pdf->SetPrintHeader(false); // Deshabilitar encabezado
+        $pdf->SetFont('Times', '', 12);
+        $pdf->AddPage();
+        $pdf->SetAlpha(0.3); // Establece la opacidad al 10%
+        $pdf->Image('vendor/adminlte/dist/img/icono camara.png', 100, 50, 110); // Ajusta la posición y tamaño de la imagen
+        $pdf->SetAlpha(1); // Restablece la opacidad al 100%
+        // Título del reporte
+        $pdf->SetFont('Times', 'B', 14);
+        $pdf->Cell(0, 10, 'PLANILLA DE DOCUMENTOS INGRESADOS - '.$destino->nombre, 0, 1, 'C');
+        $pdf->Ln(5);
+
+        // Fechas
+        $pdf->SetFont('Times', '', 12);
+        $pdf->Cell(45, 10, 'Desde: ' . $fechaInicio, 0, 0, 'L');
+        $pdf->Cell(45, 10, 'Hasta: ' . $fechaFin, 0, 1, 'L');
+
+        // Agregar tabla de datos
+        $pdf->Ln(10);
+        $pdf->SetFont('Times', 'B', 12);
+
+        // Cabecera de la tabla
+        $pdf->Cell(20, 10, 'Entrada', 1, 0, 'C');
+        $pdf->Cell(50, 10, 'Tipo de documento', 1, 0, 'C');
+        $pdf->Cell(75, 10, 'Descripcion', 1, 0, 'C');
+        $pdf->Cell(75, 10, 'Responsable', 1, 0, 'C');
+        $pdf->Cell(75, 10, 'Solicitante', 1, 0, 'C');
+        $pdf->Cell(40, 10, 'Recibido por', 1, 1, 'C');
+
+        // Guardar la página actual
+        $currentPage = $pdf->getPage();
+
+        // Datos de la tabla
+        $pdf->SetFont('Times', '', 10);
+        $totalCantidad = 0; // Inicializar el total de documentos
+        foreach ($documentos as $documento) {
+            $firmantes = DB::table('mesa_entrada_firmante')
+                ->join('firmantes', 'mesa_entrada_firmante.id_firmante', '=', 'firmantes.id')
+                ->where('mesa_entrada_firmante.id_mentrada', $documento->id)
+                ->select('mesa_entrada_firmante.*', 'firmantes.nombre', 'firmantes.correo')
+                ->get();
+            $solicitanteN = '';
+            $firmanteN = '';
+            foreach ($firmantes as $firmante) {
+                if ($firmante->tipo == 'FIRMANTE') {
+                    $firmanteN .= ($firmanteN ? "\n" : "") . $firmante->nombre;
+                } else {
+                    $solicitanteN .= ($solicitanteN ? "\n" : "") . $firmante->nombre;
+                }
+            }
+
+            // Verificar si el número de página ha cambiado.
+            if ($pdf->getPage() > $currentPage) {
+                // Insertar marca de agua cuando cambie de página
+                $pdf->SetAlpha(0.3); // Establecer la opacidad al 30%
+                $pdf->Image('vendor/adminlte/dist/img/icono camara.png', 100, 50, 110); // Ajusta la posición y tamaño de la imagen
+                $pdf->SetAlpha(1); // Restablecer la opacidad al 100%
+
+                // Actualizar la página actual
+                $currentPage = $pdf->getPage();
+            }
+
+            // Imprimir los datos de cada fila
+            $pdf->Cell(20, 10, $documento->nro_mentrada, 1, 0, 'C');
+            $pdf->Cell(50, 10, $documento->tipoDoc->nombre, 1, 0, 'C');
+            $pdf->Cell(75, 10, $documento->tipoDoc->descripcion, 1, 0, 'C');
+            $pdf->MultiCell(75, 10, $solicitanteN, 1, 'C', 0, 0);
+            $pdf->MultiCell(75, 10, $firmanteN, 1, 'C', 0, 0);
+            $nombreCompleto = $documento->user->name; // Obtener el nombre
+            $palabras = explode(' ', trim($nombreCompleto)); // Dividir en palabras
+            $lineas = [];
+
+            // Agrupar cada dos palabras en una línea
+            for ($i = 0; $i < count($palabras); $i += 2) {
+                $lineas[] = isset($palabras[$i + 1]) ? $palabras[$i] . ' ' . $palabras[$i + 1] : $palabras[$i];
+            }
+
+            // Unir las líneas con saltos de línea
+            $nombreFormateado = implode("\n", $lineas);
+
+            // Usar MultiCell para manejar múltiples líneas
+            $pdf->MultiCell(40, 10, $nombreFormateado, 1, 'C', 0, 1);
+
+
+            // Sumar la cantidad de documentos
+            $totalCantidad += 1;
         }
 
         // Agregar el total en la parte inferior de la tabla

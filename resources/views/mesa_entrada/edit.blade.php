@@ -97,9 +97,9 @@
                             @foreach ($firmantes as $index => $firmante)
                                 <div class="item">
                                     <div class="row ml-1">
-                                        <input type="number" name="item[]" class="codigo_id form-control col-2"
+                                        <input type="number" name="item[]" class="codigo_id form-control col-1"
                                             placeholder="Código" value="{{ $index + 1 }}" required readonly>
-                                        <input type="text" name="cedula[]" class="autocomplete-cedula form-control col-2"
+                                        <input type="text" name="cedula[]" class="autocomplete-cedula form-control col-1"
                                             value="{{ $firmante->cedula }}" required>
                                         <input type="hidden" name="idfirmante[]" value="{{ $firmante->id }}"
                                             class="codigo_id form-control col-1" required>
@@ -109,6 +109,13 @@
                                             value="{{ $firmante->telefono }}">
                                         <input type="text" name="email[]" class="form-control col-2"
                                             value="{{ $firmante->email }}">
+                                        <select name="tipo[]" class="form-control col-2">
+                                            <option value="SOLICITANTE"
+                                                {{ $firmante->tipo == 'SOLICITANTE' ? 'selected' : '' }}>SOLICITANTE
+                                            </option>
+                                            <option value="FIRMANTE" {{ $firmante->tipo == 'FIRMANTE' ? 'selected' : '' }}>
+                                                FIRMANTE</option>                                            
+                                        </select>
                                         <button class="btn-remove btn btn-outline-danger ml-2" type="button"><i
                                                 class="fa fa-trash" aria-hidden="true"></i></button>
                                     </div>

@@ -17,18 +17,16 @@
                     <p class="bg-light p-2 rounded">Presidente</p>
                     
                     <h6 class="font-weight-bold">Solicitud de Proyecto</h6>
-                    <p class="bg-light p-2 rounded">Secretario General Administrativo: Lic. Carlos Samudio</p>
-                    <p class="bg-light p-2 rounded">Secretario Administrativo: Abg. Julio Cesar Cabrera Guerrero</p>
+                    <p class="bg-light p-2 rounded">Director General R.R.H.H.: Abg. Maximo Medina</p>
                     
                     <h6 class="font-weight-bold">Construcción del Proyecto</h6>
                     <p class="bg-light p-2 rounded">Dirección de Informática</p>
                     <p class="bg-light p-2 rounded">Director: Nahuel Ojeda</p>
-                    <p class="font-weight-bold">Desarrolladores:</p> 
+                    <p class="font-weight-bold">Desarrollador:</p> 
                     <p class="bg-light p-2 rounded">Prog. Jorge Ruíz Gómez</p>
-                    <p class="bg-light p-2 rounded">Ing. Narciso Ramon Añazco</p>
                     
-                    <h6 class="font-weight-bold">Capacitación</h6>
-                    <p class="bg-light p-2 rounded">Lic. Laura Susana Martínez</p>
+                    <h6 class="font-weight-bold">Analisis</h6>
+                    <p class="bg-light p-2 rounded">Francisco Javier Cabrera</p>
                 </div>
             </div>
         </div>

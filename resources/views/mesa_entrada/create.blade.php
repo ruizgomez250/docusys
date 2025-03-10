@@ -90,7 +90,7 @@
                             <x-adminlte-textarea name="observacion" label="Observación" placeholder="Ingresar Observación"
                                 fgroup-class="col-md-12">{{ old('observacion') }}</x-adminlte-textarea>
                         </div>
-                        <div class="row">
+                        <div class="row" style="display: none;"> 
                             <x-adminlte-textarea name="duplicado" label="Verificar Duplicación"
                                 placeholder="Ingresar Duplicación"
                                 fgroup-class="col-md-12">{{ old('duplicado') }}</x-adminlte-textarea>

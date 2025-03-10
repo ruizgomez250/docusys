@@ -49,10 +49,19 @@
                         <input type="date" class="form-control" id="hasta" name="hasta" value="{{ date('Y-m-d') }}"
                             required>
                     </div>
+                    <x-adminlte-select2 name="id_destino" label="Oficinas" fgroup-class="col-md-4" required>
+                        @foreach ($destinos as $destino)
+                            <option value="{{ $destino->id }}" {{ $destino->default == 1 ? 'selected' : '' }}>
+                                {{ $destino->nombre }}</option>
+                        @endforeach
+                    </x-adminlte-select2>
                 </div>
 
                 <button onclick="mostrarpdf()" class="btn btn-secondary mt-2" type="button">
-                    <i class="fas fa-file-pdf"></i> Generar Reporte
+                    <i class="fas fa-file-pdf"></i> Generar Reporte General
+                </button>
+                <button onclick="mostrarpdfDetallado()" class="btn btn-secondary mt-2" type="button">
+                    <i class="fas fa-file-pdf"></i> Generar Reporte Detallado
                 </button>
             </div>
         </div>
@@ -75,5 +84,21 @@
             const url = `/docusys/public/generar-planilla?desde=${desde}&hasta=${hasta}`;
             window.open(url, '_blank'); // Abrir el PDF en una nueva pestaña
         }
+        function mostrarpdfDetallado(){
+            const desde = document.getElementById('desde').value;
+            const hasta = document.getElementById('hasta').value;
+            const destino = document.getElementById('id_destino').value;
+            
+
+            if (!desde || !hasta) {
+                alert("Por favor, seleccione ambas fechas.");
+                return;
+            }
+
+            // Construir la URL con las fechas como parámetros
+            const url = `/docusys/public/generar-planilladet?desde=${desde}&hasta=${hasta}&destino=${destino}`;
+            window.open(url, '_blank'); // Abrir el PDF en una nueva pestaña
+        }
+
     </script>
 @endpush
