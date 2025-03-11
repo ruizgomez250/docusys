@@ -20,6 +20,7 @@ use Exception;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 
 use function PHPUnit\Framework\isNull;
 
@@ -313,7 +314,7 @@ class MesaEntradaController extends Controller
         $tiposdoc = TipoDoc::all();
         $destinos = Destino::all();
         $ultimos3 = MesaEntrada::orderBy('id', 'desc')->take(3)->get();
-        return view('mesa_entrada.create', ['origenes' => $origenes, 'tiposDoc' => $tiposdoc, 'destinos' => $destinos,'ultimos3' => $ultimos3]);
+        return view('mesa_entrada.create', ['origenes' => $origenes, 'tiposDoc' => $tiposdoc, 'destinos' => $destinos, 'ultimos3' => $ultimos3]);
     }
     public function reportetipodocfechas(): View
     {
@@ -1060,21 +1061,27 @@ class MesaEntradaController extends Controller
     }
     public function reenviardoc(Request $request)
     {
+        $id = $request->post('idmentrada');
+        $userId = Auth::id();
+        $cacheKey = "reenviardoc_{$id}_{$userId}";
+
+        // Verificar si ya se ha ejecutado recientemente
+        if (Cache::has($cacheKey)) {
+            return redirect()->route('reenviado')->with('error', 'Por favor, espera antes de reenviar nuevamente.');
+        }
+
+        // Bloquear la ejecución durante 10 segundos
+        Cache::put($cacheKey, true, now()->addSeconds(10));
+
         DB::beginTransaction();
         try {
-            // Buscar el mapa de recorrido por id_mentrada
-            $id = $request->post('idmentrada');
-            $userId = Auth::id();
             $userDestino = UserDestino::where('user_id', $userId)->first();
 
             $mapaRecorrido = MapaRecorrido::where('id_mentrada', $id)
-
                 ->where('id_actual', $userDestino->destino_id)
                 ->first();
 
             if ($request->post('masdestinos') == 1) {
-                date_default_timezone_set('America/Asuncion');
-
                 $mapaRecorrido = MapaRecorrido::create([
                     'id_mentrada' => $id,
                     'fecha_recepcion' => now(),
@@ -1084,8 +1091,8 @@ class MesaEntradaController extends Controller
                     'estado' => 1,
                 ]);
             }
-            if ($mapaRecorrido) {
 
+            if ($mapaRecorrido) {
                 $mapaRecorrido->id_destino = $request->post('id_destino');
                 $mapaRecorrido->estado = 0;
                 $mapaRecorrido->save();
@@ -1098,24 +1105,20 @@ class MesaEntradaController extends Controller
                     'observacion' => 'Nuevo recorrido creado',
                     'estado' => 1,
                 ]);
-                date_default_timezone_set('America/Asuncion'); // Cambia 'America/Asuncion' por tu zona horaria
 
-                // Obtener la fecha y hora actual en el formato deseado
                 $destino = Destino::find($request->post('id_destino'));
-                $userId = auth()->id();
 
-                $fechaHoraActual = date('Y-m-d H:i:s');
                 $recorridodoc = new RecorridoDoc();
                 $recorridodoc->id_mentrada = $mapaRecorrido->id_mentrada;
-                $recorridodoc->fecha = $fechaHoraActual;
+                $recorridodoc->fecha = now();
                 $recorridodoc->descripcion = 'Enviado: ' . $destino->nombre;
                 $recorridodoc->id_usuario = $userId;
-
-                // Guardar el nuevo registro en la base de datos
                 $recorridodoc->save();
+
                 $mesaEntrada = MesaEntrada::findOrFail($id);
                 $mesaEntrada->estado = 2;
                 $mesaEntrada->save();
+
                 DB::commit();
                 return redirect()->route('reenviado')->with('success', 'Mesa de Entrada actualizada exitosamente.');
             } else {
@@ -1124,7 +1127,7 @@ class MesaEntradaController extends Controller
             }
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->route('reenviado')->with('error', 'Mesa de Entrada no se pudo actualizar.');
+            return redirect()->route('reenviado')->with('error', 'Ocurrió un error inesperado.');
         }
     }
 

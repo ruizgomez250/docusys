@@ -145,11 +145,10 @@
                                                 <i class="fa fa-sm fa-fw fa-print"></i>
                                             </button>
                                         @endif
-                                        
+
                                         @if ($usuario->autorizar_modif == 1 && $row->modificar == 0)
-                                        
-                                            <form action="{{ route('mesaentrada.autorizarmodif', $row->id) }}" method="post"
-                                                class="d-inline enviar-form">
+                                            <form action="{{ route('mesaentrada.autorizarmodif', $row->id) }}"
+                                                method="post" class="d-inline enviar-form">
                                                 @csrf
                                                 <button type="button"
                                                     class="btn btn-sm  btn-outline-secondary enviar-button">
@@ -188,7 +187,7 @@
                         <input type="hidden" name="masdestinos" id="masdestinos" value="0">
                         <input type="hidden" name="idmentrada" id="idmentrada" required>
                         <div class="modal-footer">
-                            <button type="submit" class="btn btn-primary">Enviar</button>
+                            <button type="submit" id="submitBtn" class="btn btn-primary">Enviar</button>
                         </div>
                     </form>
                 </div>
@@ -265,6 +264,10 @@
 @stop
 @push('js')
     <script>
+        document.getElementById('reenviarForm').addEventListener('submit', function() {
+            document.getElementById('submitBtn').disabled = true;
+            document.getElementById('submitBtn').innerText = "Enviando...";
+        });
         $(document).ready(function() {
             // Inicialización de DataTables
             var table = $('#table1').DataTable({
