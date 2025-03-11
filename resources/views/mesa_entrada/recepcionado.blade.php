@@ -264,10 +264,10 @@
 @stop
 @push('js')
     <script>
-        document.getElementById('reenviarForm').addEventListener('submit', function() {
-            document.getElementById('submitBtn').disabled = true;
-            document.getElementById('submitBtn').innerText = "Enviando...";
-        });
+        // document.getElementById('reenviarForm').addEventListener('submit', function() {
+        //     document.getElementById('submitBtn').disabled = true;
+        //     document.getElementById('submitBtn').innerText = "Enviando...";
+        // });
         $(document).ready(function() {
             // Inicialización de DataTables
             var table = $('#table1').DataTable({
