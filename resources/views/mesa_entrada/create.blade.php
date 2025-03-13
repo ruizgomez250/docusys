@@ -1,7 +1,9 @@
 @extends('adminlte::page')
 
 @section('content_header')
-    <h1 class="m-0 custom-heading">Registrar Nueva Mesa de Entrada</h1>
+    <h1 class="m-0 custom-heading">Registrar Nueva Mesa de Entrada<button id="openBubble" class="btn btn-dark btn-sm">
+        Ultimos 3 Docs.
+    </button></h1>
 @stop
 @section('plugins.Sweetalert2', true)
 
@@ -124,10 +126,63 @@
             </div>
         </div>
     </div>
+    <!-- Burbuja flotante -->
+    <div id="floating-bubble">
+        <button type="button" onclick="closeBubble()">X</button>
+        <p>Últimos 3 registros:</p>
+        <ul>
+            @foreach ($ultimos3 as $entrada)
+                <li>
+                    <strong>Número:</strong> {{ $entrada->nro_mentrada }} -
+                    {{ $entrada->observacion }}
+                </li>
+            @endforeach
+        </ul>
+    </div>
 @stop
+@push('css')
+    <style>
+        #floating-bubble {
+            position: fixed;
+            top: 60px;
+            right: 20px;
+            width: 300px;
+            max-height: 400px;
+            /* Altura máxima para que no se agrande demasiado */
+            background-color: rgba(255, 255, 255, 0.5);
+            /* Fondo blanco al 50% de transparencia */
+            border: 1px solid #ccc;
+            padding: 10px;
+            z-index: 1000;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            overflow-y: auto;
+            /* Habilita el scroll vertical */
+        }
+
+        #floating-bubble button {
+            float: right;
+            border: none;
+            background: transparent;
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+    </style>
+@endpush
 @push('js')
     <script src="{{ asset('vendor/jquery-ui-1.13.2/jquery-ui.min.js') }}"></script>
     <script>
+         $(function() {
+            // Hacer que la burbuja flotante sea arrastrable
+            $("#floating-bubble").draggable();
+            $("#openBubble").click(function() {
+                $("#floating-bubble").show();
+            });
+        });
+
+        function closeBubble() {
+            $("#floating-bubble").hide();
+        }
         function checkForDuplicateObservacion() {
             const duplicado = document.querySelector('textarea[name="duplicado"]').value;
             //console.log(observacion);

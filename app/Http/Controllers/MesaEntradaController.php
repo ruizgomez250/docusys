@@ -313,7 +313,8 @@ class MesaEntradaController extends Controller
         $origenes = Origen::orderBy('indice')->orderBy('subindice')->get();
         $tiposdoc = TipoDoc::all();
         $destinos = Destino::all();
-        return view('mesa_entrada.create', ['origenes' => $origenes, 'tiposDoc' => $tiposdoc, 'destinos' => $destinos]);
+        $ultimos3 = MesaEntrada::orderBy('id', 'desc')->take(3)->get();
+        return view('mesa_entrada.create', ['origenes' => $origenes, 'tiposDoc' => $tiposdoc, 'destinos' => $destinos,'ultimos3' => $ultimos3]);
     }
     public function reportetipodocfechas(): View
     {
@@ -1151,9 +1152,9 @@ class MesaEntradaController extends Controller
         $pdf->Ln(25);
 
         // Insertar marca de agua
-        $pdf->SetAlpha(0.3); // Establece la opacidad al 10%
-        $pdf->Image('vendor/adminlte/dist/img/icono camara.png', 10, 50, 190); // Ajusta la posición y tamaño de la imagen
-        $pdf->SetAlpha(1); // Restablece la opacidad al 100%
+        //$pdf->SetAlpha(0.3); // Establece la opacidad al 10%
+        //$pdf->Image('vendor/adminlte/dist/img/icono camara.png', 10, 50, 190); // Ajusta la posición y tamaño de la imagen
+        //$pdf->SetAlpha(1); // Restablece la opacidad al 100%
         // Establecer título del documento
         $pdf->SetTextColor(0, 0, 0);
         $pdf->SetTitle('Recorrido del Documento');
