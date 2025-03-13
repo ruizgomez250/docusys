@@ -88,7 +88,7 @@
                     {{-- <table id="table1" class="table table-bordered table-hover" theme="light">
                         <thead>
                             <tr>
-                                
+
                                 <th></th> <!-- Columna para el botón de expansión -->
                                 <th>Nro MEntrada</th>
                                 <th>Año</th>
@@ -105,57 +105,67 @@
                         </thead>
                         <tbody>
                             @foreach ($mesasEntrada as $row)
-                            <tr data-child-id="{{ $row->id }}">
-                                <td class="details-control text-center">
-                                    <i class="fa fa-plus-circle text-primary"></i> <!-- Ícono de expansión -->
-                                </td>
-                                <td>
-                                    {{ $row->nro_mentrada }}
-                                    @if ($row->nro_suplementario !== null)
-                                        .{{ $row->nro_suplementario }}
-                                    @endif
-                                </td>
-                                <td>{{ $row->anho }}</td>
-                                <td>{{ $row->fecha_recepcion }}</td>
-                                <td>{{ $row->origen->nombre ?? 'N/A' }}</td>
-                                <td>{{ $row->tipoDoc->nombre ?? 'N/A' }}</td>
-                                <td>{{ $row->nombres_firmantes ?? 'N/A' }}</td>
-                                <td>{{ $row->observacion }}</td>
-                                <td class="{{ $row->estado_recorrido == '2' ? 'text-danger' : 'text-success' }}">
-                                    @if ($row->estado_recorrido == '2')
-                                        Enviado
-                                    @elseif ($row->estado_recorrido == '0')
-                                        Aceptado
-                                    @elseif ($row->estado_recorrido == '4')
-                                        Redireccionado
-                                    @elseif ($row->estado == '0')
-                                        Trámite Finalizado
-                                    @endif
+                                <tr data-child-id="{{ $row->id }}">
+                                    <td class="details-control text-center">
+                                        <i class="fa fa-plus-circle text-primary"></i> <!-- Ícono de expansión -->
+                                    </td>
+                                    <td>
+                                        {{ $row->nro_mentrada }}
+                                        @if ($row->nro_suplementario !== null)
+                                            .{{ $row->nro_suplementario }}
+                                        @endif
+                                    </td>
+                                    <td>{{ $row->anho }}</td>
+                                    <td>{{ $row->fecha_recepcion }}</td>
+                                    <td>{{ $row->origen->nombre ?? 'N/A' }}</td>
+                                    <td>{{ $row->tipoDoc->nombre ?? 'N/A' }}</td>
+                                    <td>{{ $row->nombres_firmantes ?? 'N/A' }}</td>
+                                    <td>{{ $row->observacion }}</td>
+                                    <td class="{{ $row->estado_recorrido == '2' ? 'text-danger' : 'text-success' }}">
+                                        @if ($row->estado_recorrido == '2')
+                                            Enviado
+                                        @elseif ($row->estado_recorrido == '0')
+                                            Aceptado
+                                        @elseif ($row->estado_recorrido == '4')
+                                            Redireccionado
+                                        @elseif ($row->estado == '0')
+                                            Trámite Finalizado
+                                        @endif
 
-                                </td>
-                                <td>{{ $row->user->name ?? 'N/A' }}</td>
-                                <td>
-                                    <a href="{{ route('reporte.recorrido', $row) }}" target="_blank"
-                                        class="btn btn-sm btn-outline-secondary">
-                                        <i class="fa fa-file-pdf"></i>
-                                    </a>
+                                    </td>
+                                    <td>{{ $row->user->name ?? 'N/A' }}</td>
+                                    <td>
+                                        <a href="{{ route('reporte.recorrido', $row) }}" target="_blank"
+                                            class="btn btn-sm btn-outline-secondary">
+                                            <i class="fa fa-file-pdf"></i>
+                                        </a>
 
-                                    @if ($row->tiene_documentos)
-                                        <button type="button" class="btn btn-sm btn-outline-secondary"
-                                            onclick="openDocumentosModal({{ $row->id }})">
-                                            <i class="fa fa-sm fa-fw fa-print"></i>
-                                        </button>
-                                    @endif
-                                    @if ($row->estado_recorrido > 0)
-                                        <x-adminlte-button theme="outline-danger" data-toggle="modal"
-                                            data-target="#modalDestinos" class="btn-sm " icon="fas fa-paper-plane"
-                                            onclick="cargarmentrada({{ $row->id }})" />
-                                    @endif
-                                </td>
-                                <td>{{ $row->fecha_creacion_recorrido }}</td>
-                            </tr>
-                        @endforeach
-                            
+                                        @if ($row->tiene_documentos)
+                                            <button type="button" class="btn btn-sm btn-outline-secondary"
+                                                onclick="openDocumentosModal({{ $row->id }})">
+                                                <i class="fa fa-sm fa-fw fa-print"></i>
+                                            </button>
+                                        @endif
+                                        @if ($row->estado_recorrido > 0)
+                                            <x-adminlte-button theme="outline-danger" data-toggle="modal"
+                                                data-target="#modalDestinos" class="btn-sm " icon="fas fa-paper-plane"
+                                                onclick="cargarmentrada({{ $row->id }})" />
+                                        @endif
+                                        @if ($usuario->autorizar_modif == 1 && $row->modificar == 0)
+                                            <form action="{{ route('mesaentrada.autorizarmodif', $row->id) }}"
+                                                method="post" class="d-inline enviar-form">
+                                                @csrf
+                                                <button type="button"
+                                                    class="btn btn-sm  btn-outline-secondary enviar-button">
+                                                    <i class="fas fa-unlock"></i>
+                                                </button>
+                                            </form>
+                                        @endif
+                                    </td>
+                                    <td>{{ $row->fecha_creacion_recorrido }}</td>
+                                </tr>
+                            @endforeach
+
 
                         </tbody>
                     </table> --}}
@@ -325,6 +335,7 @@
                 });
             });
         });
+
         function setMasDestinos(value) {
             // Cambia el valor del campo hidden a 0 o 1
             document.getElementById('masdestinos').value = value;

@@ -145,6 +145,18 @@
                                                 <i class="fa fa-sm fa-fw fa-print"></i>
                                             </button>
                                         @endif
+                                        
+                                        @if ($usuario->autorizar_modif == 1 && $row->modificar == 0)
+                                        
+                                            <form action="{{ route('mesaentrada.autorizarmodif', $row->id) }}" method="post"
+                                                class="d-inline enviar-form">
+                                                @csrf
+                                                <button type="button"
+                                                    class="btn btn-sm  btn-outline-secondary enviar-button">
+                                                    <i class="fas fa-unlock"></i>
+                                                </button>
+                                            </form>
+                                        @endif
                                     </td>
                                     <td>{{ $row->mapa_created_at }}</td>
                                 </tr>
@@ -315,13 +327,13 @@
                     // Si el detalle está oculto, lo mostramos
                     $.ajax({
                         url: '{{ route('mesaentrada.firmantes', '') }}/' +
-                        id, // Verificar si la ruta se forma correctamente
+                            id, // Verificar si la ruta se forma correctamente
                         method: 'GET',
                         success: function(response) {
 
                             // Utilizar el objeto de respuesta directamente como array de detalles
                             var detalles =
-                            response; // Aquí 'response' ya es un array de objetos, no 'response.detalles'
+                                response; // Aquí 'response' ya es un array de objetos, no 'response.detalles'
                             if (detalles.length > 0) {
                                 // Mostramos el detalle
                                 row.child(format(detalles)).show();

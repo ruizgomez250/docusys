@@ -12,6 +12,7 @@ use App\Models\MesaEntradaFirmante;
 use App\Models\Origen;
 use App\Models\RecorridoDoc;
 use App\Models\TipoDoc;
+use App\Models\User;
 use App\Models\UserDestino;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -94,6 +95,7 @@ class MesaEntradaController extends Controller
             'Ult. Act.'
         ];
         $userId = auth()->id();
+        $usuario = User::find($userId);
         $userDestino = UserDestino::where('user_id', $userId)->first();
         $iddest = $userDestino->destino_id;
         $destinos = Destino::all();
@@ -104,6 +106,7 @@ class MesaEntradaController extends Controller
             ->where('mapa_recorrido.id_actual', $iddest)
             ->select(
                 'mesa_entrada.id',
+                'mesa_entrada.modificar',
                 'mesa_entrada.nro_mentrada',
                 'mesa_entrada.anho',
                 'mesa_entrada.fecha_recepcion',
@@ -124,6 +127,7 @@ class MesaEntradaController extends Controller
             )
             ->groupBy(
                 'mesa_entrada.id',
+                'mesa_entrada.modificar',
                 'mesa_entrada.nro_mentrada',
                 'mesa_entrada.anho',
                 'mesa_entrada.fecha_recepcion',
@@ -714,6 +718,7 @@ class MesaEntradaController extends Controller
             DB::transaction(function () use ($request, $id) {
                 $validatedData = $request->validate([
                     'id_origen' => 'required|integer',
+                    'modificar' => 'nullable|integer',
                     'id_tipo_doc' => 'required|integer',
                     'id_destino' => 'required|integer',
                     'observacion' => 'nullable|string',
@@ -725,17 +730,34 @@ class MesaEntradaController extends Controller
                 ]);
 
                 $mesaEntrada = MesaEntrada::findOrFail($id);
-
+                $modificar = $request->input('modificar');
                 // Actualizar los campos de MesaEntrada
                 $mesaEntrada->update([
                     'id_origen' => $validatedData['id_origen'],
                     'id_tipo_doc' => $validatedData['id_tipo_doc'],
                     'id_destino' => $validatedData['id_destino'],
                     'observacion' => $validatedData['observacion'],
+                    'modificar' => 0,
                 ]);
 
                 $fechaAct = date('Y-m-d');
                 $userId = auth()->id();
+                $usuario = User::find($userId);
+                $recorridoDoc = new RecorridoDoc();
+
+
+                // Asignar valores manualmente
+                if ($mesaEntrada->estado == 2) {
+                    $recorridoDoc->descripcion = 'Modificado por : ' . $usuario->name;
+                    $recorridoDoc->id_mentrada = $id;  // Asegúrate de que este ID existe en la tabla mesa_entrada
+                    $recorridoDoc->fecha = Carbon::now(); // Fecha actual, también puedes especificar una fecha fija
+                    $recorridoDoc->id_usuario = $userId;  // Asegúrate de que este ID existe en la tabla users
+
+                    // Guardar el registro en la base de datos
+                    $recorridoDoc->save();
+
+                }
+                
                 $destinoactual = UserDestino::where('user_id', $userId)->first();
 
                 // Actualizar MapaRecorrido
@@ -825,6 +847,7 @@ class MesaEntradaController extends Controller
 
             return redirect()->route('mesaentrada.index')->with('success', 'Mesa de Entrada actualizada exitosamente.');
         } catch (Exception $e) {
+            dd($e);
             return redirect()->route('mesaentrada.index')->with('error', 'No se pudo completar la operación.');
         }
     }

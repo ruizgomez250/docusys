@@ -33,6 +33,7 @@ class MesaEntrada extends Model
         'id_usuario',
         'duplicado',
         'nro_suplementario',
+        'modificar',
     ];
 
     /**
