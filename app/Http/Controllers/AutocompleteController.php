@@ -13,37 +13,38 @@ class AutocompleteController extends Controller
     //
     public function autocomplete(Request $request)
     {
-        $search = $request->get('term');       
-        $results = Cliente::where(function($query) use ($search) {
+        $search = $request->get('term');
+        $results = Cliente::where(function ($query) use ($search) {
             $query->where('razonsocial', 'LIKE', '%' . $search . '%')
-                  ->orWhere('ruc', 'LIKE', '%' . $search . '%');
+                ->orWhere('ruc', 'LIKE', '%' . $search . '%');
         })->where('id_estado', 1) // estado 1 = activo
-        ->get();          
+            ->get();
         return response()->json($results);
     }
 
 
     public function proveedor(Request $request)
     {
-        $search = $request->get('term');       
-        $results = Proveedor::where(function($query) use ($search) {
+        $search = $request->get('term');
+        $results = Proveedor::where(function ($query) use ($search) {
             $query->where('razonsocial', 'LIKE', '%' . $search . '%')
-                  ->orWhere('ruc', 'LIKE', '%' . $search . '%');
+                ->orWhere('ruc', 'LIKE', '%' . $search . '%');
         })->where('id_estado', 4) // estado 4 = activo
-        ->get();          
+            ->get();
         return response()->json($results);
     }
 
-    public function getfirmante(Request $request)
+    public function getFirmante(Request $request)
     {
-        $search = $request->get('term');       
-        $results = Firmante::where(function($query) use ($search) {
+        $search = $request->get('term');
+
+        $results = Firmante::where(function ($query) use ($search) {
             $query->where('nombre', 'LIKE', '%' . $search . '%')
-                  ->orWhere('cedula', 'LIKE', '%' . $search . '%');
-        })//->where('id_estado', 18) // estado 4 = activo
-        ->get();          
+                ->orWhere('cedula', 'LIKE', $search)
+                ->orWhere('codigo', 'LIKE',$search ); // Agregamos búsqueda por código
+        })
+            // ->where('id_estado', 18) // Descomenta si necesitas filtrar por estado activo
+            ->get();
         return response()->json($results);
-
     }
-
 }

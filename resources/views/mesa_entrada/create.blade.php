@@ -2,8 +2,8 @@
 
 @section('content_header')
     <h1 class="m-0 custom-heading">Registrar Nueva Mesa de Entrada<button id="openBubble" class="btn btn-dark btn-sm">
-        Ultimos 3 Docs.
-    </button></h1>
+            Ultimos 3 Docs.
+        </button></h1>
 @stop
 @section('plugins.Sweetalert2', true)
 
@@ -92,7 +92,7 @@
                             <x-adminlte-textarea name="observacion" label="Observación" placeholder="Ingresar Observación"
                                 fgroup-class="col-md-12">{{ old('observacion') }}</x-adminlte-textarea>
                         </div>
-                        <div class="row" style="display: none;"> 
+                        <div class="row" style="display: none;">
                             <x-adminlte-textarea name="duplicado" label="Verificar Duplicación"
                                 placeholder="Ingresar Duplicación"
                                 fgroup-class="col-md-12">{{ old('duplicado') }}</x-adminlte-textarea>
@@ -172,7 +172,30 @@
 @push('js')
     <script src="{{ asset('vendor/jquery-ui-1.13.2/jquery-ui.min.js') }}"></script>
     <script>
-         $(function() {
+        function seleccionarOrigen(idOrigen) {
+            // Obtener el elemento select por su ID
+            const selectElement = document.getElementById('id_origen');
+            // Verificar si el elemento existe
+            if (selectElement) {
+                // Buscar el option con el valor deseado
+                const optionToSelect = selectElement.querySelector(`option[value="${idOrigen}"]`);
+                // Si el option existe, seleccionarlo
+                if (optionToSelect) {
+                    optionToSelect.selected = true; // Selecciona la opción en el DOM
+
+                    // Disparar el evento 'change' para notificar a Select2
+                    $(selectElement).trigger('change');
+
+                    // Actualizar Select2 para reflejar el cambio en la vista
+                    $(selectElement).select2();
+                } else {
+                    console.error('No se encontró el origen con el ID:', idOrigen);
+                }
+            } else {
+                console.error('No se encontró el elemento select con ID "id_origen"');
+            }
+        }
+        $(function() {
             // Hacer que la burbuja flotante sea arrastrable
             $("#floating-bubble").draggable();
             $("#openBubble").click(function() {
@@ -183,6 +206,7 @@
         function closeBubble() {
             $("#floating-bubble").hide();
         }
+
         function checkForDuplicateObservacion() {
             const duplicado = document.querySelector('textarea[name="duplicado"]').value;
             //console.log(observacion);
@@ -246,7 +270,7 @@
 
             newItem.innerHTML = `
             <div class="row ml-1">
-                <input type="number" name="codigo[]" class="codigo_id form-control col-1"
+                <input type="number" name="codigo[]" class="autocomplete-codigo form-control col-1"
                 placeholder="Código" value="" onchange="buscarporcod(this)">
                 
                 <input type="text" name="cedula[]" class="autocomplete-cedula form-control col-1">
@@ -364,6 +388,7 @@
                                     telefono: data[key].telefono,
                                     email: data[key].email,
                                     id: data[key].id,
+                                    origen: data[key].origen,
                                 };
                             });
                             response(filteredData);
@@ -381,6 +406,60 @@
                     $(this).closest('.row').find('input[name="idfirmante[]"]').val(ui.item.id);
                     $(this).closest('.row').find('input[name="codigo[]"]').val(ui.item.codigo);
                     $('input[name="email[]"]').focus(); // Movemos el foco al campo de cantidad
+                    console.log($(this).closest('.row').find('input[name="tipo[]"]').val());
+                    seleccionarOrigen(ui.item.origen);
+                    
+                },
+                autoFocus: true, // Activamos el enfoque automático para facilitar la navegación con teclado
+            }).keydown(function(event) {
+                // Capturamos el evento keydown para verificar si se presionó Enter
+                if (event.keyCode === 13 && !$(this).val()) {
+                    // Si se presionó Enter y el campo está vacío
+                    $('input[name="cantidad[]"]').focus(); // Movemos el foco al campo de cantidad
+                }
+            });
+        });
+        $(document).on('focus', '.autocomplete-codigo', function() {
+            $(this).autocomplete({
+                minLength: 0, // Cambiamos a 0 para que se dispare el autocompletado sin escribir
+                source: function(request, response) {
+                    $.ajax({
+                        url: "{{ route('obtenerfirmante') }}",
+                        contentType: "application/json",
+                        dataType: "json",
+                        data: {
+                            term: request.term
+                        },
+                        success: function(data) {
+                            var filteredData = Object.keys(data).map(function(key) {
+                                return {
+                                    label: data[key].nombre + ' - Cod. ' + data[key]
+                                        .codigo,
+                                    value: data[key].nombre,
+                                    cedula: data[key].cedula,
+                                    codigo: data[key].codigo,
+                                    telefono: data[key].telefono,
+                                    email: data[key].email,
+                                    id: data[key].id,
+                                    origen: data[key].origen,
+                                };
+                            });
+                            response(filteredData);
+                        }
+                    });
+                },
+                select: function(event, ui) {
+                    // Aquí puedes manejar lo que sucede cuando se selecciona un elemento
+                    //traerCargarDatosProducto(ui.item.codigo, this);
+                    //console.log(ui.item);
+                    $(this).closest('.row').find('input[name="cedula[]"]').val(ui.item.cedula);
+                    $(this).closest('.row').find('input[name="nombre[]"]').val(ui.item.value);
+                    $(this).closest('.row').find('input[name="telefono[]"]').val(ui.item.telefono);
+                    $(this).closest('.row').find('input[name="email[]"]').val(ui.item.email);
+                    $(this).closest('.row').find('input[name="idfirmante[]"]').val(ui.item.id);
+                    $(this).closest('.row').find('input[name="codigo[]"]').val(ui.item.codigo);
+                    $('input[name="email[]"]').focus(); // Movemos el foco al campo de cantidad
+                    seleccionarOrigen(ui.item.origen);
                 },
                 autoFocus: true, // Activamos el enfoque automático para facilitar la navegación con teclado
             }).keydown(function(event) {
@@ -427,8 +506,9 @@
                     $(this).closest('.row').find('input[name="email[]"]').val(ui.item.email);
                     $(this).closest('.row').find('input[name="idfirmante[]"]').val(ui.item.id);
                     $(this).closest('.row').find('input[name="codigo[]"]').val(ui.item.codigo);
-
+                    seleccionarOrigen(ui.item.origen);
                     $('input[name="email[]"]').focus(); // Mueve el foco al siguiente campo
+                    seleccionarOrigen(ui.item.origen);
 
                     return false; // Previene el autocompletado en el campo original
                 },
