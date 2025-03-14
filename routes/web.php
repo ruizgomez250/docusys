@@ -67,7 +67,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile/edit', [App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile/update', [App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
     Route::get('/profiles', [ProfilesController::class, 'index'])->name('profiles');
-    Route::resource('users', App\Http\Controllers\UserController::class);
+    Route::resource('users', App\Http\Controllers\UserControllger::class);
     Route::resource('roles', App\Http\Controllers\RolesController::class);
     Route::get('roles/{role}/give-permissions', [App\Http\Controllers\RolesController::class, 'addPermissionToRole'])->name('roles.addpermissionrole');
     Route::put('roles/{role}/give-permissions', [App\Http\Controllers\RolesController::class, 'givePermissionToRole'])->name('roles.updatepermissionrole');
@@ -76,6 +76,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/createaux', [MesaEntradaController::class, 'aux'])->name('createaux');
     Route::post('/mesaentradastoreaux', [MesaEntradaController::class, 'storeaux'])->name('mesaentradastoreaux');
     Route::get('/buscar-firmante/{codigo}', [FirmanteController::class, 'buscarPorCodigo']);
+    Route::get('/generar-planilla', [MesaEntradaController::class, 'generarReporte'])->name('generar-planilla');
+    Route::get('/generar-planilladet', [MesaEntradaController::class, 'generarReportedet'])->name('generar-planilladet');
 });
 Route::post('/verificar-duplicado', [MesaEntradaController::class, 'verificarDuplicado'])->name('verificar-duplicado');
 Route::get('/mesaentrada/firmantes/{id}', [MesaEntradaController::class, 'firmantes'])->name('mesaentrada.firmantes');
