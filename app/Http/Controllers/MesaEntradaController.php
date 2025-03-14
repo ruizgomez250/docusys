@@ -1300,9 +1300,9 @@ class MesaEntradaController extends Controller
         $pdf->SetPrintHeader(false); // Deshabilitar encabezado
         $pdf->SetFont('Times', '', 12);
         $pdf->AddPage();
-        $pdf->SetAlpha(0.3); // Establece la opacidad al 10%
-        $pdf->Image('vendor/adminlte/dist/img/icono camara.png', 10, 50, 190); // Ajusta la posición y tamaño de la imagen
-        $pdf->SetAlpha(1); // Restablece la opacidad al 100%
+        // $pdf->SetAlpha(0.3); // Establece la opacidad al 10%
+        // $pdf->Image('vendor/adminlte/dist/img/icono camara.png', 10, 50, 190); // Ajusta la posición y tamaño de la imagen
+        // $pdf->SetAlpha(1); // Restablece la opacidad al 100%
         // Título del reporte
         $pdf->SetFont('Times', 'B', 14);
         $pdf->Cell(0, 10, 'Planilla de documentos ingresados', 0, 1, 'C');
@@ -1381,9 +1381,9 @@ class MesaEntradaController extends Controller
         $pdf->SetPrintHeader(false); // Deshabilitar encabezado
         $pdf->SetFont('Times', '', 12);
         $pdf->AddPage();
-        $pdf->SetAlpha(0.3); // Establece la opacidad al 10%
-        $pdf->Image('vendor/adminlte/dist/img/icono camara.png', 100, 50, 110); // Ajusta la posición y tamaño de la imagen
-        $pdf->SetAlpha(1); // Restablece la opacidad al 100%
+        // $pdf->SetAlpha(0.3); // Establece la opacidad al 10%
+        // $pdf->Image('vendor/adminlte/dist/img/icono camara.png', 100, 50, 110); // Ajusta la posición y tamaño de la imagen
+        // $pdf->SetAlpha(1); // Restablece la opacidad al 100%
         // Título del reporte
         $pdf->SetFont('Times', 'B', 14);
         $pdf->Cell(0, 10, 'PLANILLA DE DOCUMENTOS INGRESADOS - '.$destino->nombre, 0, 1, 'C');
