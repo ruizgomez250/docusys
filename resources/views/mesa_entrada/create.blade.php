@@ -68,9 +68,12 @@
                         <div class="row">
                             <x-adminlte-select2 name="id_origen" label="Origen" fgroup-class="col-md-4" required>
                                 @foreach ($origenes as $origen)
-                                    <option value="{{ $origen->id }}">
-                                        {{ $origen->indice . '.' . $origen->subindice . ' - ' . $origen->nombre }}</option>
+                                    <option value="{{ $origen->id }}"
+                                        {{ $origen->nombre == 'CAMARA DE DIPUTADOS' ? 'selected' : '' }}>
+                                        {{ $origen->indice . '.' . $origen->subindice . ' - ' . $origen->nombre }}
+                                    </option>
                                 @endforeach
+
                             </x-adminlte-select2>
 
                             <x-adminlte-select2 name="id_tipo_doc" label="Tipo de Documento" fgroup-class="col-md-4"
@@ -408,7 +411,7 @@
                     $('input[name="email[]"]').focus(); // Movemos el foco al campo de cantidad
                     console.log($(this).closest('.row').find('input[name="tipo[]"]').val());
                     seleccionarOrigen(ui.item.origen);
-                    
+
                 },
                 autoFocus: true, // Activamos el enfoque automático para facilitar la navegación con teclado
             }).keydown(function(event) {
@@ -431,6 +434,7 @@
                             term: request.term
                         },
                         success: function(data) {
+
                             var filteredData = Object.keys(data).map(function(key) {
                                 return {
                                     label: data[key].nombre + ' - Cod. ' + data[key]
@@ -458,8 +462,9 @@
                     $(this).closest('.row').find('input[name="email[]"]').val(ui.item.email);
                     $(this).closest('.row').find('input[name="idfirmante[]"]').val(ui.item.id);
                     $(this).closest('.row').find('input[name="codigo[]"]').val(ui.item.codigo);
-                    $('input[name="email[]"]').focus(); // Movemos el foco al campo de cantidad
                     seleccionarOrigen(ui.item.origen);
+                    $('input[name="email[]"]').focus(); // Movemos el foco al campo de cantidad
+
                 },
                 autoFocus: true, // Activamos el enfoque automático para facilitar la navegación con teclado
             }).keydown(function(event) {
@@ -492,6 +497,7 @@
                                     telefono: data[key].telefono,
                                     email: data[key].email,
                                     id: data[key].id,
+                                    origen: data[key].origen,
                                 };
                             });
                             response(filteredData);
@@ -508,7 +514,7 @@
                     $(this).closest('.row').find('input[name="codigo[]"]').val(ui.item.codigo);
                     seleccionarOrigen(ui.item.origen);
                     $('input[name="email[]"]').focus(); // Mueve el foco al siguiente campo
-                    seleccionarOrigen(ui.item.origen);
+
 
                     return false; // Previene el autocompletado en el campo original
                 },
