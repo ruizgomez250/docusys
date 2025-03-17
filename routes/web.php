@@ -17,8 +17,7 @@ use App\Http\Controllers\UserDestinoController;
 use App\Http\Controllers\AutocompleteController;
 use App\Http\Controllers\PartidoPoliticoController;
 use App\Http\Controllers\PeriodoLegislativoController;
-
-
+use App\Http\Controllers\ReporteController;
 
 Auth::routes();
 
@@ -38,6 +37,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('periodos', PeriodoLegislativoController::class);
     Route::resource('legislador', LegisladorController::class);
     Route::resource('/firmante', FirmanteController::class);
+    Route::resource('/reportes', ReporteController::class);
     Route::resource('/tipodoc', TipoDocController::class);
     Route::resource('/destino', DestinoController::class);
     Route::resource('/origen', OrigenController::class);

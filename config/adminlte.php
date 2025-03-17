@@ -299,7 +299,20 @@ return [
 
     'menu' => [
         ['header' => 'STD'],
-
+        [
+            'text'       => 'Reportes',
+            'icon'       => 'fas fa-user-edit',
+            'icon_color' => 'dark',
+            'classes' => 'custom-icon-box-black',
+            'content' => '<i class="fas fa-user-edit"></i>',
+            'can'  => 'Firmante', // Permiso requerido
+            'submenu'        => [
+                [
+                    'text' => 'Tipo Doc. por Mes.',
+                    'url'  => '/reportes',
+                ],
+            ],
+        ],
         [
             'text'       => 'Firmante',
             'icon'       => 'fas fa-user-edit',
@@ -420,25 +433,7 @@ return [
                 ],
             ],
         ],
-        [
-            'text'       => 'Documentos Oficina',
-            'icon'       => 'fas fa-folder',
-            'icon_color' => 'primary',
-            'classes' => 'custom-icon-box-black',
-            'content' => '<i class="fas fa-box"></i>',
-            'can'  => 'Reportes',
-            'submenu'        => [
-                [
-                    'text' => 'Recepcionado',
-                    'url'  => '/recepciondoc',
-
-                ],
-                [
-                    'text' => 'Enviado/Finalizado',
-                    'url'  => '/reenviadodoc',
-                ],
-            ],
-        ],
+        
 
         ['header' => 'account_settings'],
         [
