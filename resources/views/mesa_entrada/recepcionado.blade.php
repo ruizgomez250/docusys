@@ -146,7 +146,7 @@
                                             </button>
                                         @endif
                                         
-                                        @if ($usuario->autorizar_modif == 1 && $row->modificar == 0)
+                                        {{-- @if ($usuario->autorizar_modif == 1 && $row->modificar == 0)
                                         
                                             <form action="{{ route('mesaentrada.autorizarmodif', $row->id) }}" method="post"
                                                 class="d-inline enviar-form">
@@ -156,7 +156,7 @@
                                                     <i class="fas fa-unlock"></i>
                                                 </button>
                                             </form>
-                                        @endif
+                                        @endif --}}
                                     </td>
                                     <td>{{ $row->mapa_created_at }}</td>
                                 </tr>
@@ -183,7 +183,7 @@
                                 <option value="{{ $destino->id }}" {{ $destino->default == 1 ? 'selected' : '' }}>
                                     {{ $destino->nombre }}
                                 </option>
-                            @endforeach
+                            @endforeach 
                         </x-adminlte-select2>
                         <input type="hidden" name="masdestinos" id="masdestinos" value="0">
                         <input type="hidden" name="idmentrada" id="idmentrada" required>

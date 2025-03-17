@@ -1442,7 +1442,7 @@ class MesaEntradaController extends Controller
             // Imprimir los datos de cada fila
             $pdf->Cell(20, 10, $documento->nro_mentrada, 1, 0, 'C');
             $pdf->Cell(50, 10, $documento->tipoDoc->nombre, 1, 0, 'C');
-            $pdf->Cell(75, 10, $documento->tipoDoc->descripcion, 1, 0, 'C');
+            $pdf->Cell(75, 10, $documento->observacion, 1, 0, 'C');
             $pdf->MultiCell(75, 10, $solicitanteN, 1, 'C', 0, 0);
             $pdf->MultiCell(75, 10, $firmanteN, 1, 'C', 0, 0);
             $nombreCompleto = $documento->user->name; // Obtener el nombre
@@ -1565,10 +1565,14 @@ class MesaEntradaController extends Controller
         // Formatear datos para DataTables
         $data = [];
         foreach ($mesasEntrada as $row) {
+            $docum='<button type="button" class="btn btn-sm btn-outline-secondary"
+                     onclick="openDocumentosModal('.$row->id.')">
+                    <i class="fa fa-sm fa-fw fa-print"></i>
+                    </button>';
             $actions = '<a href="' . route('reporte.recorrido', $row->id) . '" target="_blank" class="btn btn-sm btn-outline-secondary">
                 <i class="fa fa-file-pdf"></i>
-            </a>';
-
+            </a>'.$docum;
+            
             if ($row->estado == 1) {
                 $actions .= '<a href="' . route('mesaentrada.edit', $row->id) . '" class="btn btn-sm btn-outline-secondary">
                     <i class="fa fa-sm fa-fw fa-pen"></i>
