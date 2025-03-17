@@ -15,7 +15,7 @@
             datasets: [{
                 label: 'Total de Documentos',
                 data: @json($documentosporfechas->pluck('cantidad')), // Las cantidades por mes
-                backgroundColor: '#4e73df', // Color para las barras
+                backgroundColor: '#6c757d', // Color para las barras
             }]
         };
 
