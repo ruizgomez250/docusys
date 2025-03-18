@@ -2,9 +2,15 @@
 
 @section('content_header')
 <h1 class="m-0 custom-heading">Gráficos</h1>
+<style>
+    #myChart {
+        max-width: 400px;
+        max-height: 300px;
+    }
+</style>
+
 @stop
 
-@section('plugins.Sweetalert2', true)
 
 @push('js')
     <script>
@@ -54,7 +60,7 @@
 @section('content')
     <div class="row">
         <div class="col-12">
-            <canvas id="myChart" width="400" height="200"></canvas>
+            <canvas id="myChart" width="30" height="30"></canvas>
         </div>
     </div>
 @stop

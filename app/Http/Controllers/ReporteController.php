@@ -17,9 +17,11 @@ class ReporteController extends Controller
             DATE_FORMAT(me.fecha_recepcion, '%Y-%m') AS mes,
             COUNT(*) AS cantidad
         FROM mesa_entrada me
+        WHERE me.fecha_recepcion >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
         GROUP BY mes
         ORDER BY mes ASC;
     ");
+
         $documentosporfechas = collect($documentosporfechas);
         return view('reportes.index', ['documentosporfechas' => $documentosporfechas]);
     }
