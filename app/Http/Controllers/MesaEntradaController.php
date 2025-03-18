@@ -1461,6 +1461,10 @@ class MesaEntradaController extends Controller
                                 <i class="fas fa-paper-plane"></i>
                             </button>
                         </form>';
+            }else if($row->modificar == 1){
+                $actions = $actions.'<a href="' . route('mesaentrada.edit', $row->id) . '" class="btn btn-sm btn-outline-secondary">
+                    <i class="fa fa-sm fa-fw fa-pen"></i>
+                </a>';
             }
 
             $data[] = [
