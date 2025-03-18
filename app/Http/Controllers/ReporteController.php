@@ -12,7 +12,23 @@ class ReporteController extends Controller
      */
     public function index()
     {
-        $documentosporfechas = DB::select("
+        $portiposdocs = DB::select("
+    SELECT 
+        DATE_FORMAT(me.fecha_recepcion, '%Y-%m') AS mes,
+        LOWER(td.nombre) AS tipo_doc, -- Convertir a minúsculas
+        COUNT(*) AS cantidad
+    FROM mesa_entrada me
+    JOIN tipo_docs td ON me.id_tipo_doc = td.id
+    WHERE me.fecha_recepcion >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+    GROUP BY mes, td.nombre
+    HAVING cantidad > 0 -- Filtrar solo los que tienen más de 0 documentos
+    ORDER BY mes ASC, td.nombre ASC;
+");
+
+
+    $portiposdocs = collect($portiposdocs);
+
+    $documentosporfechas = DB::select("
         SELECT 
             DATE_FORMAT(me.fecha_recepcion, '%Y-%m') AS mes,
             COUNT(*) AS cantidad
@@ -23,7 +39,7 @@ class ReporteController extends Controller
     ");
 
         $documentosporfechas = collect($documentosporfechas);
-        return view('reportes.index', ['documentosporfechas' => $documentosporfechas]);
+        return view('reportes.index', ['documentosporfechas' => $documentosporfechas,'portiposdocs' => $portiposdocs]);
     }
 
 
