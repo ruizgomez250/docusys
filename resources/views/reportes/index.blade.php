@@ -11,9 +11,7 @@
             max-height: 900px;
         }
     </style>
-
 @stop
-
 
 @push('js')
     <script>
@@ -88,19 +86,40 @@
     </script>
 @endpush
 
-
 @section('content')
     <div class="row">
         <div class="col-12">
             <canvas id="myChart" width="30" height="30"></canvas>
         </div>
-
     </div>
+    
     <div class="row">
-
         <div class="col-12">
             <canvas id="myChart1" width="30" height="30"></canvas>
         </div>
     </div>
 
+    <!-- Tabla debajo del segundo gráfico -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Mes</th>
+                        <th>Tipo de Documento</th>
+                        <th>Cantidad</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($portiposdocs as $documento)
+                        <tr>
+                            <td>{{ $documento->mes }}</td>
+                            <td>{{ $documento->tipo_doc }}</td>
+                            <td>{{ $documento->cantidad }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
 @stop

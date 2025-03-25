@@ -416,7 +416,7 @@ class MesaEntradaController extends Controller
                 // Guardar el nuevo registro en la base de datos
                 $mapaRecorrido->save();
 
-                date_default_timezone_set('America/Asuncion'); // Cambia 'America/Asuncion' por tu zona horaria
+                date_default_timezone_set('America/Argentina/Buenos_Aires'); // Cambia 'America/Asuncion' por tu zona horaria
 
                 // Obtener la fecha y hora actual en el formato deseado
                 $destino = Destino::find($destinoactual->destino_id);
@@ -566,7 +566,7 @@ class MesaEntradaController extends Controller
                 // Guardar el nuevo registro en la base de datos
                 $mapaRecorrido->save();
 
-                date_default_timezone_set('America/Asuncion'); // Cambia 'America/Asuncion' por tu zona horaria
+                date_default_timezone_set('America/Argentina/Buenos_Aires'); // Cambia 'America/Asuncion' por tu zona horaria
 
                 // Obtener la fecha y hora actual en el formato deseado
                 $destino = Destino::find($destinoactual->destino_id);
@@ -924,7 +924,7 @@ class MesaEntradaController extends Controller
                 $mesaEntrada->estado = 2;
                 $mesaEntrada->save();
 
-                date_default_timezone_set('America/Asuncion'); // Cambia 'America/Asuncion' por tu zona horaria
+                date_default_timezone_set('America/Argentina/Buenos_Aires'); // Cambia 'America/Asuncion' por tu zona horaria
 
                 // Obtener la fecha y hora actual en el formato deseado
                 $destino = Destino::find($idDestino,);
@@ -975,7 +975,7 @@ class MesaEntradaController extends Controller
                 $mesaEntrada = MesaEntrada::findOrFail($id);
                 // $mesaEntrada->estado = 3;
                 // $mesaEntrada->save();
-                date_default_timezone_set('America/Asuncion'); // Cambia 'America/Asuncion' por tu zona horaria
+                date_default_timezone_set('America/Argentina/Buenos_Aires'); // Cambia 'America/Asuncion' por tu zona horaria
 
                 // Obtener la fecha y hora actual en el formato deseado
                 $destino = Destino::find($mapaRecorrido->id_actual);
@@ -1029,7 +1029,7 @@ class MesaEntradaController extends Controller
                     $mesaEntrada->estado = 0;
                     $mesaEntrada->save();
                 }
-                date_default_timezone_set('America/Asuncion'); // Cambia 'America/Asuncion' por tu zona horaria
+                date_default_timezone_set('America/Argentina/Buenos_Aires'); // Cambia 'America/Asuncion' por tu zona horaria
 
                 // Obtener la fecha y hora actual en el formato deseado
                 $destino = Destino::find($mapaRecorrido->id_actual);
