@@ -774,6 +774,17 @@ class MesaEntradaController extends Controller
                     'modificar' => 0,
                 ]);
 
+                MapaRecorrido::where('id_mentrada', $mesaEntrada->id)
+                    ->update(['id_destino' => $validatedData['id_destino']]);
+
+                date_default_timezone_set('America/Argentina/Buenos_Aires'); // Cambia 'America/Asuncion' por tu zona horaria
+
+                // Obtener la fecha y hora actual en el formato deseado
+                $destino = Destino::find($validatedData['id_destino']);
+                RecorridoDoc::where('id_mentrada', $mesaEntrada->id)
+                    ->latest() // Obtiene el más reciente
+                    ->first()  // Toma el primer resultado
+                    ->update(['descripcion' => 'Recepcionado: ' . $destino->nombre]);
                 // Obtener los firmantes actuales
                 $currentFirmantes = MesaEntradaFirmante::where('id_mentrada', $mesaEntrada->id)
                     ->pluck('id_firmante')
@@ -830,7 +841,6 @@ class MesaEntradaController extends Controller
 
             return redirect()->route('mesaentrada.index')->with('success', 'Mesa de Entrada actualizada exitosamente.');
         } catch (Exception $e) {
-            dd($e);
             return redirect()->route('mesaentrada.index')->with('error', 'No se pudo completar la operación.');
         }
     }
@@ -1461,8 +1471,8 @@ class MesaEntradaController extends Controller
                                 <i class="fas fa-paper-plane"></i>
                             </button>
                         </form>';
-            }else if($row->modificar == 1){
-                $actions = $actions.'<a href="' . route('mesaentrada.edit', $row->id) . '" class="btn btn-sm btn-outline-secondary">
+            } else if ($row->modificar == 1) {
+                $actions = $actions . '<a href="' . route('mesaentrada.edit', $row->id) . '" class="btn btn-sm btn-outline-secondary">
                     <i class="fa fa-sm fa-fw fa-pen"></i>
                 </a>';
             }
