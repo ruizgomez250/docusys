@@ -82,7 +82,8 @@
                             <x-adminlte-select2 name="id_destino" label="Destino" fgroup-class="col-md-4" required>
                                 @foreach ($destinos as $destino)
                                     <option value="{{ $destino->id }}" {{ $destino->default == 1 ? 'selected' : '' }}>
-                                        {{ $destino->nombre }}</option>
+                                        {{ $destino->nombre }}
+                                    </option>
                                 @endforeach
                             </x-adminlte-select2>
                         </div>

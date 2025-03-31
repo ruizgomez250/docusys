@@ -12,7 +12,7 @@ class Destino extends Model
     protected $table = 'destinos';
 
     protected $fillable = [
-        'nombre','default',
+        'nombre','default','orden',
     ];
     public function destino()
     {

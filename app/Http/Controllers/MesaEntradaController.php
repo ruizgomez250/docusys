@@ -312,7 +312,7 @@ class MesaEntradaController extends Controller
 
         $origenes = $origenes = Origen::orderBy('indice')->orderBy('subindice')->get();
         $tiposdoc = TipoDoc::all();
-        $destinos = Destino::all();
+        $destinos = Destino::orderByRaw('CASE WHEN orden = 0 THEN 1 ELSE 0 END, orden')->get();
         $ultimos3 = MesaEntrada::orderBy('id', 'desc')->take(3)->get();
         return view('mesa_entrada.create', ['origenes' => $origenes, 'tiposDoc' => $tiposdoc, 'destinos' => $destinos, 'ultimos3' => $ultimos3]);
     }
