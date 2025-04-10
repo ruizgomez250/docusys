@@ -188,6 +188,7 @@ class ReporteController extends Controller
         $currentPage = $pdf->getPage(); // Guarda la página actual para controlarla
         $contador = 0;
         foreach ($documentosporfechas as $dato) {
+            $contador++;
             $origen = $dato->origen ? $dato->origen->nombre : 'N/A';
             $observacion = $dato->observacion ?: 'N/A';
             $fechaIngreso = \Carbon\Carbon::parse($dato->fecha_recepcion)->format('d/m/Y');
