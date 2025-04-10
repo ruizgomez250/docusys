@@ -194,29 +194,42 @@ class ReporteController extends Controller
             $nroMesaEntrada = $dato->nro_mentrada;
             $funcionario = $dato->user ? $dato->user->name : 'N/A';
 
-            // Imprimir cada fila
+            // Asegurar que se ha llamado a AddPage()
+            if ($pdf->getNumPages() == 0) {
+                $pdf->AddPage();
+            }
+
             // Definir anchos de columnas
             $wOrigen = 60;
             $wObs = 90;
             $wFecha = 30;
             $wNro = 30;
             $wFunc = 50;
-            $altoLinea = 8;
+            $altoLinea = 6;
 
-            // Guardar coordenadas iniciales
+            // Guardar posición inicial
             $x = $pdf->GetX();
             $y = $pdf->GetY();
 
-            // Calcular altura necesaria para la descripción
+            // Calcular número de líneas que va a ocupar la celda de observación
             $nbLines = $pdf->getNumLines(utf8_decode($observacion), $wObs);
             $h = $nbLines * $altoLinea;
 
-            // Dibujar las otras celdas con esa altura
+            // Celda: Institución de Origen
             $pdf->MultiCell($wOrigen, $h, utf8_decode($origen), 1, 'L', false, 0, $x, $y);
+
+            // Celda: Descripción (observación)
             $pdf->MultiCell($wObs, $h, utf8_decode($observacion), 1, 'L', false, 0, $x + $wOrigen, $y);
+
+            // Celda: Fecha Ingreso
             $pdf->MultiCell($wFecha, $h, $fechaIngreso, 1, 'C', false, 0, $x + $wOrigen + $wObs, $y);
+
+            // Celda: Nro M. Entrada
             $pdf->MultiCell($wNro, $h, $nroMesaEntrada, 1, 'C', false, 0, $x + $wOrigen + $wObs + $wFecha, $y);
+
+            // Celda: Funcionario
             $pdf->MultiCell($wFunc, $h, utf8_decode($funcionario), 1, 'L', false, 1, $x + $wOrigen + $wObs + $wFecha + $wNro, $y);
+
 
 
             // Si la página cambia, insertar la imagen nuevamente con opacidad
