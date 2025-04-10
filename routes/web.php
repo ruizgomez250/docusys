@@ -68,6 +68,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/mesaentradastoreaux', [MesaEntradaController::class, 'storeaux'])->name('mesaentradastoreaux');
     Route::post('/mesaentrada/{id}/autorizar-modif', [MesaEntradaController::class, 'autorizarModif'])->name('mesaentrada.autorizarmodif');
     Route::get('/generar-planilla', [MesaEntradaController::class, 'generarReporte'])->name('generar-planilla');
+    Route::get('/reportefechaspdf/{desde}/{hasta}/{idproducto?}/{tiporeporte}', [ReporteController::class, 'pdfreportes']);
 });
 Route::post('/verificar-duplicado', [MesaEntradaController::class, 'verificarDuplicado'])->name('verificar-duplicado');
 Route::get('/mesaentrada/firmantes/{id}', [MesaEntradaController::class, 'firmantes'])->name('mesaentrada.firmantes');

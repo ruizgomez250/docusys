@@ -308,8 +308,12 @@ return [
             'can'  => 'Firmante', // Permiso requerido
             'submenu'        => [
                 [
-                    'text' => 'Tipo Doc. por Mes.',
+                    'text' => 'Grafico General',
                     'url'  => '/reportes',
+                ],
+                [
+                    'text' => 'Reporte por Fechas',
+                    'url'  => '/reportes/create',
                 ],
             ],
         ],
