@@ -195,11 +195,29 @@ class ReporteController extends Controller
             $funcionario = $dato->user ? $dato->user->name : 'N/A';
 
             // Imprimir cada fila
-            $pdf->Cell(60, 8, utf8_decode($origen), 1, 0, 'L');
-            $pdf->Cell(90, 8, utf8_decode($observacion), 1, 0, 'L');
-            $pdf->Cell(30, 8, $fechaIngreso, 1, 0, 'C');
-            $pdf->Cell(30, 8, $nroMesaEntrada, 1, 0, 'C');
-            $pdf->Cell(50, 8, utf8_decode($funcionario), 1, 1, 'L');
+            // Definir anchos de columnas
+            $wOrigen = 60;
+            $wObs = 90;
+            $wFecha = 30;
+            $wNro = 30;
+            $wFunc = 50;
+            $altoLinea = 8;
+
+            // Guardar coordenadas iniciales
+            $x = $pdf->GetX();
+            $y = $pdf->GetY();
+
+            // Calcular altura necesaria para la descripción
+            $nbLines = $pdf->getNumLines(utf8_decode($observacion), $wObs);
+            $h = $nbLines * $altoLinea;
+
+            // Dibujar las otras celdas con esa altura
+            $pdf->MultiCell($wOrigen, $h, utf8_decode($origen), 1, 'L', false, 0, $x, $y);
+            $pdf->MultiCell($wObs, $h, utf8_decode($observacion), 1, 'L', false, 0, $x + $wOrigen, $y);
+            $pdf->MultiCell($wFecha, $h, $fechaIngreso, 1, 'C', false, 0, $x + $wOrigen + $wObs, $y);
+            $pdf->MultiCell($wNro, $h, $nroMesaEntrada, 1, 'C', false, 0, $x + $wOrigen + $wObs + $wFecha, $y);
+            $pdf->MultiCell($wFunc, $h, utf8_decode($funcionario), 1, 'L', false, 1, $x + $wOrigen + $wObs + $wFecha + $wNro, $y);
+
 
             // Si la página cambia, insertar la imagen nuevamente con opacidad
             if ($pdf->getPage() > $currentPage) {
