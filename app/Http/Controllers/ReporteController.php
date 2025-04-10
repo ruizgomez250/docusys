@@ -194,35 +194,12 @@ class ReporteController extends Controller
             $nroMesaEntrada = $dato->nro_mentrada;
             $funcionario = $dato->user ? $dato->user->name : 'N/A';
 
-            // Calcular la altura de la celda para mantener el resto alineado
-            // Guardar posición inicial
-            $x = $pdf->GetX();
-            $y = $pdf->GetY();
-
-            // Definir anchos y alto
-            $alto = 8;
-            $anchoOrigen = 60;
-            $anchoObs = 90;
-            $anchoFecha = 30;
-            $anchoNro = 30;
-            $anchoFunc = 50;
-
-            // Calcular altura de MultiCell de observación
-            $pdf->MultiCell($anchoObs, $alto, utf8_decode($observacion), 1, 'L', false, 0);
-
-            // Obtener nueva altura de línea luego del multicell
-            $lineBreakY = $pdf->GetY();
-
-            // Volver al inicio para agregar las demás celdas alineadas a esa altura
-            $pdf->SetXY($x, $y);
-            $pdf->Cell($anchoOrigen, $lineBreakY - $y, utf8_decode($origen), 1, 0, 'L');
-
-            // Ir al siguiente después de origen y observación
-            $pdf->SetXY($x + $anchoOrigen + $anchoObs, $y);
-            $pdf->Cell($anchoFecha, $lineBreakY - $y, $fechaIngreso, 1, 0, 'C');
-            $pdf->Cell($anchoNro, $lineBreakY - $y, $nroMesaEntrada, 1, 0, 'C');
-            $pdf->Cell($anchoFunc, $lineBreakY - $y, utf8_decode($funcionario), 1, 1, 'L');
-
+            // Imprimir cada fila
+            $pdf->Cell(60, 8, utf8_decode($origen), 1, 0, 'L');
+            $pdf->Cell(90, 8, utf8_decode($observacion), 1, 0, 'L');
+            $pdf->Cell(30, 8, $fechaIngreso, 1, 0, 'C');
+            $pdf->Cell(30, 8, $nroMesaEntrada, 1, 0, 'C');
+            $pdf->Cell(50, 8, utf8_decode($funcionario), 1, 1, 'L');
 
             // Si la página cambia, insertar la imagen nuevamente con opacidad
             if ($pdf->getPage() > $currentPage) {
