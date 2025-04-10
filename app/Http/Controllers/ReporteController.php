@@ -194,18 +194,31 @@ class ReporteController extends Controller
             $nroMesaEntrada = $dato->nro_mentrada;
             $funcionario = $dato->user ? $dato->user->name : 'N/A';
 
-            // Imprimir cada fila
-            $pdf->Cell(60, 8, utf8_decode($origen), 1, 0, 'L');
-            $pdf->Cell(90, 8, utf8_decode($observacion), 1, 0, 'L');
-            $pdf->Cell(30, 8, $fechaIngreso, 1, 0, 'C');
-            $pdf->Cell(30, 8, $nroMesaEntrada, 1, 0, 'C');
-            $pdf->Cell(50, 8, utf8_decode($funcionario), 1, 1, 'L');
+            // Calcular la altura de la celda para mantener el resto alineado
+            $lineHeight = 8; // altura base
+            $multiCellWidth = 90;
+
+            // Obtener la altura necesaria según el texto
+            $nbLines = $pdf->getNumLines(utf8_decode($observacion), $multiCellWidth);
+            $cellHeight = $nbLines * $lineHeight;
+
+            // Guardar posición actual
+            $x = $pdf->GetX();
+            $y = $pdf->GetY();
+
+            // Dibujar las celdas manualmente manteniendo alineación con el multicell
+            $pdf->MultiCell(60, $cellHeight, utf8_decode($origen), 1, 'L', false, 0);
+            $pdf->MultiCell($multiCellWidth, $cellHeight, utf8_decode($observacion), 1, 'L', false, 0);
+            $pdf->MultiCell(30, $cellHeight, $fechaIngreso, 1, 'C', false, 0);
+            $pdf->MultiCell(30, $cellHeight, $nroMesaEntrada, 1, 'C', false, 0);
+            $pdf->MultiCell(50, $cellHeight, utf8_decode($funcionario), 1, 'L', false, 1); // '1' fuerza salto de línea
+
 
             // Si la página cambia, insertar la imagen nuevamente con opacidad
             if ($pdf->getPage() > $currentPage) {
                 // Insertar marca de agua en la nueva página
                 $pdf->SetAlpha(0.3); // Establece la opacidad al 30%
-                $pdf->Image('vendor/adminlte/dist/img/icono camara.png', 20, 50, 150); // Ajusta la posición y tamaño de la imagen
+                $pdf->Image('vendor/adminlte/dist/img/icono camara.png', 100, 50, 100); // Ajusta la posición y tamaño de la imagen
                 $pdf->SetAlpha(1); // Restablece la opacidad al 100%
                 $currentPage = $pdf->getPage(); // Actualiza la página actual
             }
