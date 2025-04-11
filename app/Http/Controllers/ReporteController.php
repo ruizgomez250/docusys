@@ -123,9 +123,9 @@ class ReporteController extends Controller
             // Traer las mesas de entrada donde el 'indice' de 'origen' coincida con 'id_origen' en 'mesa_entrada'
             // y que también estén dentro del rango de fechas
             $documentosporfechas = MesaEntrada::join('origen', 'mesa_entrada.id_origen', '=', 'origen.id')
-                ->where('origen.indice', $origen->indice) // Comparar el indice
-                ->whereBetween('mesa_entrada.fecha_recepcion', [$fechadesde, $fechahasta]) // Rango de fechas
-                ->with(['user', 'origen', 'tipoDoc', 'destino']) // Relaciones si quieres usarlas
+                ->where('origen.indice', $origen->indice)
+                ->whereBetween('mesa_entrada.fecha_recepcion', [$fechadesde, $fechahasta])
+                ->with(['user', 'origen', 'tipoDoc', 'destino', 'firmantes']) // AÑADIDO firmantes
                 ->orderBy('mesa_entrada.fecha_recepcion', 'asc')
                 ->get();
         } else if ($tiporeporte == 2) {
@@ -180,27 +180,58 @@ class ReporteController extends Controller
         $pdf->Cell(90, 8, 'Descripcion', 1, 0, 'C');
         $pdf->Cell(30, 8, 'Fecha Ingreso', 1, 0, 'C');
         $pdf->Cell(30, 8, 'Nro M. Entrada', 1, 0, 'C');
-        $pdf->Cell(50, 8, 'Funcionario', 1, 1, 'C');
+        $pdf->Cell(70, 8, 'Firmantes', 1, 1, 'C');
 
         // Contenido de la tabla
-        $pdf->SetFont('Times', '', 12);
+        $pdf->SetFont('Times', '', 10);
 
         $currentPage = $pdf->getPage(); // Guarda la página actual para controlarla
         $contador = 0;
         foreach ($documentosporfechas as $dato) {
             $contador++;
             $origen = $dato->origen ? $dato->origen->nombre : 'N/A';
-            $observacion = $dato->observacion ?: 'N/A';
+            $observacion = utf8_decode(str_replace(["\r\n", "\r"], "\n", trim($dato->observacion)));
+            $observacion = trim($observacion);
+            $observacion = utf8_decode($observacion);
             $fechaIngreso = \Carbon\Carbon::parse($dato->fecha_recepcion)->format('d/m/Y');
             $nroMesaEntrada = $dato->nro_mentrada;
-            $funcionario = $dato->user ? $dato->user->name : 'N/A';
+            if ($dato->firmantes && $dato->firmantes->count()) {
+                $firmantes = $dato->firmantes->pluck('nombre')->toArray(); // Suponiendo que el campo sea 'nombre'
+                $funcionario = implode("\n", $firmantes); // Cada firmante en una nueva línea
+            } else {
+                $funcionario = 'N/A';
+            }
 
-            // Imprimir cada fila
-            $pdf->Cell(60, 8, utf8_decode($origen), 1, 0, 'L');
-            $pdf->Cell(90, 8, utf8_decode($observacion), 1, 0, 'L');
-            $pdf->Cell(30, 8, $fechaIngreso, 1, 0, 'C');
-            $pdf->Cell(30, 8, $nroMesaEntrada, 1, 0, 'C');
-            $pdf->Cell(50, 8, utf8_decode($funcionario), 1, 1, 'L');
+            $wOrigen = 60;
+            $wObs = 90;
+            $wFecha = 30;
+            $wNro = 30;
+            $wFunc = 70;
+
+            // Altura base de línea
+            $lineHeight = 6;
+
+            // Calcular cuántas líneas necesitará el MultiCell
+            $nbLines = $pdf->getNumLines($observacion, $wObs);
+            $maxHeight = $nbLines * $lineHeight;
+
+            $y = $pdf->GetY();
+            $x = $pdf->GetX();
+
+            // Origen
+            $pdf->MultiCell($wOrigen, $maxHeight, utf8_decode($origen), 1, 'L', false, 0, '', '', true, 0, false, true, $maxHeight, 'M');
+
+            // Observación
+            $pdf->MultiCell($wObs, $maxHeight, $observacion, 1, 'L', false, 0, '', '', true, 0, false, true, $maxHeight, 'T');
+
+            // Fecha Ingreso
+            $pdf->MultiCell($wFecha, $maxHeight, $fechaIngreso, 1, 'C', false, 0, '', '', true, 0, false, true, $maxHeight, 'M');
+
+            // Nro M. Entrada
+            $pdf->MultiCell($wNro, $maxHeight, $nroMesaEntrada, 1, 'C', false, 0, '', '', true, 0, false, true, $maxHeight, 'M');
+
+            // Funcionario
+            $pdf->MultiCell($wFunc, $maxHeight, utf8_decode($funcionario), 1, 'L', false, 1, '', '', true, 0, false, true, $maxHeight, 'M');
 
             // Si la página cambia, insertar la imagen nuevamente con opacidad
             if ($pdf->getPage() > $currentPage) {

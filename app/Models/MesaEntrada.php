@@ -51,7 +51,7 @@ class MesaEntrada extends Model
     {
         return $this->belongsTo(Origen::class, 'id_origen');
     }
-
+    
     /**
      * Get the tipo_doc record associated with the mesa_entrada.
      */
