@@ -35,6 +35,7 @@ class MesaEntrada extends Model
         'nro_suplementario',
         'modificar',
     ];
+    
 
     /**
      * Get the user that owns the mesa_entrada.
@@ -51,7 +52,7 @@ class MesaEntrada extends Model
     {
         return $this->belongsTo(Origen::class, 'id_origen');
     }
-    
+
     /**
      * Get the tipo_doc record associated with the mesa_entrada.
      */
@@ -79,5 +80,4 @@ class MesaEntrada extends Model
     {
         return $this->belongsToMany(Firmante::class, 'mesa_entrada_firmante', 'id_mentrada', 'id_firmante');
     }
-    
 }

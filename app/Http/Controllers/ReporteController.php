@@ -114,16 +114,15 @@ class ReporteController extends Controller
         if ($tiporeporte == 1) {
             $desdeC = \Carbon\Carbon::parse($fechadesde)->format('d/m/Y'); // Convierte la fecha de inicio al formato dd/mm/yyyy
             $hastaC = \Carbon\Carbon::parse($fechahasta)->format('d/m/Y'); // Convierte la fecha de fin al formato dd/mm/yyyy
+            $origenm = Origen::find($id);
+            $titulo = 'Reporte de Origen: '.$origenm->nombre.' - Desde ' . $desdeC . ' Hasta ' . $hastaC;
 
-            $titulo = 'Reporte por origen Desde ' . $desdeC . ' Hasta ' . $hastaC;
-            $origen = Origen::find($id);
-
-            $origen = Origen::find($id);
+            
 
             // Traer las mesas de entrada donde el 'indice' de 'origen' coincida con 'id_origen' en 'mesa_entrada'
             // y que también estén dentro del rango de fechas
             $documentosporfechas = MesaEntrada::join('origen', 'mesa_entrada.id_origen', '=', 'origen.id')
-                ->where('origen.indice', $origen->indice)
+                ->where('origen.indice', $origenm->indice)
                 ->whereBetween('mesa_entrada.fecha_recepcion', [$fechadesde, $fechahasta])
                 ->with(['user', 'origen', 'tipoDoc', 'destino', 'firmantes']) // AÑADIDO firmantes
                 ->orderBy('mesa_entrada.fecha_recepcion', 'asc')
@@ -189,37 +188,60 @@ class ReporteController extends Controller
         $contador = 0;
         foreach ($documentosporfechas as $dato) {
             $contador++;
+
             $origen = $dato->origen ? $dato->origen->nombre : 'N/A';
-            $observacion = utf8_decode(str_replace(["\r\n", "\r"], "\n", trim($dato->observacion)));
-            $observacion = trim($observacion);
-            $observacion = utf8_decode($observacion);
             $fechaIngreso = \Carbon\Carbon::parse($dato->fecha_recepcion)->format('d/m/Y');
             $nroMesaEntrada = $dato->nro_mentrada;
+            // dd($dato->observacion);
+
             if ($dato->firmantes && $dato->firmantes->count()) {
-                $firmantes = $dato->firmantes->pluck('nombre')->toArray(); // Suponiendo que el campo sea 'nombre'
-                $funcionario = implode("\n", $firmantes); // Cada firmante en una nueva línea
+                $firmantes = $dato->firmantes->pluck('nombre')->toArray();
+                $funcionario = implode(" / ", $firmantes); // Ahora en una línea
             } else {
                 $funcionario = 'N/A';
             }
 
+            // Anchos de columnas
             $wOrigen = 60;
             $wObs = 90;
             $wFecha = 30;
             $wNro = 30;
             $wFunc = 70;
 
-            // Altura base de línea
+            // Altura estándar por fila
             $lineHeight = 6;
 
-            // Calcular cuántas líneas necesitará el MultiCell
-            $nbLines = $pdf->getNumLines($observacion, $wObs);
+            // Validaciones y sanitización
+            $wObs = max($wObs ?? 90, 10); // Asegura un ancho válido
+            $observacion = $dato->observacion ?? '';
+
+            $observacion = trim($observacion);
+
+            $observacion = $observacion !== '' ? $observacion : 'Sin observación';
+            $observacion = utf8_decode($observacion);
+            $observacion = preg_replace('/[[:^print:]]/', '', $observacion);
+            $observacion = str_replace(["\r\n", "\r"], "\n", $observacion); // solo \n
+            $observacion = preg_replace('/(\S{60})/', '$1 ', $observacion);
+
+
+
+
+            // Línea segura para evitar el error de índice
+            $lineas = $pdf->getNumLines($observacion, $wObs);
+
+            // Si devuelve un valor no válido, forzamos 1
+            if (!is_numeric($lineas) || $lineas < 1) {
+                $lineas = 100;
+            }
+
+            $nbLines = $lineas;
+
             $maxHeight = $nbLines * $lineHeight;
 
             $y = $pdf->GetY();
             $x = $pdf->GetX();
-
             // Origen
-            $pdf->MultiCell($wOrigen, $maxHeight, utf8_decode($origen), 1, 'L', false, 0, '', '', true, 0, false, true, $maxHeight, 'M');
+            $pdf->MultiCell($wOrigen, $maxHeight, $origen, 1, 'L', false, 0, '', '', true, 0, false, true, $maxHeight, 'M');
 
             // Observación
             $pdf->MultiCell($wObs, $maxHeight, $observacion, 1, 'L', false, 0, '', '', true, 0, false, true, $maxHeight, 'T');
@@ -233,6 +255,7 @@ class ReporteController extends Controller
             // Funcionario
             $pdf->MultiCell($wFunc, $maxHeight, utf8_decode($funcionario), 1, 'L', false, 1, '', '', true, 0, false, true, $maxHeight, 'M');
 
+
             // Si la página cambia, insertar la imagen nuevamente con opacidad
             if ($pdf->getPage() > $currentPage) {
                 // Insertar marca de agua en la nueva página
@@ -243,7 +266,7 @@ class ReporteController extends Controller
             }
         }
         $pdf->SetFont('Times', 'B', 12);
-        $pdf->Cell(210, 10, 'Total de Documentos: ' . $contador, 1, 0, 'R');
+        $pdf->Cell(210, 10, 'TOTAL DOCUMENTOS '.$origenm->nombre.': '. $contador, 1, 0, 'R');
         // Salida del PDF
         $pdf->Output('reporte_por_fechas.pdf', 'I');
     }
