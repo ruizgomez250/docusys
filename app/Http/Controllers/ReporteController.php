@@ -250,7 +250,7 @@ class ReporteController extends Controller
             $pdf->MultiCell($wObs, $maxHeight, $observacion, 1, 'L', false, 0, '', '', true, 0, false, true, $maxHeight, 'T');
             $pdf->MultiCell($wFecha, $maxHeight, $fechaIngreso, 1, 'C', false, 0, '', '', true, 0, false, true, $maxHeight, 'M');
             $pdf->MultiCell($wNro, $maxHeight, $nroMesaEntrada, 1, 'C', false, 0, '', '', true, 0, false, true, $maxHeight, 'M');
-            $pdf->MultiCell($wFunc, $maxHeight, utf8_decode($funcionario), 1, 'L', false, 1, '', '', true, 0, false, true, $maxHeight, 'M');
+            $pdf->MultiCell($wFunc, $maxHeight, $funcionario, 1, 'L', false, 1, '', '', true, 0, false, true, $maxHeight, 'M');
         }
 
         $pdf->SetFont('Times', 'B', 12);
