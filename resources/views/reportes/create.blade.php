@@ -3,7 +3,7 @@
 
 
 @section('content_header')
-    <h1 class="m-0 custom-heading">Generar Reportes por Fechas</h1>
+    <h1 class="m-0 custom-heading">GENERAR REPORTES POR FECHAS</h1>
 @stop
 @section('css')
     <link rel="stylesheet" href="{{ asset('vendor/jquery-ui-1.13.2/jquery-ui.min.css') }}">
@@ -78,7 +78,7 @@
                                 <option value={{ $item->id }}>{{ $item->nombre }}</option>
                             @endforeach
                         </x-adminlte-select2>
-                        <x-adminlte-button class="btn" style="float: right;" label="Generar" theme="secondary" onclick="generarPDFsinuser()"
+                        <x-adminlte-button class="btn" style="float: right;" label="Generar" theme="secondary" onclick="generarPDFtipodoc()"
                              />
 
 
@@ -92,16 +92,16 @@
                         @endphp
                         <div class="form-group">
                             <label for="fechaemision">FECHA DESDE</label>
-                            <input type="date" class="form-control" id="desde2" name="fechaemision"
+                            <input type="date" class="form-control" id="desde3" name="fechaemision"
                                 value="{{ date('Y-m-d') }}" required>
                         </div>
                         <div class="form-group">
                             <label for="fechaemision">FECHA HASTA</label>
-                            <input type="date" class="form-control" id="hasta2" name="fechaemision"
+                            <input type="date" class="form-control" id="hasta3" name="fechaemision"
                                 value="{{ date('Y-m-d') }}" required>
                         </div>
                         
-                        <x-adminlte-button class="btn" style="float: right;" label="Generar" theme="secondary" onclick="generarPDFsinuser()"
+                        <x-adminlte-button class="btn" style="float: right;" label="Generar" theme="secondary" onclick="generarPDFtodos()"
                              />
 
 
@@ -130,11 +130,24 @@
             var url = `/docusys/public/reportefechaspdf/${desde}/${hasta}/${idorigen}/1`;
             window.open(url, '_blank');
         }
-        function generarPDFsinuser() {
+        function generarPDFtipodoc() {
             var desde = document.getElementById('desde2').value;
             var hasta = document.getElementById('hasta2').value;
+        
+        
+            var idorigen = document.getElementById('idtipodoc').value;
 
-            var url = `/controlventa/public/gananciareportepdf/${desde}/${hasta}`;
+            var url = `/docusys/public/reportefechaspdf/${desde}/${hasta}/${idorigen}/2`;
+            window.open(url, '_blank');
+        }
+        function generarPDFtodos() {
+            var desde = document.getElementById('desde3').value;
+            var hasta = document.getElementById('hasta3').value;
+        
+        
+            var idorigen = document.getElementById('idtipodoc').value;
+
+            var url = `/docusys/public/reportefechaspdf/${desde}/${hasta}/${idorigen}/3`;
             window.open(url, '_blank');
         }
     </script>

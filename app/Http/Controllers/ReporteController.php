@@ -109,14 +109,16 @@ class ReporteController extends Controller
     }
     public function pdfreportes($fechadesde, $fechahasta, $id = null, $tiporeporte)
     {
+        $desdeC = \Carbon\Carbon::parse($fechadesde)->format('d/m/Y'); // Convierte la fecha de inicio al formato dd/mm/yyyy
+        $hastaC = \Carbon\Carbon::parse($fechahasta)->format('d/m/Y'); // Convierte la fecha de fin al formato dd/mm/yyyy
         $documentosporfechas = '';
         $titulo = '';
+        $texttotal='';
         if ($tiporeporte == 1) {
-            $desdeC = \Carbon\Carbon::parse($fechadesde)->format('d/m/Y'); // Convierte la fecha de inicio al formato dd/mm/yyyy
-            $hastaC = \Carbon\Carbon::parse($fechahasta)->format('d/m/Y'); // Convierte la fecha de fin al formato dd/mm/yyyy
+
             $origenm = Origen::find($id);
             $titulo = 'Reporte de Origen: ' . $origenm->nombre . ' - Desde ' . $desdeC . ' Hasta ' . $hastaC;
-
+            $texttotal = mb_strtoupper($origenm->nombre);
 
 
             // Traer las mesas de entrada donde el 'indice' de 'origen' coincida con 'id_origen' en 'mesa_entrada'
@@ -128,15 +130,22 @@ class ReporteController extends Controller
                 ->orderBy('mesa_entrada.fecha_recepcion', 'asc')
                 ->get();
         } else if ($tiporeporte == 2) {
-            $documentosporfechas = MesaEntrada::where('tipoDoc', $id)
-                ->whereBetween('fecha_recepcion', [$fechadesde, $fechahasta])
-                ->with(['user', 'origen', 'tipoDoc', 'destino']) // relaciones si querés usarlas en la vista
-                ->orderBy('fecha_recepcion', 'asc')
+            $tipod = TipoDoc::find($id);
+            $texttotal = mb_strtoupper($tipod->nombre);
+            $titulo = 'Reporte Tipo Documento: ' . $tipod->nombre . ' - Desde ' . $desdeC . ' Hasta ' . $hastaC;
+            $documentosporfechas = MesaEntrada::join('origen', 'mesa_entrada.id_origen', '=', 'origen.id')
+                ->where('mesa_entrada.id_tipo_doc', $tipod->id)
+                ->whereBetween('mesa_entrada.fecha_recepcion', [$fechadesde, $fechahasta])
+                ->with(['user', 'origen', 'tipoDoc', 'destino', 'firmantes']) // AÑADIDO firmantes
+                ->orderBy('mesa_entrada.fecha_recepcion', 'asc')
                 ->get();
         } else {
-            $documentosporfechas = MesaEntrada::whereBetween('fecha_recepcion', [$fechadesde, $fechahasta])
-                ->with(['user', 'origen', 'tipoDoc', 'destino']) // relaciones si querés usarlas en la vista
-                ->orderBy('fecha_recepcion', 'asc')
+            $texttotal = ' TODOS LOS DOCUMENTOS ';
+            $titulo = 'Reporte Todos los Documentos - Desde ' . $desdeC . ' Hasta ' . $hastaC;
+            $documentosporfechas = MesaEntrada::join('origen', 'mesa_entrada.id_origen', '=', 'origen.id')
+                ->whereBetween('mesa_entrada.fecha_recepcion', [$fechadesde, $fechahasta])
+                ->with(['user', 'origen', 'tipoDoc', 'destino', 'firmantes']) // AÑADIDO firmantes
+                ->orderBy('mesa_entrada.fecha_recepcion', 'asc')
                 ->get();
         }
         $agrupados = $documentosporfechas->groupBy(function ($item) {
@@ -254,7 +263,7 @@ class ReporteController extends Controller
         }
 
         $pdf->SetFont('Times', 'B', 12);
-        $pdf->Cell(210, 10, 'TOTAL DOCUMENTOS ' . $origenm->nombre . ': ' . $contador, 1, 0, 'R');
+        $pdf->Cell(210, 10, 'TOTAL DOCUMENTOS ' . $texttotal . ': ' . $contador, 1, 0, 'R');
         // Salida del PDF
         $pdf->Output('reporte_por_fechas.pdf', 'I');
     }
