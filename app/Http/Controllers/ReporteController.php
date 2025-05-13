@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\MesaEntrada;
+use App\Models\MesaEntradaFirmante;
 use App\Models\Origen;
 use App\Models\TipoDoc;
 use Illuminate\Http\Request;
@@ -113,7 +114,7 @@ class ReporteController extends Controller
         $hastaC = \Carbon\Carbon::parse($fechahasta)->format('d/m/Y'); // Convierte la fecha de fin al formato dd/mm/yyyy
         $documentosporfechas = '';
         $titulo = '';
-        $texttotal='';
+        $texttotal = '';
         if ($tiporeporte == 1) {
 
             $origenm = Origen::find($id);
@@ -123,28 +124,31 @@ class ReporteController extends Controller
 
             // Traer las mesas de entrada donde el 'indice' de 'origen' coincida con 'id_origen' en 'mesa_entrada'
             // y que también estén dentro del rango de fechas
-            $documentosporfechas = MesaEntrada::join('origen', 'mesa_entrada.id_origen', '=', 'origen.id')
+            $documentosporfechas = MesaEntrada::select('mesa_entrada.*', 'origen.nombre AS origen_nombre')
+                ->join('origen', 'mesa_entrada.id_origen', '=', 'origen.id')
                 ->where('origen.indice', $origenm->indice)
                 ->whereBetween('mesa_entrada.fecha_recepcion', [$fechadesde, $fechahasta])
-                ->with(['user', 'origen', 'tipoDoc', 'destino', 'firmantes']) // AÑADIDO firmantes
+                ->with(['user', 'origen', 'tipoDoc', 'destino', 'firmantes'])
                 ->orderBy('mesa_entrada.fecha_recepcion', 'asc')
                 ->get();
         } else if ($tiporeporte == 2) {
             $tipod = TipoDoc::find($id);
             $texttotal = mb_strtoupper($tipod->nombre);
             $titulo = 'Reporte Tipo Documento: ' . $tipod->nombre . ' - Desde ' . $desdeC . ' Hasta ' . $hastaC;
-            $documentosporfechas = MesaEntrada::join('origen', 'mesa_entrada.id_origen', '=', 'origen.id')
+            $documentosporfechas = MesaEntrada::select('mesa_entrada.*', 'origen.nombre AS origen_nombre')
+                ->join('origen', 'mesa_entrada.id_origen', '=', 'origen.id')
                 ->where('mesa_entrada.id_tipo_doc', $tipod->id)
                 ->whereBetween('mesa_entrada.fecha_recepcion', [$fechadesde, $fechahasta])
-                ->with(['user', 'origen', 'tipoDoc', 'destino', 'firmantes']) // AÑADIDO firmantes
+                ->with(['user', 'origen', 'tipoDoc', 'destino', 'firmantes'])
                 ->orderBy('mesa_entrada.fecha_recepcion', 'asc')
                 ->get();
         } else {
             $texttotal = ' TODOS LOS DOCUMENTOS ';
             $titulo = 'Reporte Todos los Documentos - Desde ' . $desdeC . ' Hasta ' . $hastaC;
-            $documentosporfechas = MesaEntrada::join('origen', 'mesa_entrada.id_origen', '=', 'origen.id')
+            $documentosporfechas = MesaEntrada::select('mesa_entrada.*', 'origen.nombre AS origen_nombre')
+                ->join('origen', 'mesa_entrada.id_origen', '=', 'origen.id')
                 ->whereBetween('mesa_entrada.fecha_recepcion', [$fechadesde, $fechahasta])
-                ->with(['user', 'origen', 'tipoDoc', 'destino', 'firmantes']) // AÑADIDO firmantes
+                ->with(['user', 'origen', 'tipoDoc', 'destino', 'firmantes'])
                 ->orderBy('mesa_entrada.fecha_recepcion', 'asc')
                 ->get();
         }
@@ -196,19 +200,15 @@ class ReporteController extends Controller
         $contador = 0;
 
         foreach ($documentosporfechas as $dato) {
+            
             $contador++;
 
             $origen = $dato->origen ? $dato->origen->nombre : 'N/A';
             $fechaIngreso = \Carbon\Carbon::parse($dato->fecha_recepcion)->format('d/m/Y');
             $nroMesaEntrada = $dato->nro_mentrada;
 
-            if ($dato->firmantes && $dato->firmantes->count()) {
-                $firmantes = $dato->firmantes->pluck('nombre')->toArray();
-                $funcionario = implode(" / ", $firmantes);
-            } else {
-                $funcionario = 'N/A';
-            }
-
+            $funcionario = (new MesaEntradaFirmante)->obtenerFirmantesPorMesaEntrada($dato->id);
+            
             // Anchos de columnas
             $wOrigen = 60;
             $wObs = 90;

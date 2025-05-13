@@ -17,8 +17,7 @@ class MesaEntradaFirmante extends Model
         'id_firmante',
     ];
 
-    // Definir las relaciones (asumiendo que existen modelos para 'MesaEntrada' y 'Firmante')
-    
+    // Definir las relaciones con MesaEntrada y Firmante
     public function mesaEntrada()
     {
         return $this->belongsTo(MesaEntrada::class, 'id_mentrada');
@@ -27,5 +26,24 @@ class MesaEntradaFirmante extends Model
     public function firmante()
     {
         return $this->belongsTo(Firmante::class, 'id_firmante');
+    }
+
+    /**
+     * Obtener los nombres de los firmantes asociados a una mesa de entrada y concatenarlos con comas.
+     *
+     * @param int $idMesaEntrada
+     * @return string
+     */
+    public static function obtenerFirmantesPorMesaEntrada($idMesaEntrada)
+    {
+        // Obtener los firmantes asociados a esa mesa de entrada
+        $firmantes = self::where('id_mentrada', $idMesaEntrada)
+            ->with('firmante')
+            ->get()
+            ->pluck('firmante.nombre')
+            ->filter(); // Filtramos posibles valores nulos
+
+        // Unir los nombres en una sola cadena, separados por comas
+        return $firmantes->implode(', ');
     }
 }
