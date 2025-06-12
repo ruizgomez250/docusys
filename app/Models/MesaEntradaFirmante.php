@@ -45,5 +45,5 @@ class MesaEntradaFirmante extends Model
 
         // Unir los nombres en una sola cadena, separados por comas
         return $firmantes->implode(', ');
-    }
+    }                
 }

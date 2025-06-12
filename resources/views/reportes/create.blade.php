@@ -106,6 +106,29 @@
 
 
                     </div>
+                    <hr>
+
+                    <div class="row">
+                        {{-- With Label --}}
+                        @php
+                            $config1 = ['format' => 'DD-MM-YYYY'];
+                        @endphp
+                        <div class="form-group">
+                            <label for="fechaemision">FECHA DESDE</label>
+                            <input type="date" class="form-control" id="desde4" name="fechaemision"
+                                value="{{ date('Y-m-d') }}" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="fechaemision">FECHA HASTA</label>
+                            <input type="date" class="form-control" id="hasta4" name="fechaemision"
+                                value="{{ date('Y-m-d') }}" required>
+                        </div>
+                        
+                        <x-adminlte-button class="btn" style="float: right;" label="Generar resumen" theme="secondary" onclick="generarPDFtodosresumen()"
+                             />
+
+
+                    </div>
                     <!-- Agrega este elemento para mostrar la suma total -->
 
                     
@@ -148,6 +171,16 @@
             var idorigen = document.getElementById('idtipodoc').value;
 
             var url = `/docusys/public/reportefechaspdf/${desde}/${hasta}/${idorigen}/3`;
+            window.open(url, '_blank');
+        }
+        function generarPDFtodosresumen() {
+            var desde = document.getElementById('desde4').value;
+            var hasta = document.getElementById('hasta4').value;
+        
+        
+            var idorigen = document.getElementById('idtipodoc').value;
+
+            var url = `/docusys/public/reportefechaspdfresumen/${desde}/${hasta}`;
             window.open(url, '_blank');
         }
     </script>

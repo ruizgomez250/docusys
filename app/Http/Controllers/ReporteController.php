@@ -112,58 +112,24 @@ class ReporteController extends Controller
     {
         $desdeC = \Carbon\Carbon::parse($fechadesde)->format('d/m/Y'); // Convierte la fecha de inicio al formato dd/mm/yyyy
         $hastaC = \Carbon\Carbon::parse($fechahasta)->format('d/m/Y'); // Convierte la fecha de fin al formato dd/mm/yyyy
-        $documentosporfechas = '';
-        $titulo = '';
-        $texttotal = '';
-        if ($tiporeporte == 1) {
+        $documentosporfechas = MesaEntrada::select(
+            'mesa_entrada.id_tipo_doc',
+            'tipo_docs.nombre',
+            DB::raw('COUNT(*) as total_por_tipo')
+        )
+            ->join('tipo_docs', 'tipo_docs.id', '=', 'mesa_entrada.id_tipo_doc')
+            ->whereBetween('mesa_entrada.fecha_recepcion', [$desdeC, $hastaC])
+            ->groupBy('mesa_entrada.id_tipo_doc', 'tipo_docs.nombre')
+            ->get();
 
-            $origenm = Origen::find($id);
-            $titulo = 'Reporte de Origen: ' . $origenm->nombre . ' - Desde ' . $desdeC . ' Hasta ' . $hastaC;
-            $texttotal = mb_strtoupper($origenm->nombre);
+
+        $titulo = 'Reporte:  - Desde ' . $desdeC . ' Hasta ' . $hastaC;
+        $texttotal = 'Documentos Ingresados';
 
 
-            // Traer las mesas de entrada donde el 'indice' de 'origen' coincida con 'id_origen' en 'mesa_entrada'
-            // y que también estén dentro del rango de fechas
-            $documentosporfechas = MesaEntrada::select('mesa_entrada.*', 'origen.nombre AS origen_nombre')
-                ->join('origen', 'mesa_entrada.id_origen', '=', 'origen.id')
-                ->where('origen.indice', $origenm->indice)
-                ->whereBetween('mesa_entrada.fecha_recepcion', [$fechadesde, $fechahasta])
-                ->with(['user', 'origen', 'tipoDoc', 'destino', 'firmantes'])
-                ->orderBy('mesa_entrada.fecha_recepcion', 'asc')
-                ->get();
-        } else if ($tiporeporte == 2) {
-            $tipod = TipoDoc::find($id);
-            $texttotal = mb_strtoupper($tipod->nombre);
-            $titulo = 'Reporte Tipo Documento: ' . $tipod->nombre . ' - Desde ' . $desdeC . ' Hasta ' . $hastaC;
-            $documentosporfechas = MesaEntrada::select('mesa_entrada.*', 'origen.nombre AS origen_nombre')
-                ->join('origen', 'mesa_entrada.id_origen', '=', 'origen.id')
-                ->where('mesa_entrada.id_tipo_doc', $tipod->id)
-                ->whereBetween('mesa_entrada.fecha_recepcion', [$fechadesde, $fechahasta])
-                ->with(['user', 'origen', 'tipoDoc', 'destino', 'firmantes'])
-                ->orderBy('mesa_entrada.fecha_recepcion', 'asc')
-                ->get();
-        } else {
-            $texttotal = ' TODOS LOS DOCUMENTOS ';
-            $titulo = 'Reporte Todos los Documentos - Desde ' . $desdeC . ' Hasta ' . $hastaC;
-            $documentosporfechas = MesaEntrada::select('mesa_entrada.*', 'origen.nombre AS origen_nombre')
-                ->join('origen', 'mesa_entrada.id_origen', '=', 'origen.id')
-                ->whereBetween('mesa_entrada.fecha_recepcion', [$fechadesde, $fechahasta])
-                ->with(['user', 'origen', 'tipoDoc', 'destino', 'firmantes'])
-                ->orderBy('mesa_entrada.fecha_recepcion', 'asc')
-                ->get();
-        }
-        $agrupados = $documentosporfechas->groupBy(function ($item) {
-            return $item->id_tipo_doc . '-' . $item->id_origen;
-        });
-        $tablaDatos = [];
-        foreach ($agrupados as $key => $grupo) {
-            $primero = $grupo->first();
-            $tablaDatos[] = [
-                'origen' => $primero->origen->nombre ?? 'Sin origen',
-                'tipo_doc' => $primero->tipoDoc->nombre ?? 'Sin tipo',
-                'cantidad' => $grupo->count(),
-            ];
-        }
+
+
+
 
 
 
@@ -200,7 +166,7 @@ class ReporteController extends Controller
         $contador = 0;
 
         foreach ($documentosporfechas as $dato) {
-            
+
             $contador++;
 
             $origen = $dato->origen ? $dato->origen->nombre : 'N/A';
@@ -208,7 +174,7 @@ class ReporteController extends Controller
             $nroMesaEntrada = $dato->nro_mentrada;
 
             $funcionario = (new MesaEntradaFirmante)->obtenerFirmantesPorMesaEntrada($dato->id);
-            
+
             // Anchos de columnas
             $wOrigen = 60;
             $wObs = 90;
@@ -266,5 +232,88 @@ class ReporteController extends Controller
         $pdf->Cell(210, 10, 'TOTAL DOCUMENTOS ' . $texttotal . ': ' . $contador, 1, 0, 'R');
         // Salida del PDF
         $pdf->Output('reporte_por_fechas.pdf', 'I');
+    }
+    public function pdfreportesresumen($fechadesde, $fechahasta)
+    {
+        // Usar formato Y-m-d que es compatible con Eloquent y MySQL
+        $desde = \Carbon\Carbon::parse($fechadesde)->format('Y-m-d');
+        $hasta = \Carbon\Carbon::parse($fechahasta)->format('Y-m-d');
+
+        $titulo = "Resumen de Documentos del $fechadesde al $fechahasta";
+        $texttotal = "del $fechadesde al $fechahasta";
+
+        $documentosporfechas = MesaEntrada::select(
+            'mesa_entrada.id_tipo_doc',
+            'tipo_docs.nombre',
+            DB::raw('COUNT(*) as total_por_tipo')
+        )
+            ->join('tipo_docs', 'tipo_docs.id', '=', 'mesa_entrada.id_tipo_doc')
+            ->whereBetween('mesa_entrada.fecha_recepcion', [$desde, $hasta])
+            ->groupBy('mesa_entrada.id_tipo_doc', 'tipo_docs.nombre')
+            ->get();
+
+        $pdf = new \TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
+        $pdf->SetPrintHeader(false);
+        $pdf->SetFont('Times', 'IU', 12);
+        $pdf->AddPage();
+        $pdf->SetLeftMargin(12);
+        $pdf->Ln(10);
+        $pdf->SetFont('Times', 'I', 12);
+        $pdf->Cell(0, 10, 'Honorable Cámara de Diputados - Sistema de Trazabilidad Documental', 0, 1, 'C');
+
+        $pdf->SetFont('Times', 'B', 10);
+        $pdf->Cell(0, 10, $titulo, 0, 1, 'C');
+
+        $pdf->SetAlpha(0.3);
+        $pdf->Image('vendor/adminlte/dist/img/icono camara.png', 50, 50, 100);
+        $pdf->SetAlpha(1);
+
+        // Cabecera de la tabla
+        $pdf->SetFont('Times', 'B', 10);
+        $pdf->Cell(30, 8, 'Código', 1, 0, 'C');
+        $pdf->Cell(100, 8, 'Tipo de Documento', 1, 0, 'C');
+        $pdf->Cell(30, 8, 'Cantidad', 1, 1, 'C');
+
+        $pdf->SetFont('Times', '', 10);
+        $contador = 0;
+        $lineHeight = 10; // altura fija para cada fila
+
+        foreach ($documentosporfechas as $dato) {
+            $currentY = $pdf->GetY();
+            $pageHeight = $pdf->getPageHeight();
+            $bottomMargin = $pdf->getBreakMargin();
+            $availableHeight = $pageHeight - $currentY - $bottomMargin;
+
+            if ($lineHeight > $availableHeight) {
+                $pdf->AddPage();
+                $pdf->SetLeftMargin(12);
+                $pdf->Ln(10);
+                $pdf->SetFont('Times', 'I', 12);
+                $pdf->Cell(0, 10, 'Honorable Cámara de Diputados - Sistema de Trazabilidad Documental', 0, 1, 'C');
+                $pdf->SetFont('Times', 'B', 10);
+                $pdf->Cell(0, 10, $titulo, 0, 1, 'C');
+                $pdf->SetAlpha(0.3);
+                $pdf->Image('vendor/adminlte/dist/img/icono camara.png', 50, 50, 100);
+                $pdf->SetAlpha(1);
+
+                // Redibujar cabecera de la tabla
+                $pdf->SetFont('Times', 'B', 10);
+                $pdf->Cell(30, 8, 'Código', 1, 0, 'C');
+                $pdf->Cell(190, 8, 'Tipo de Documento', 1, 0, 'C');
+                $pdf->Cell(30, 8, 'Cantidad', 1, 1, 'C');
+                $pdf->SetFont('Times', '', 10);
+            }
+
+            $pdf->Cell(30, $lineHeight, $dato->id_tipo_doc, 1, 0, 'C');
+            $pdf->Cell(100, $lineHeight, $dato->nombre, 1, 0, 'L');
+            $pdf->Cell(30, $lineHeight, $dato->total_por_tipo, 1, 1, 'C');
+
+            $contador += $dato->total_por_tipo;
+        }
+
+        $pdf->SetFont('Times', 'B', 12);
+        $pdf->Cell(250, 10, 'TOTAL DOCUMENTOS' . $contador, 1, 1, 'R');
+
+        return $pdf->Output('reporte_por_fechas.pdf', 'I');
     }
 }
