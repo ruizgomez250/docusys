@@ -312,7 +312,7 @@ class ReporteController extends Controller
         }
 
         $pdf->SetFont('Times', 'B', 12);
-        $pdf->Cell(130, 10, 'TOTAL DOCUMENTOS' . $contador, 1, 1, 'R');
+        $pdf->Cell(160, 10, 'TOTAL DOCUMENTOS' . $contador, 1, 1, 'R');
 
         return $pdf->Output('reporte_por_fechas.pdf', 'I');
     }
