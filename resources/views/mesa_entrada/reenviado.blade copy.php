@@ -67,47 +67,151 @@
                     <table id="table1" class="table table-bordered table-hover" theme="light">
                         <thead>
                             <tr>
+
+                                <th></th> <!-- Columna para el botón de expansión -->
                                 <th>Nro MEntrada</th>
                                 <th>Año</th>
-                                <th>Fecha Del Documento</th>
+                                <th>Fecha Recepción</th>
                                 <th>Origen</th>
                                 <th>Tipo Doc</th>
                                 <th>Firmantes</th>
-                                <th>Destino</th>
                                 <th>Observación</th>
                                 <th>Estado</th>
                                 <th>Usuario</th>
                                 <th>Acciones</th>
+                                <th>Ult. Act.</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <!-- DataTables llenará esta sección -->
+                            @foreach ($mesasEntrada as $row)
+                                <tr data-child-id="{{ $row->id }}">
+                                    <td class="details-control text-center">
+                                        <i class="fa fa-plus-circle text-primary"></i> <!-- Ícono de expansión -->
+                                    </td>
+                                    <td>
+                                        {{ $row->nro_mentrada }}
+                                        @if ($row->nro_suplementario !== null)
+                                            .{{ $row->nro_suplementario }}
+                                        @endif
+                                    </td>
+                                    <td>{{ $row->anho }}</td>
+                                    <td>{{ $row->fecha_recepcion }}</td>
+                                    <td>{{ $row->origen->nombre ?? 'N/A' }}</td>
+                                    <td>{{ $row->tipoDoc->nombre ?? 'N/A' }}</td>
+                                    <td>{{ $row->nombres_firmantes ?? 'N/A' }}</td>
+                                    <td>{{ $row->observacion }}</td>
+                                    <td class="{{ $row->estado_recorrido == '2' ? 'text-danger' : 'text-success' }}">
+                                        @if ($row->estado_recorrido == '2')
+                                            Enviado
+                                        @elseif ($row->estado_recorrido == '0')
+                                            Aceptado
+                                        @elseif ($row->estado_recorrido == '4')
+                                            Redireccionado
+                                        @elseif ($row->estado == '0')
+                                            Trámite Finalizado
+                                        @endif
+
+                                    </td>
+                                    <td>{{ $row->user->name ?? 'N/A' }}</td>
+                                    <td>
+                                        <a href="{{ route('reporte.recorrido', $row) }}" target="_blank"
+                                            class="btn btn-sm btn-outline-secondary">
+                                            <i class="fa fa-file-pdf"></i>
+                                        </a>
+
+                                        @if ($row->tiene_documentos)
+                                            <button type="button" class="btn btn-sm btn-outline-secondary"
+                                                onclick="openDocumentosModal({{ $row->id }})">
+                                                <i class="fa fa-sm fa-fw fa-print"></i>
+                                            </button>
+                                        @endif
+                                        @if ($row->estado_recorrido > 0)
+                                            <x-adminlte-button theme="outline-danger" data-toggle="modal"
+                                                data-target="#modalDestinos" class="btn-sm " icon="fas fa-paper-plane"
+                                                onclick="cargarmentrada({{ $row->id }})" />
+                                        @endif
+                                        @if ($usuario->autorizar_modif == 1 && $row->modificar == 0)
+                                            <form action="{{ route('mesaentrada.autorizarmodif', $row->id) }}"
+                                                method="post" class="d-inline enviar-form">
+                                                @csrf
+                                                <button type="button"
+                                                    class="btn btn-sm  btn-outline-secondary enviar-button">
+                                                    <i class="fas fa-unlock"></i>
+                                                </button>
+                                            </form>
+                                        @endif
+                                    </td>
+                                    <td>{{ $row->fecha_creacion_recorrido }}</td>
+                                </tr>
+                            @endforeach
+
+
                         </tbody>
                     </table>
-                </div>
-            </div>
-        </div>
-        <!-- Modal -->
-        <div class="modal fade" id="documentosModal" tabindex="-1" role="dialog" aria-labelledby="documentosModalLabel"
-            aria-hidden="true">
-            <div class="modal-dialog" role="document">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="documentosModalLabel">Documentos</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-                    <div class="modal-body">
-                        <ul id="documentosList"></ul>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
-                    </div>
+
                 </div>
             </div>
         </div>
     </div>
+    <!--Modal-->
+    <div class="modal fade" id="modalDestinos">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">Fijar nuevo destino</h4>
+                </div>
+                <div class="modal-body d-flex justify-content-center align-items-center">
+                    <form action="{{ route('reenviardoc') }}" method="POST">
+                        @csrf
+                        <x-adminlte-select2 name="id_destino" label="Destino" fgroup-class="col-md-12" required>
+                            @foreach ($destinos as $destino)
+                                <option value="{{ $destino->id }}" {{ $destino->default == 1 ? 'selected' : '' }}>
+                                    {{ $destino->nombre }}
+                                </option>
+                            @endforeach
+                        </x-adminlte-select2>
+
+                        <input type="hidden" name="idmentrada" id="idmentrada" required>
+
+                        <!-- Campo hidden para masdestinos -->
+                        <input type="hidden" name="masdestinos" id="masdestinos" value="0">
+
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-info" onclick="setMasDestinos(1)"
+                                data-bs-dismiss="modal">Fijar Otro destino más</button>
+                            <button type="submit" class="btn btn-primary" onclick="setMasDestinos(0)">Cambiar Destino
+                                Enviado</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-default" type="button" data-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal -->
+    <div class="modal fade" id="documentosModal" tabindex="-1" role="dialog" aria-labelledby="documentosModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="documentosModalLabel">Documentos</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <ul id="documentosList"></ul>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- fin Modal-->
 @stop
 @push('js')
     <script>

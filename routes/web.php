@@ -47,6 +47,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/reenviadodoc',  [MesaEntradaController::class, 'reenviado'])->name('reenviado');
     Route::get('/restipodocfechas',  [MesaEntradaController::class, 'reportetipodocfechas'])->name('restipodocfechas');
     Route::get('reporterecorrido/{row}', [MesaEntradaController::class, 'recorrido'])->name('reporte.recorrido');
+    Route::get('/reporte/multiple', [ReporteController::class, 'generateMultipleReport'])
+     ->name('reporte.multiple');
     Route::get('/autocomplete/firmante',  [AutocompleteController::class, 'getfirmante'])->name('obtenerfirmante');
     Route::post('mesaentrada/{id}/enviar', [MesaEntradaController::class, 'enviar'])->name('mesaentrada.enviar');
     Route::post('mesaentrada/{id}/aceptar', [MesaEntradaController::class, 'aceptar'])->name('mesaentrada.aceptar');
@@ -80,6 +82,11 @@ Route::get('/sinpermiso', function () {
 
 
 Route::get('mesas-entrada/data', [MesaEntradaController::class, 'getData'])->name('mesas-entrada.data');
+
+
+Route::get('/mesaentrada/reenviados/data', [MesaEntradaController::class, 'getDataRen'])
+    ->name('mesaentrada.reenviados.data');
+
 Route::get('/autocomplete',  [AutocompleteController::class, 'autocomplete'])->name('autocomplete');
 Route::get('/autocomplete/proveedor',  [AutocompleteController::class, 'proveedor'])->name('obtenerproveedor');
 Route::get('/autocomplete/producto',  [AutocompleteController::class, 'getproducto'])->name('obtenerproducto');

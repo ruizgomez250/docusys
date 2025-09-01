@@ -316,4 +316,50 @@ class ReporteController extends Controller
 
         return $pdf->Output('reporte_por_fechas.pdf', 'I');
     }
+    public function generateMultipleReport(Request $request)
+    {
+        $ids = $request->input('ids', []); // default a array vacío
+        if (!is_array($ids)) {
+            $ids = explode(',', $ids); // si llega como "1,2,3" convertir en array
+        }
+
+        if (count($ids) === 0) {
+            return back()->with('error', 'No se seleccionaron mesas de entrada.');
+        }
+
+        $mesas = MesaEntrada::whereIn('id', $ids)->get();
+
+
+        $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
+        $pdf->SetPrintHeader(false);
+        $pdf->SetFont('Times', '', 12);
+        $pdf->AddPage();
+        $pdf->SetLeftMargin(12);
+        $pdf->Ln(10);
+
+        foreach ($mesas as $index => $mesa) {
+            // Dibujar círculo con el número de la mesa
+            $pdf->Circle(20, $pdf->GetY() + 5, 5);
+            $pdf->SetXY(18, $pdf->GetY() + 2);
+            $pdf->Cell(5, 5, $index + 1, 0, 1, 'C');
+
+            // Mostrar datos de la mesa
+            $pdf->SetX(30);
+            $pdf->SetFont('Times', 'B', 12);
+            $pdf->Write(0, 'Mesa Entrada Nº: ' . $mesa->nro_mentrada . '/' . $mesa->anho);
+
+            $pdf->Ln(6);
+            $pdf->SetX(30);
+            $pdf->SetFont('Times', '', 12);
+            $pdf->Write(0, 'Fecha Recepción: ' . $mesa->fecha_recepcion);
+
+            $pdf->Ln(6);
+            $pdf->SetX(30);
+            $pdf->Write(0, 'Observación: ' . $mesa->observacion);
+
+            $pdf->Ln(15); // Espacio antes de la siguiente mesa
+        }
+
+        $pdf->Output('reporte_mesas.pdf', 'I');
+    }
 }

@@ -2,12 +2,15 @@
 
 @section('content_header')
     <div class="row">
-        <div class="col-6">
+        <div class="col-4">
             <h1 class="m-0 custom-heading">LISTA MESA DE ENTRADA</h1>
         </div>
-        <div class="col-6">
+        <div class="col-5">
             <a href="{{ route('mesaentrada.create') }}" class="btn btn-primary" style="float: right;">Registrar Nueva Mesa de
                 Entrada</a>
+        </div>
+        <div class="col-3 text-right">
+            <a href="#" id="generateReport" class="btn btn-success">Generar Reporte</a>
         </div>
     </div>
 @stop
@@ -53,10 +56,11 @@
     <div class="row">
         <div class="col-12">
             <div class="card">
-                <div class="card-body">
+                <div class="card-body table-responsive">
                     <table id="table1" class="table table-bordered table-hover" theme="light">
                         <thead>
                             <tr>
+                                <th></th>
                                 <th>Nro MEntrada</th>
                                 <th>Año</th>
                                 <th>Fecha Del Documento</th>
@@ -113,6 +117,11 @@
                 responsive: true,
                 autoWidth: false,
                 columns: [{
+                        data: 'checkbox',
+                        orderable: false,
+                        searchable: false
+                    },
+                    {
                         data: 'nro_mentrada'
                     },
                     {
@@ -262,5 +271,32 @@
                 }
             });
         }
+        $('#generateReport').on('click', function() {
+            // Recoge los IDs de los checkboxes marcados
+            var selectedIds = $('.select-row:checked').map(function() {
+                return $(this).val(); // devuelve el value (ID)
+            }).get(); // convierte el resultado a un array
+
+            if (selectedIds.length === 0) {
+                Swal.fire('Atención', 'Debe seleccionar al menos un registro.', 'warning');
+                return;
+            }
+
+            // Enviar IDs al servidor
+            var url = '{{ route('reporte.multiple') }}?ids=' + selectedIds.join(',');
+            window.open(url, '_blank');
+        });
+
+
+        function toggleGenerateButton() {
+            if ($('.select-row:checked').length > 0) {
+                $('#generateReport').fadeIn();
+            } else {
+                $('#generateReport').fadeOut();
+            }
+        }
+
+        // Llamar al cambiar cualquier checkbox
+        $('#table1 tbody').on('change', 'input.select-row', toggleGenerateButton);
     </script>
 @endpush
