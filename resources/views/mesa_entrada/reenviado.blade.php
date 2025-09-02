@@ -73,7 +73,6 @@
                                 <th>Origen</th>
                                 <th>Tipo Doc</th>
                                 <th>Firmantes</th>
-                                <th>Destino</th>
                                 <th>Observación</th>
                                 <th>Estado</th>
                                 <th>Usuario</th>
@@ -81,7 +80,81 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <!-- DataTables llenará esta sección -->
+                            @foreach ($mesasEntrada as $row)
+                                <tr data-child-id="{{ $row->id }}">
+                                    
+                                    <td>{{ $row->nro_mentrada }}</td>
+                                    <td>{{ $row->anho }}</td>
+                                    <td>{{ $row->fecha_recepcion }}</td>
+                                    <td>{{ $row->origen->nombre ?? 'N/A' }}</td>
+                                    <td>{{ $row->tipoDoc->nombre ?? 'N/A' }}</td>
+                                    <td>{{ $row->nombres_firmantes ?? 'N/A' }}</td>
+                                    <td>{{ $row->observacion }}</td>
+                                    <td class="{{ $row->estado == '2' ? 'text-danger' : 'text-success' }}">
+                                        @if ($row->estado == '2')
+                                            Recepcionado
+                                        @elseif ($row->estado == '3')
+                                            Aceptado
+                                        @else
+                                            Redireccionado
+                                        @endif
+                                    </td>
+                                    <td>{{ $row->user->name ?? 'N/A' }}</td>
+                                    <td style="float:right;">
+                                        @if ($row->estado == 2 && $row->mapa_estado == 1)
+                                            <form action="{{ route('mesaentrada.aceptar', $row->id) }}" method="post"
+                                                class="d-inline enviar-form">
+                                                @csrf
+                                                <button type="button"
+                                                    class="btn btn-sm  btn-outline-secondary enviar-button">
+                                                    <i class="fas fa-check"></i>
+                                                </button>
+                                            </form>
+                                        @elseif($row->estado == 2 && $row->mapa_estado == 2)
+                                            {{-- <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal"
+                                            data-bs-target="#modalDestinos">
+                                            <i class="fas fa-paper-plane"></i>
+                                        </button> --}}
+                                            <x-adminlte-button theme="outline-danger" data-toggle="modal"
+                                                data-target="#modalDestinos" class="btn-sm " icon="fas fa-paper-plane"
+                                                onclick="cargarmentrada({{ $row->id }})" />
+                                            <x-adminlte-button theme="outline-danger" data-toggle="modal"
+                                                data-target="#modalCargaDocs" onclick="cargarmentrada({{ $row->id }})"
+                                                class="btn-sm " icon="fas fa-file-upload" />
+                                            <form action="{{ route('mesaentrada.finalizar', $row->id) }}" method="post"
+                                                class="d-inline enviar-form">
+                                                @csrf
+                                                <button type="button"
+                                                    class="btn btn-sm  btn-outline-secondary enviar-button">
+                                                    <i class="fas fa-flag-checkered"></i>
+                                                </button>
+                                            </form>
+                                        @endif
+
+                                        <a href="{{ route('reporte.recorrido', $row) }}" target="_blank"
+                                            class="btn btn-sm btn-outline-secondary">
+                                            <i class="fa fa-file-pdf"></i>
+                                        </a>
+                                        @if ($row->tiene_documentos)
+                                            <button type="button" class="btn btn-sm btn-outline-secondary"
+                                                onclick="openDocumentosModal({{ $row->id }})">
+                                                <i class="fa fa-sm fa-fw fa-print"></i>
+                                            </button>
+                                        @endif
+
+                                        @if ($usuario->autorizar_modif == 1 && $row->modificar == 0)
+                                            <form action="{{ route('mesaentrada.autorizarmodif', $row->id) }}"
+                                                method="post" class="d-inline enviar-form">
+                                                @csrf
+                                                <button type="button"
+                                                    class="btn btn-sm  btn-outline-secondary enviar-button">
+                                                    <i class="fas fa-unlock"></i>
+                                                </button>
+                                            </form>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforeach
                         </tbody>
                     </table>
                 </div>
@@ -127,7 +200,7 @@
                     }
                 ],
                 order: [
-                    [11, 'desc']
+                    [2, 'desc']
                 ], // Ordenar por el ID (columna 1)
             });
 
@@ -157,45 +230,7 @@
                 return detalleHTML;
             }
 
-            // Evento de clic en la flechita para mostrar/ocultar detalles
-            $('#table1 tbody').on('click', 'td.details-control', function() {
-                var tr = $(this).closest('tr');
-                var row = table.row(tr);
-                var id = tr.data('child-id'); // Obtener el ID del elemento (Mesa de entrada)
-                var iconElement = $(this).find('i'); // Guardar el elemento del ícono
-
-                if (row.child.isShown()) {
-                    // Si el detalle está visible, lo ocultamos
-                    row.child.hide();
-                    tr.removeClass('shown');
-                    iconElement.removeClass('fa-minus-circle').addClass('fa-plus-circle');
-                } else {
-                    // Si el detalle está oculto, lo mostramos
-                    $.ajax({
-                        url: '{{ route('mesaentrada.firmantes', '') }}/' +
-                            id, // Verificar si la ruta se forma correctamente
-                        method: 'GET',
-                        success: function(response) {
-
-                            // Utilizar el objeto de respuesta directamente como array de detalles
-                            var detalles =
-                                response; // Aquí 'response' ya es un array de objetos, no 'response.detalles'
-                            if (detalles.length > 0) {
-                                // Mostramos el detalle
-                                row.child(format(detalles)).show();
-                                tr.addClass('shown');
-                                iconElement.removeClass('fa-plus-circle').addClass(
-                                    'fa-minus-circle');
-                            } else {
-                                console.log('No se encontraron detalles.');
-                            }
-                        },
-                        error: function() {
-                            console.log('Error al obtener detalles.');
-                        }
-                    });
-                }
-            });
+            
         });
 
         function setMasDestinos(value) {
