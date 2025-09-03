@@ -318,6 +318,7 @@ class ReporteController extends Controller
     }
     public function generateMultipleReport(Request $request)
     {
+
         $ids = $request->input('ids', []); // default a array vacío
         if (!is_array($ids)) {
             $ids = explode(',', $ids); // si llega como "1,2,3" convertir en array
@@ -332,12 +333,19 @@ class ReporteController extends Controller
 
         $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
         $pdf->SetPrintHeader(false);
-        $pdf->SetFont('Times', '', 12);
+        $pdf->SetFont('Times', '', 14);
         $pdf->AddPage();
+        $pdf->SetFont('helvetica', 'IU', 12); // I = Italic, U = Underline
+        $pdf->Cell(0, 10, 'Documentos Recibidos Mesa de Entrada: ', 0, 1, 'C');
+        $pdf->SetFont('Times', '', 12);
+        $pdf->SetAlpha(0.3);
+        $pdf->Image('vendor/adminlte/dist/img/icono camara.png', 10, 50, 190);
+        $pdf->SetAlpha(1);
         $pdf->SetLeftMargin(12);
         $pdf->Ln(10);
 
         foreach ($mesas as $index => $mesa) {
+            $currentPage = $pdf->getPage();
             // Dibujar círculo con el número de la mesa
             $pdf->Circle(20, $pdf->GetY() + 5, 5);
             $pdf->SetXY(18, $pdf->GetY() + 2);
@@ -355,9 +363,15 @@ class ReporteController extends Controller
 
             $pdf->Ln(6);
             $pdf->SetX(30);
-            $pdf->Write(0, 'Observación: ' . $mesa->observacion);
+            $pdf->Write(0, 'Acapite: ' . $mesa->observacion);
 
             $pdf->Ln(15); // Espacio antes de la siguiente mesa
+            if ($pdf->getPage() > $currentPage) {
+                // Insertar marca de agua
+                $pdf->SetAlpha(0.3); // Establece la opacidad al 10%
+                $pdf->Image('vendor/adminlte/dist/img/icono camara.png', 10, 50, 190); // Ajusta la posición y tamaño de la imagen
+                $pdf->SetAlpha(1); // Restablece la opacidad al 100%
+            }
         }
 
         $pdf->Output('reporte_mesas.pdf', 'I');
