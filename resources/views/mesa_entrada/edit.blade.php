@@ -48,6 +48,14 @@
                                 <input type="date" class="form-control" id="fechaemision" name="fechaemision"
                                     value="{{ $mesaEntrada->fechaemision }}" required>
                             </div>
+                            <x-adminlte-select2 name="id_tipo_doc" label="Descripcion" fgroup-class="col-md-4"
+                                required>
+                                @foreach ($tiposDoc as $tipoDoc)
+                                    <option value="{{ $tipoDoc->id }}"
+                                        {{ $mesaEntrada->id_tipo_doc == $tipoDoc->id ? 'selected' : '' }}>
+                                        {{ $tipoDoc->nombre }}</option>
+                                @endforeach
+                            </x-adminlte-select2>
                         </div>
 
                         <div class="row">
@@ -59,12 +67,12 @@
                                 @endforeach
                             </x-adminlte-select2>
 
-                            <x-adminlte-select2 name="id_tipo_doc" label="Tipo de Documento" fgroup-class="col-md-4"
+                            <x-adminlte-select2 name="id_tipo_docr" label="Tipo de Documento" fgroup-class="col-md-4"
                                 required>
-                                @foreach ($tiposDoc as $tipoDoc)
-                                    <option value="{{ $tipoDoc->id }}"
-                                        {{ $mesaEntrada->id_tipo_doc == $tipoDoc->id ? 'selected' : '' }}>
-                                        {{ $tipoDoc->nombre }}</option>
+                                @foreach ($tiposDocR as $tipoDocR)
+                                    <option value="{{ $tipoDocR->id }}"
+                                        {{ $mesaEntrada->id_tipo_docr == $tipoDocR->id ? 'selected' : '' }}>
+                                        {{ $tipoDocR->nombre }}</option>
                                 @endforeach
                             </x-adminlte-select2>
 

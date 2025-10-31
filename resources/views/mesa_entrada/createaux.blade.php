@@ -49,7 +49,7 @@
                                 <input type="date" class="form-control" id="fechaemision" name="fechaemision"
                                     value="{{ date('Y-m-d') }}" required>
                             </div>
-                            <div class="col-md-5 form-group">
+                            <div class="col-md-4 form-group">
                                 <label for="documento">Documento (PDF o DOC)</label>
                                 <input type="file" name="documento" id="documento" accept=".pdf, .doc, .docx">
                             </div>
@@ -57,7 +57,12 @@
                                 <label for="documento">N° Mesa Entrada</label>
                                 <input type="number" name="nromesaentrada" id="nromesaentrada" required>
                             </div>
-                            
+                            <x-adminlte-select2 name="id_tipo_docr" label="Tipo de Documento" fgroup-class="col-md-3"
+                                required>
+                                @foreach ($tiposDoc as $tipoDoc)
+                                    <option value="{{ $tipoDoc->id }}">{{ $tipoDoc->nombre }}</option>
+                                @endforeach
+                            </x-adminlte-select2>
                             {{-- <div class="col-md-5 form-group">
                                 <label for="archivo">Archivo (ZIP o RAR)</label>
                                 <input type="file" name="archivo" id="archivo" accept=".zip, .rar" required>
@@ -74,8 +79,8 @@
 
                             <x-adminlte-select2 name="id_tipo_doc" label="Tipo de Documento" fgroup-class="col-md-4"
                                 required>
-                                @foreach ($tiposDoc as $tipoDoc)
-                                    <option value="{{ $tipoDoc->id }}">{{ $tipoDoc->nombre }}</option>
+                                @foreach ($tiposDocR as $tipoDocR)
+                                    <option value="{{ $tipoDocR->id }}">{{ $tipoDocR->nombre }}</option>
                                 @endforeach
                             </x-adminlte-select2>
 

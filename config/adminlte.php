@@ -338,7 +338,7 @@ return [
         ],
 
         [
-            'text'       => 'Tipos de Documentos',
+            'text'       => 'Desc. de Documentos',
             'icon'       => 'fas fa-file-alt',
             'icon_color' => 'danger',
             'classes'    => 'custom-icon-box-black',
@@ -346,11 +346,11 @@ return [
             'can'  => 'Tipos Documentos',
             'submenu'    => [
                 [
-                    'text' => 'Lista de Documentos',
+                    'text' => 'Lista de Descripciones',
                     'url'  => '/tipodoc',
                 ],
                 [
-                    'text' => 'Registrar Documentos',
+                    'text' => 'Registrar Descripcion',
                     'url'  => '/tipodoc/create',
                 ],
             ],

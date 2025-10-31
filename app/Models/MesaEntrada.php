@@ -27,6 +27,7 @@ class MesaEntrada extends Model
         'fecha_recepcion',
         'id_origen',
         'id_tipo_doc',
+        'id_tipo_docr',
         'id_destino',
         'observacion',
         'estado',
@@ -60,7 +61,11 @@ class MesaEntrada extends Model
     {
         return $this->belongsTo(TipoDoc::class, 'id_tipo_doc');
     }
-
+   
+    public function tipoDocR()
+    {
+        return $this->belongsTo(TipoDocR::class, 'id_tipo_doc_r');
+    }
     /**
      * Get the destino record associated with the mesa_entrada.
      */

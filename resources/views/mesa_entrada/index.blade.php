@@ -65,6 +65,7 @@
                                 <th>Año</th>
                                 <th>Fecha Del Documento</th>
                                 <th>Origen</th>
+                                <th>Descripcion</th>
                                 <th>Tipo Doc</th>
                                 <th>Firmantes</th>
                                 <th>Destino</th>
@@ -135,6 +136,9 @@
                     },
                     {
                         data: 'tipo_doc'
+                    },
+                    {
+                        data: 'tipo_docr'
                     },
                     {
                         data: 'firmantes'

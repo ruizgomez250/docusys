@@ -57,7 +57,12 @@
                                 <input type="file" name="documento" id="documento" accept=".pdf, .doc, .docx">
 
                             </div>
-
+                            <x-adminlte-select2 name="id_tipo_doc" label="Descripcion Documento" fgroup-class="col-md-4"
+                                required>
+                                @foreach ($tiposDoc as $tipoDoc)
+                                    <option value="{{ $tipoDoc->id }}">{{ $tipoDoc->nombre }}</option>
+                                @endforeach
+                            </x-adminlte-select2>
                             {{-- <div class="col-md-5 form-group">
                                 <label for="archivo">Archivo (ZIP o RAR)</label>
                                 <input type="file" name="archivo" id="archivo" accept=".zip, .rar" required>
@@ -72,10 +77,10 @@
                                 @endforeach
                             </x-adminlte-select2>
 
-                            <x-adminlte-select2 name="id_tipo_doc" label="Tipo de Documento" fgroup-class="col-md-4"
+                            <x-adminlte-select2 name="id_tipo_docr" label="Tipo de Documento" fgroup-class="col-md-4"
                                 required>
-                                @foreach ($tiposDoc as $tipoDoc)
-                                    <option value="{{ $tipoDoc->id }}">{{ $tipoDoc->nombre }}</option>
+                                @foreach ($tiposDocr as $tipoDocr)
+                                    <option value="{{ $tipoDocr->id }}">{{ $tipoDocr->nombre }}</option>
                                 @endforeach
                             </x-adminlte-select2>
 

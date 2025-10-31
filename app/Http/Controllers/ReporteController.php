@@ -110,19 +110,71 @@ class ReporteController extends Controller
     }
     public function pdfreportes($fechadesde, $fechahasta, $id = null, $tiporeporte)
     {
+        $sql = '';
         $desdeC = \Carbon\Carbon::parse($fechadesde)->format('d/m/Y'); // Convierte la fecha de inicio al formato dd/mm/yyyy
         $hastaC = \Carbon\Carbon::parse($fechahasta)->format('d/m/Y'); // Convierte la fecha de fin al formato dd/mm/yyyy
-        $documentosporfechas = MesaEntrada::select(
-            'mesa_entrada.id_tipo_doc',
-            'tipo_docs.nombre',
-            DB::raw('COUNT(*) as total_por_tipo')
-        )
-            ->join('tipo_docs', 'tipo_docs.id', '=', 'mesa_entrada.id_tipo_doc')
-            ->whereBetween('mesa_entrada.fecha_recepcion', [$desdeC, $hastaC])
-            ->groupBy('mesa_entrada.id_tipo_doc', 'tipo_docs.nombre')
-            ->get();
-
-
+        $documentosporfechas = '';
+        // $documentosporfechas = MesaEntrada::select(
+        //     'mesa_entrada.id_tipo_doc',
+        //     'tipo_docsr.nombre',
+        //     DB::raw('COUNT(*) as total_por_tipo')
+        // )
+        //     ->join('tipo_docs', 'tipo_docs.id', '=', 'mesa_entrada.id_tipo_doc')
+        //     ->whereBetween('mesa_entrada.fecha_recepcion', [$desdeC, $hastaC])
+        //     ->groupBy('mesa_entrada.id_tipo_doc', 'tipo_docs.nombre')
+        //     ->get();
+        if ($tiporeporte == 1) {
+           $sql = "
+        SELECT 
+            td.nombre AS origen,
+            me.nro_mentrada,
+            me.id_origen,
+            COUNT(me.id) AS total_por_tipo,
+            me.id,
+            me.fecha_recepcion,
+            me.observacion
+        FROM mesa_entrada me
+        INNER JOIN tipo_docsr td ON td.id = me.id_tipo_doc_r
+        WHERE me.id_origen = ? AND me.fecha_recepcion BETWEEN ? AND ?
+        GROUP BY me.id_tipo_doc_r, td.nombre,me.nro_mentrada,me.id,me.fecha_recepcion,me.observacion,me.id_origen
+        ORDER BY total_por_tipo DESC;
+    ";
+            
+            $documentosporfechas = DB::select($sql, [ $id,$fechadesde, $fechahasta]);
+            
+        } else if($tiporeporte == 2){
+             $sql = "
+        SELECT 
+            td.nombre AS origen,
+            me.nro_mentrada,
+            COUNT(me.id) AS total_por_tipo,
+            me.id,
+            me.fecha_recepcion,
+            me.observacion
+        FROM mesa_entrada me
+        INNER JOIN tipo_docsr td ON td.id = me.id_tipo_doc_r
+        WHERE me.id_tipo_doc_r = ? AND me.fecha_recepcion BETWEEN ? AND ?
+        GROUP BY me.id_tipo_doc_r, td.nombre,me.nro_mentrada,me.id,me.fecha_recepcion,me.observacion,me.id_tipo_doc_r
+        ORDER BY total_por_tipo DESC;
+    ";
+          $documentosporfechas = DB::select($sql, [ $id,$fechadesde, $fechahasta]);  
+        } else if ($tiporeporte == 3) {
+            $sql = "
+        SELECT 
+            td.nombre AS origen,
+            me.nro_mentrada,
+            COUNT(me.id) AS total_por_tipo,
+            me.id,
+            me.fecha_recepcion,
+            me.observacion
+        FROM mesa_entrada me
+        INNER JOIN tipo_docsr td ON td.id = me.id_tipo_doc_r
+        WHERE me.fecha_recepcion BETWEEN ? AND ?
+        GROUP BY me.id_tipo_doc_r, td.nombre,me.nro_mentrada,me.id,me.fecha_recepcion,me.observacion
+        ORDER BY total_por_tipo DESC;
+    ";
+            $documentosporfechas = DB::select($sql, [$fechadesde, $fechahasta]);
+        }
         $titulo = 'Reporte:  - Desde ' . $desdeC . ' Hasta ' . $hastaC;
         $texttotal = 'Documentos Ingresados';
 
@@ -166,10 +218,10 @@ class ReporteController extends Controller
         $contador = 0;
 
         foreach ($documentosporfechas as $dato) {
-
             $contador++;
 
-            $origen = $dato->origen ? $dato->origen->nombre : 'N/A';
+            $origen = $dato->origen ? $dato->origen : 'N/A';
+
             $fechaIngreso = \Carbon\Carbon::parse($dato->fecha_recepcion)->format('d/m/Y');
             $nroMesaEntrada = $dato->nro_mentrada;
 
@@ -242,14 +294,23 @@ class ReporteController extends Controller
         $titulo = "Resumen de Documentos del $fechadesde al $fechahasta";
         $texttotal = "del $fechadesde al $fechahasta";
 
+        // $documentosporfechas = MesaEntrada::select(
+        //     'mesa_entrada.id_tipo_doc',
+        //     'tipo_docs.nombre',
+        //     DB::raw('COUNT(*) as total_por_tipo')
+        // )
+        //     ->join('tipo_docs', 'tipo_docs.id', '=', 'mesa_entrada.id_tipo_doc')
+        //     ->whereBetween('mesa_entrada.fecha_recepcion', [$desde, $hasta])
+        //     ->groupBy('mesa_entrada.id_tipo_doc', 'tipo_docs.nombre')
+        //     ->get();
         $documentosporfechas = MesaEntrada::select(
-            'mesa_entrada.id_tipo_doc',
-            'tipo_docs.nombre',
+            'mesa_entrada.id_tipo_doc_r',
+            'tipo_docsr.nombre',
             DB::raw('COUNT(*) as total_por_tipo')
         )
-            ->join('tipo_docs', 'tipo_docs.id', '=', 'mesa_entrada.id_tipo_doc')
+            ->join('tipo_docsr', 'tipo_docsr.id', '=', 'mesa_entrada.id_tipo_doc_r')
             ->whereBetween('mesa_entrada.fecha_recepcion', [$desde, $hasta])
-            ->groupBy('mesa_entrada.id_tipo_doc', 'tipo_docs.nombre')
+            ->groupBy('mesa_entrada.id_tipo_doc_r', 'tipo_docsr.nombre')
             ->get();
 
         $pdf = new \TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
@@ -345,6 +406,7 @@ class ReporteController extends Controller
         $pdf->Ln(10);
 
         foreach ($mesas as $index => $mesa) {
+            $funcionario = (new MesaEntradaFirmante)->obtenerFirmantesPorMesaEntrada($mesa->id);
             $currentPage = $pdf->getPage();
             // Dibujar círculo con el número de la mesa
             $pdf->Circle(20, $pdf->GetY() + 5, 5);
@@ -364,6 +426,10 @@ class ReporteController extends Controller
             $pdf->Ln(6);
             $pdf->SetX(30);
             $pdf->Write(0, 'Acapite: ' . $mesa->observacion);
+
+            $pdf->Ln(6);
+            $pdf->SetX(30);
+            $pdf->Write(0, 'Firmantes: ' . $funcionario);
 
             $pdf->Ln(15); // Espacio antes de la siguiente mesa
             if ($pdf->getPage() > $currentPage) {

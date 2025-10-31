@@ -12,6 +12,7 @@ use App\Models\MesaEntradaFirmante;
 use App\Models\Origen;
 use App\Models\RecorridoDoc;
 use App\Models\TipoDoc;
+use App\Models\TipoDocR;
 use App\Models\User;
 use App\Models\UserDestino;
 use Carbon\Carbon;
@@ -114,6 +115,7 @@ class MesaEntradaController extends Controller
                 'mesa_entrada.fecha_recepcion',
                 'mesa_entrada.id_origen',
                 'mesa_entrada.id_tipo_doc',
+                'mesa_entrada.id_tipo_doc_r',
                 'mesa_entrada.id_destino',
                 'mesa_entrada.observacion',
                 'mesa_entrada.estado',
@@ -135,6 +137,7 @@ class MesaEntradaController extends Controller
                 'mesa_entrada.fecha_recepcion',
                 'mesa_entrada.id_origen',
                 'mesa_entrada.id_tipo_doc',
+                'mesa_entrada.id_tipo_doc_r',
                 'mesa_entrada.id_destino',
                 'mesa_entrada.observacion',
                 'mesa_entrada.estado',
@@ -309,9 +312,10 @@ class MesaEntradaController extends Controller
 
         $origenes = $origenes = Origen::orderBy('indice')->orderBy('subindice')->get();
         $tiposdoc = TipoDoc::all();
+        $tiposdocr = TipoDocR::all();
         $destinos = Destino::orderByRaw('CASE WHEN orden = 0 THEN 1 ELSE 0 END, orden')->get();
         $ultimos3 = MesaEntrada::orderBy('id', 'desc')->take(3)->get();
-        return view('mesa_entrada.create', ['origenes' => $origenes, 'tiposDoc' => $tiposdoc, 'destinos' => $destinos, 'ultimos3' => $ultimos3]);
+        return view('mesa_entrada.create', ['origenes' => $origenes, 'tiposDocr' => $tiposdocr, 'tiposDoc' => $tiposdoc, 'destinos' => $destinos, 'ultimos3' => $ultimos3]);
     }
     public function reportetipodocfechas(): View
     {
@@ -322,8 +326,9 @@ class MesaEntradaController extends Controller
     {
         $origenes = $origenes = Origen::orderBy('indice')->orderBy('subindice')->get();
         $tiposdoc = TipoDoc::all();
+        $tiposdocr = TipoDocR::all();
         $destinos = Destino::all();
-        return view('mesa_entrada.createaux', ['origenes' => $origenes, 'tiposDoc' => $tiposdoc, 'destinos' => $destinos]);
+        return view('mesa_entrada.createaux', ['origenes' => $origenes, 'tiposDoc' => $tiposdoc, 'tiposDocR' => $tiposdocr, 'destinos' => $destinos]);
     }
     /**
      * Store a newly created resource in storage.
@@ -336,6 +341,7 @@ class MesaEntradaController extends Controller
                 $validatedData = $request->validate([
                     'id_origen' => 'required|integer',
                     'id_tipo_doc' => 'required|integer',
+                    'id_tipo_docr' => 'required|integer',
                     'id_destino' => 'required|integer',
                     'observacion' => 'nullable|string',
                     'idfirmante' => 'required|array',
@@ -369,6 +375,7 @@ class MesaEntradaController extends Controller
                 $mesaEntrada->fecha_recepcion = $request->input('fechaemision');
                 $mesaEntrada->id_origen = $request->input('id_origen');
                 $mesaEntrada->id_tipo_doc = $request->input('id_tipo_doc');
+                $mesaEntrada->id_tipo_docr = $request->input('id_tipo_docr');
                 $mesaEntrada->id_destino = $request->input('id_destino');
                 $mesaEntrada->observacion = $request->input('observacion');
                 $mesaEntrada->duplicado = $request->input('duplicado');
@@ -509,6 +516,7 @@ class MesaEntradaController extends Controller
                 $validatedData = $request->validate([
                     'id_origen' => 'required|integer',
                     'id_tipo_doc' => 'required|integer',
+                    'id_tipo_docr' => 'required|integer',
                     'nromesaentrada' => 'required|integer',
                     'id_destino' => 'required|integer',
                     'observacion' => 'nullable|string',
@@ -536,6 +544,7 @@ class MesaEntradaController extends Controller
                 $mesaEntrada->fecha_recepcion = $fechaRecepcion; // Asignar la fecha de recepción
                 $mesaEntrada->id_origen = $request->input('id_origen');
                 $mesaEntrada->id_tipo_doc = $request->input('id_tipo_doc');
+                $mesaEntrada->id_tipo_docr = $request->input('id_tipo_docr');
                 $mesaEntrada->id_destino = $request->input('id_destino');
                 $mesaEntrada->observacion = $request->input('observacion');
                 $mesaEntrada->duplicado = $request->input('duplicado');
@@ -732,12 +741,13 @@ class MesaEntradaController extends Controller
             $mesaEntrada->fechaemision = Carbon::parse($mesaEntrada->fechaemision)->format('Y-m-d');
             $origenes = Origen::all();
             $tiposdoc = TipoDoc::all();
+            $tiposdocr = TipoDocR::all();
             $destinos = Destino::all();
             $firmantes = MesaEntradaFirmante::where('id_mentrada', $id)
                 ->with('firmante')
                 ->get()
                 ->pluck('firmante');
-            return view('mesa_entrada.edit', ['origenes' => $origenes, 'tiposDoc' => $tiposdoc, 'destinos' => $destinos, 'mesaEntrada' => $mesaEntrada, 'firmantes' => $firmantes]);
+            return view('mesa_entrada.edit', ['origenes' => $origenes, 'tiposDoc' => $tiposdoc, 'tiposDocR' => $tiposdocr, 'destinos' => $destinos, 'mesaEntrada' => $mesaEntrada, 'firmantes' => $firmantes]);
         } catch (Exception $e) {
             return redirect()->route('mesaentrada.index')->with('error', 'No se pudo completar la operación.');
         }
@@ -751,6 +761,7 @@ class MesaEntradaController extends Controller
                     'id_origen' => 'required|integer',
                     'modificar' => 'nullable|integer',
                     'id_tipo_doc' => 'required|integer',
+                    'id_tipo_docr' => 'required|integer',
                     'id_destino' => 'required|integer',
                     'observacion' => 'nullable|string',
                     'idfirmante' => 'required|array',
@@ -766,6 +777,7 @@ class MesaEntradaController extends Controller
                 $mesaEntrada->update([
                     'id_origen' => $validatedData['id_origen'],
                     'id_tipo_doc' => $validatedData['id_tipo_doc'],
+                    'id_tipo_docr' => $validatedData['id_tipo_docr'],
                     'id_destino' => $validatedData['id_destino'],
                     'observacion' => $validatedData['observacion'],
                     'modificar' => 0,
@@ -1292,7 +1304,7 @@ class MesaEntradaController extends Controller
 
         // Obtener los datos desde la base de datos
         $documentos = MesaEntrada::whereBetween('fecha_recepcion', [$fechaInicio, $fechaFin])
-            ->with('tipoDoc') // Obtener también el tipo de documento relacionado
+            ->with('tipoDocR') // Obtener también el tipo de documento relacionado
             ->get();
 
         // Preprocesar los datos para agrupar por tipo de documento y contar las cantidades
@@ -1422,7 +1434,7 @@ class MesaEntradaController extends Controller
     public function getData(Request $request)
     {
         // Iniciar la consulta base
-        $query = MesaEntrada::with(['documentos', 'firmantes', 'origen', 'tipoDoc', 'destino', 'user']);
+        $query = MesaEntrada::with(['documentos', 'firmantes', 'origen', 'tipoDoc', 'destino', 'user', 'tipoDocR']);
 
         // Filtrar y buscar en toda la base de datos
         if ($request->has('search.value') && $request->input('search.value') !== '') {
@@ -1437,6 +1449,9 @@ class MesaEntradaController extends Controller
                         $query->where('nombre', 'like', "%{$search}%");
                     })
                     ->orWhereHas('tipoDoc', function ($query) use ($search) {
+                        $query->where('nombre', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('tipoDocR', function ($query) use ($search) {
                         $query->where('nombre', 'like', "%{$search}%");
                     })
                     ->orWhereHas('firmantes', function ($query) use ($search) {
@@ -1495,6 +1510,7 @@ class MesaEntradaController extends Controller
                 'fecha_recepcion' => $row->fecha_recepcion,
                 'origen' => $row->origen->nombre ?? 'N/A',
                 'tipo_doc' => $row->tipoDoc->nombre ?? 'N/A',
+                'tipo_docr' => $row->tipoDocR->nombre ?? 'N/A',
                 'firmantes' => $row->firmantes->isNotEmpty() ? $row->firmantes->pluck('nombre')->join(', ') : 'N/A',
                 'destino' => $row->destino->nombre ?? 'N/A',
                 'observacion' => $row->observacion,
@@ -1546,7 +1562,7 @@ class MesaEntradaController extends Controller
                         ->join('mesa_entrada_firmante', 'firmantes.id', '=', 'mesa_entrada_firmante.id_firmante');
                 },
                 'origen:id,nombre',
-                'tipoDoc:id,nombre'
+                'tipoDocR:id,nombre'
             ])
             ->select('mesa_entrada.*');
 
@@ -1559,7 +1575,7 @@ class MesaEntradaController extends Controller
                     ->orWhereHas('origen', function ($query) use ($search) {
                         $query->where('nombre', 'like', "%{$search}%");
                     })
-                    ->orWhereHas('tipoDoc', function ($query) use ($search) {
+                    ->orWhereHas('tipoDocR', function ($query) use ($search) {
                         $query->where('nombre', 'like', "%{$search}%");
                     })
                     ->orWhereHas('firmantes', function ($query) use ($search) {

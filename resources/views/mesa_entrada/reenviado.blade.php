@@ -71,7 +71,8 @@
                                 <th>Año</th>
                                 <th>Fecha Del Documento</th>
                                 <th>Origen</th>
-                                <th>Tipo Doc</th>
+                                <th>Descripcion</th>
+                                <th>Tipo Doc.</th>
                                 <th>Firmantes</th>
                                 <th>Observación</th>
                                 <th>Estado</th>
@@ -88,6 +89,7 @@
                                     <td>{{ $row->fecha_recepcion }}</td>
                                     <td>{{ $row->origen->nombre ?? 'N/A' }}</td>
                                     <td>{{ $row->tipoDoc->nombre ?? 'N/A' }}</td>
+                                    <td>{{ $row->tipoDocR->nombre ?? 'N/A' }}</td>
                                     <td>{{ $row->nombres_firmantes ?? 'N/A' }}</td>
                                     <td>{{ $row->observacion }}</td>
                                     <td class="{{ $row->estado == '2' ? 'text-danger' : 'text-success' }}">
