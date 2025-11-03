@@ -225,43 +225,43 @@ class MesaEntradaController extends Controller
                 ->where('mr.estado', 0)
                 ->distinct();
         })
-        ->with([
-            'documentos' => function ($query) {
-                $query->select('id', 'mesa_entrada_id'); // Solo campos necesarios
-            },
-            'recorridoDocs' => function ($query) {
-                $query->orderBy('created_at', 'desc')
-                    ->with(['destino' => function ($q) {
-                        $q->select('id', 'nombre');
-                    }]);
-            },
-            'user' => function ($query) {
-                $query->select('id', 'name'); // Solo campos necesarios
-            },
-            'firmantes' => function ($query) {
-                $query->select('firmantes.id', 'firmantes.nombre', 'mesa_entrada_firmante.id_mentrada')
-                    ->join('mesa_entrada_firmante', 'firmantes.id', '=', 'mesa_entrada_firmante.id_firmante');
-            }
-        ])
-        ->select('mesa_entrada.*') // Especificar campos si es necesario
-        ->cursor() // Procesamiento eficiente sin cargar todo en memoria
-        ->map(function ($mesaEntrada) {
-            // Verificar si tiene documentos
-            $mesaEntrada->tiene_documentos = $mesaEntrada->documentos->isNotEmpty();
+            ->with([
+                'documentos' => function ($query) {
+                    $query->select('id', 'mesa_entrada_id'); // Solo campos necesarios
+                },
+                'recorridoDocs' => function ($query) {
+                    $query->orderBy('created_at', 'desc')
+                        ->with(['destino' => function ($q) {
+                            $q->select('id', 'nombre');
+                        }]);
+                },
+                'user' => function ($query) {
+                    $query->select('id', 'name'); // Solo campos necesarios
+                },
+                'firmantes' => function ($query) {
+                    $query->select('firmantes.id', 'firmantes.nombre', 'mesa_entrada_firmante.id_mentrada')
+                        ->join('mesa_entrada_firmante', 'firmantes.id', '=', 'mesa_entrada_firmante.id_firmante');
+                }
+            ])
+            ->select('mesa_entrada.*') // Especificar campos si es necesario
+            ->cursor() // Procesamiento eficiente sin cargar todo en memoria
+            ->map(function ($mesaEntrada) {
+                // Verificar si tiene documentos
+                $mesaEntrada->tiene_documentos = $mesaEntrada->documentos->isNotEmpty();
 
-            // Obtener información del último recorrido
-            $ultimoRecorrido = $mesaEntrada->recorridoDocs->first();
-            $mesaEntrada->fecha_creacion_recorrido = optional($ultimoRecorrido)->created_at;
-            $mesaEntrada->estado_recorrido = optional($ultimoRecorrido)->estado;
-            $mesaEntrada->destino_nombre = optional($ultimoRecorrido->destino)->nombre;
+                // Obtener información del último recorrido
+                $ultimoRecorrido = $mesaEntrada->recorridoDocs->first();
+                $mesaEntrada->fecha_creacion_recorrido = optional($ultimoRecorrido)->created_at;
+                $mesaEntrada->estado_recorrido = optional($ultimoRecorrido)->estado;
+                $mesaEntrada->destino_nombre = optional($ultimoRecorrido->destino)->nombre;
 
-            // Concatenar nombres de firmantes
-            $mesaEntrada->nombres_firmantes = $mesaEntrada->firmantes
-                ->pluck('nombre')
-                ->implode(', ');
+                // Concatenar nombres de firmantes
+                $mesaEntrada->nombres_firmantes = $mesaEntrada->firmantes
+                    ->pluck('nombre')
+                    ->implode(', ');
 
-            return $mesaEntrada;
-        });
+                return $mesaEntrada;
+            });
 
         return view('mesa_entrada.reenviado', [
             'mesasEntrada' => $mesasEntrada,
@@ -1293,7 +1293,7 @@ class MesaEntradaController extends Controller
         // Salida del PDF
         $pdf->Output('maparecorrido.pdf', 'I');
     }
-    
+
 
 
     public function generarReporte(Request $request)
@@ -1436,76 +1436,71 @@ class MesaEntradaController extends Controller
         // Iniciar la consulta base
         $query = MesaEntrada::with(['documentos', 'firmantes', 'origen', 'tipoDoc', 'destino', 'user', 'tipoDocR']);
 
-        // Filtrar y buscar en toda la base de datos
+        // Filtrar por búsqueda
         if ($request->has('search.value') && $request->input('search.value') !== '') {
             $search = $request->input('search.value');
             $query->where(function ($q) use ($search) {
                 $q->where('nro_mentrada', 'like', "%{$search}%")
                     ->orWhere('observacion', 'like', "%{$search}%")
-                    ->orWhereHas('origen', function ($query) use ($search) {
-                        $query->where('nombre', 'like', "%{$search}%");
-                    })
-                    ->orWhereHas('destino', function ($query) use ($search) {
-                        $query->where('nombre', 'like', "%{$search}%");
-                    })
-                    ->orWhereHas('tipoDoc', function ($query) use ($search) {
-                        $query->where('nombre', 'like', "%{$search}%");
-                    })
-                    ->orWhereHas('tipoDocR', function ($query) use ($search) {
-                        $query->where('nombre', 'like', "%{$search}%");
-                    })
-                    ->orWhereHas('firmantes', function ($query) use ($search) {
-                        $query->where('nombre', 'like', "%{$search}%");
-                    });
+                    ->orWhereHas('origen', fn($q) => $q->where('nombre', 'like', "%{$search}%"))
+                    ->orWhereHas('destino', fn($q) => $q->where('nombre', 'like', "%{$search}%"))
+                    ->orWhereHas('tipoDoc', fn($q) => $q->where('nombre', 'like', "%{$search}%"))
+                    ->orWhereHas('tipoDocR', fn($q) => $q->where('nombre', 'like', "%{$search}%"))
+                    ->orWhereHas('firmantes', fn($q) => $q->where('nombre', 'like', "%{$search}%"));
             });
         }
 
-        // Ordenar por anho y nro_mentrada en orden descendente
-        $query->orderBy('anho', 'desc')->orderBy('nro_mentrada', 'desc');
+        // Ordenar
+        $query->orderBy('anho', 'desc')
+            ->orderBy('nro_mentrada', 'desc');
 
-        // Contar registros antes de paginar
+        // Contar total antes de aplicar límite
         $totalData = $query->count();
 
-        // Paginación
-        $query->offset($request->input('start'))
-            ->limit($request->input('length'));
+        // Aplicar paginación solo si los parámetros existen
+        $start = $request->input('start');
+        $length = $request->input('length');
 
-        // Obtener datos paginados
+        if (!is_null($start) && !is_null($length) && $length > 0) {
+            $query->skip($start)->take($length);
+        }
+
+        // Obtener los registros
         $mesasEntrada = $query->get();
 
-        // Formatear datos para DataTables
+        // Armar respuesta
         $data = [];
         foreach ($mesasEntrada as $row) {
             $actions = '<a href="' . route('reporte.recorrido', $row->id) . '" target="_blank" class="btn btn-sm btn-outline-secondary">
-                <i class="fa fa-file-pdf"></i>
-            </a>';
+                        <i class="fa fa-file-pdf"></i>
+                    </a>';
 
             if ($row->estado == 1) {
-                $actions .= '<a href="' . route('mesaentrada.edit', $row->id) . '" class="btn btn-sm btn-outline-secondary">
+                $actions .= '
+                <a href="' . route('mesaentrada.edit', $row->id) . '" class="btn btn-sm btn-outline-secondary">
                     <i class="fa fa-sm fa-fw fa-pen"></i>
                 </a>
                 <form action="' . route('mesaentrada.destroy', $row->id) . '" method="post" class="d-inline delete-form">
-                    ' . csrf_field() . '
-                    ' . method_field('DELETE') . '
+                    ' . csrf_field() . method_field('DELETE') . '
                     <button type="submit" class="btn btn-sm btn-outline-secondary delete-button">
-                        <ion-icon name="trash-outline"><i class="fa fa-sm fa-fw fa-trash"></i></ion-icon>
+                        <i class="fa fa-sm fa-fw fa-trash"></i>
                     </button>
                 </form>
                 <form action="' . route('mesaentrada.enviar', $row->id) . '" method="post" class="d-inline enviar-form">
-                            ' . csrf_field() . '
-                            <button type="submit" class="btn btn-sm btn-outline-secondary enviar-button">
-                                <i class="fas fa-paper-plane"></i>
-                            </button>
-                        </form>';
-            } else if ($row->modificar == 1) {
-                $actions = $actions . '<a href="' . route('mesaentrada.edit', $row->id) . '" class="btn btn-sm btn-outline-secondary">
-                    <i class="fa fa-sm fa-fw fa-pen"></i>
-                </a>';
+                    ' . csrf_field() . '
+                    <button type="submit" class="btn btn-sm btn-outline-secondary enviar-button">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </form>';
+            } elseif ($row->modificar == 1) {
+                $actions .= '<a href="' . route('mesaentrada.edit', $row->id) . '" class="btn btn-sm btn-outline-secondary">
+                            <i class="fa fa-sm fa-fw fa-pen"></i>
+                        </a>';
             }
 
             $data[] = [
                 'checkbox' => '<input type="checkbox" class="select-row" value="' . $row->id . '">',
-                'nro_mentrada' => $row->nro_mentrada . ($row->nro_suplementario !== null ? '.' . $row->nro_suplementario : ''),
+                'nro_mentrada' => $row->nro_mentrada . ($row->nro_suplementario ? '.' . $row->nro_suplementario : ''),
                 'anho' => $row->anho,
                 'fecha_recepcion' => $row->fecha_recepcion,
                 'origen' => $row->origen->nombre ?? 'N/A',
@@ -1514,13 +1509,13 @@ class MesaEntradaController extends Controller
                 'firmantes' => $row->firmantes->isNotEmpty() ? $row->firmantes->pluck('nombre')->join(', ') : 'N/A',
                 'destino' => $row->destino->nombre ?? 'N/A',
                 'observacion' => $row->observacion,
-                'estado' => $row->estado == '1' ? 'Recepcionado' : 'Enviado',
+                'estado' => $row->estado == 1 ? 'Recepcionado' : 'Enviado',
                 'usuario' => $row->user->name ?? 'N/A',
                 'acciones' => $actions,
             ];
         }
 
-        // Respuesta JSON
+        // Devolver respuesta JSON
         return response()->json([
             'draw' => intval($request->input('draw')),
             'recordsTotal' => $totalData,
@@ -1528,6 +1523,7 @@ class MesaEntradaController extends Controller
             'data' => $data,
         ]);
     }
+
 
 
 

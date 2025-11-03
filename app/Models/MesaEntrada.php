@@ -64,7 +64,7 @@ class MesaEntrada extends Model
    
     public function tipoDocR()
     {
-        return $this->belongsTo(TipoDocR::class, 'id_tipo_doc_r');
+        return $this->belongsTo(TipoDocR::class, 'id_tipo_docr');
     }
     /**
      * Get the destino record associated with the mesa_entrada.

@@ -113,7 +113,19 @@
                 serverSide: true,
                 ajax: {
                     url: '{{ route('mesas-entrada.data') }}',
-                    type: 'GET'
+                    type: 'GET',
+                    dataSrc: function(json) {
+                        console.log("✅ Respuesta del servidor:", json); // Ver el JSON recibido
+                        return json.data;
+                    },
+                    error: function(xhr, error, code) {
+                        console.error("❌ Error en la carga de datos:", xhr.responseText);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Hubo un problema al cargar los datos de la tabla. Revisa la consola para más detalles.'
+                        });
+                    }
                 },
                 responsive: true,
                 autoWidth: false,
@@ -163,26 +175,43 @@
                 ],
                 columnDefs: [{
                         orderable: false,
-                        targets: -1
-                    } // Deshabilitar orden en la última columna
+                        searchable: false,
+                        targets: [0, 12]
+                    },
+                    {
+                        className: 'text-center',
+                        targets: [0, 12]
+                    } // centra checkbox y acciones
                 ],
                 order: [
-                    //[1, 'desc'], // Ordenar por la columna 1 (Año) en orden descendente
-                    [0, 'desc'] // Luego por la columna 0 (Nro MEntrada) en orden descendente
-                ]
+                    [1, 'desc']
+                ], // Ordenar por nro_mentrada (columna 1)
+                language: {
+                    processing: "Cargando...",
+                    search: "Buscar:",
+                    lengthMenu: "Mostrar _MENU_ registros",
+                    info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
+                    infoEmpty: "No hay registros disponibles",
+                    infoFiltered: "(filtrado de _MAX_ registros totales)",
+                    paginate: {
+                        first: "Primero",
+                        last: "Último",
+                        next: "Siguiente",
+                        previous: "Anterior"
+                    },
+                    zeroRecords: "No se encontraron resultados"
+                }
             });
 
-
-            // Detener el envío del formulario y usar SweetAlert para confirmación
+            // Confirmación antes de enviar formularios (enviar)
             $(document).on('submit', '.enviar-form', function(e) {
-                e.preventDefault(); // Detiene el envío por defecto
-
-                var form = this; // Guarda referencia del formulario
+                e.preventDefault();
+                var form = this;
 
                 Swal.fire({
-                    title: 'Confirmar',
-                    text: '¿Estás seguro de que deseas enviar este formulario?',
-                    icon: 'warning',
+                    title: 'Confirmar envío',
+                    text: '¿Deseas enviar este formulario?',
+                    icon: 'question',
                     showCancelButton: true,
                     confirmButtonColor: '#3085d6',
                     cancelButtonColor: '#d33',
@@ -190,18 +219,19 @@
                     cancelButtonText: 'Cancelar'
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        form.submit(); // Envía el formulario si el usuario confirma
+                        form.submit();
                     }
                 });
             });
-            $(document).on('submit', '.delete-form', function(e) {
-                e.preventDefault(); // Detener el envío por defecto
 
-                var form = this; // Guarda referencia del formulario
+            // Confirmación antes de eliminar registros
+            $(document).on('submit', '.delete-form', function(e) {
+                e.preventDefault();
+                var form = this;
 
                 Swal.fire({
-                    title: 'Eliminar',
-                    text: '¿Estás seguro de que deseas eliminar este registro?',
+                    title: 'Eliminar registro',
+                    text: '¿Estás seguro de eliminar este registro?',
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonColor: '#d33',
@@ -210,11 +240,12 @@
                     cancelButtonText: 'Cancelar'
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        form.submit(); // Enviar el formulario si el usuario confirma
+                        form.submit();
                     }
                 });
             });
         });
+
 
 
 

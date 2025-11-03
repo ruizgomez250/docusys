@@ -28,7 +28,7 @@ Route::get('/home', function () {
     return view('home');
 })->name('home')->middleware('auth');
 
-
+Route::get('mesas-entrada/data', [MesaEntradaController::class, 'getData'])->name('mesas-entrada.data');
 //acceden los autenticados
 Route::middleware('auth')->group(function () {
     Route::resource('entidades', EntidadController::class);
@@ -81,7 +81,7 @@ Route::get('/sinpermiso', function () {
 
 
 
-Route::get('mesas-entrada/data', [MesaEntradaController::class, 'getData'])->name('mesas-entrada.data');
+//Route::get('mesas-entrada/data', [MesaEntradaController::class, 'getData'])->name('mesas-entrada.data');
 
 
 Route::get('/mesaentrada/reenviados/data', [MesaEntradaController::class, 'getDataRen'])
