@@ -85,4 +85,9 @@ class MesaEntrada extends Model
     {
         return $this->belongsToMany(Firmante::class, 'mesa_entrada_firmante', 'id_mentrada', 'id_firmante');
     }
+    public function mapaRecorridos()
+{
+    return $this->hasMany(MapaRecorrido::class, 'id_mentrada');
+}
+
 }

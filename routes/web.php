@@ -28,7 +28,7 @@ Route::get('/home', function () {
     return view('home');
 })->name('home')->middleware('auth');
 
-Route::get('mesas-entrada/data', [MesaEntradaController::class, 'getData'])->name('mesas-entrada.data');
+Route::get('mesas-entrada/data1', [MesaEntradaController::class, 'getData'])->name('recepcionadoData');
 //acceden los autenticados
 Route::middleware('auth')->group(function () {
     Route::resource('entidades', EntidadController::class);
@@ -72,6 +72,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/generar-planilla', [MesaEntradaController::class, 'generarReporte'])->name('generar-planilla');
     Route::get('/reportefechaspdf/{desde}/{hasta}/{idproducto?}/{tiporeporte}', [ReporteController::class, 'pdfreportes']);
     Route::get('/reportefechaspdfresumen/{desde}/{hasta}', [ReporteController::class, 'pdfreportesresumen']);
+
+    
+// Ruta AJAX para datos (devuelve JSON en formato DataTables)
+Route::get('/mesa-entrada/recepcionado/data2', [MesaEntradaController::class, 'recepcionadoData'])->name('mesaentrada.recepcionado.data');
 });
 Route::post('/verificar-duplicado', [MesaEntradaController::class, 'verificarDuplicado'])->name('verificar-duplicado');
 Route::get('/mesaentrada/firmantes/{id}', [MesaEntradaController::class, 'firmantes'])->name('mesaentrada.firmantes');
@@ -81,7 +85,7 @@ Route::get('/sinpermiso', function () {
 
 
 
-//Route::get('mesas-entrada/data', [MesaEntradaController::class, 'getData'])->name('mesas-entrada.data');
+Route::get('mesas-entrada/data', [MesaEntradaController::class, 'getData'])->name('mesas-entrada.data');
 
 
 Route::get('/mesaentrada/reenviados/data', [MesaEntradaController::class, 'getDataRen'])

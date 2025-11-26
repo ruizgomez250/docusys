@@ -17,7 +17,8 @@
         "realrashid/sweet-alert": "^7.0",
         "simplesoftwareio/simple-qrcode": "^4.2",
         "spatie/laravel-permission": "^6.9",
-        "tecnickcom/tcpdf": "^6.9"
+        "tecnickcom/tcpdf": "^6.9",
+        "yajra/laravel-datatables-oracle": "^10.11"
     },
     "require-dev": {
         "fakerphp/faker": "^1.9.1",
