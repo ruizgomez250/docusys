@@ -887,60 +887,68 @@ class MesaEntradaController extends Controller
     {
         try {
             DB::transaction(function () use ($request) {
-                // Validar los datos del formulario
-                $request->validate([
-                    'documento' => 'nullable|mimes:pdf,doc,docx|max:2048',
-                    'archivo' => 'nullable|mimes:zip,rar|max:2048',
-                    'link' => 'nullable|url',
-                    'observacion' => 'nullable|string|max:255',
-                    'descripcion' => 'nullable|string|max:255',
-                    'idmentrada1' => 'required|integer',
-                ]);
+
+                // Validación de los campos
+                    // $request->validate([
+                    //     'documento' => 'nullable|file|mimes:pdf,doc,docx|max:2048',
+                    //     'archivo'   => 'nullable|file|mimes:zip,rar|max:2048',
+                    //     'link'      => 'nullable|url',
+                    //     'observacion' => 'nullable|string|max:255',
+                    //     'descripcion' => 'nullable|string|max:255',
+                    //     'idmentrada1' => 'required|integer',
+                    // ]);
+
+
                 $userId = auth()->id();
-                // Obtener el ID de entrada
                 $idEntrada = $request->input('idmentrada1');
 
-                // Procesar el documento
+                // Inicializar variables de archivos
                 $documentoPath = null;
+                $archivoPath = null;
                 $nombreDocumento = null;
+                $nombreArchivo = null;
+
+                // Procesar PDF/DOC
                 if ($request->hasFile('documento')) {
                     $file = $request->file('documento');
                     $documentoPath = $this->handleFileUpload($file, 'documentos', $request->input('descripcion'));
                     $nombreDocumento = basename($documentoPath);
                 }
 
-                // Procesar el archivo
-                $archivoPath = null;
-                $nombreArchivo = null;
+                // Procesar ZIP/RAR
                 if ($request->hasFile('archivo')) {
                     $file = $request->file('archivo');
                     $archivoPath = $this->handleFileUpload($file, 'archivos', $request->input('descripcion'));
                     $nombreArchivo = basename($archivoPath);
                 }
 
-                // Asegurarse de que siempre haya un nombre de archivo
-                $nombreArchivoFinal = $nombreDocumento ?? $nombreArchivo;
+                // Determinar nombre y ruta final
+                $nombreArchivoFinal = $nombreDocumento ?? $nombreArchivo ?? 'Sin archivo';
+                $rutaArchivoFinal = $documentoPath ?? $archivoPath ?? null;
+
+                // Obtener el último ID de recorrido
                 $maxId = RecorridoDoc::where('id_mentrada', $idEntrada)->max('id');
+
                 // Crear el registro en la base de datos
-                $data = [
-                    'id_recorrido' => $maxId,
-                    'id_mentrada' => $idEntrada,
+                ArchivosDocumento::create([
+                    'id_recorrido'  => $maxId,
+                    'id_mentrada'   => $idEntrada,
                     'nombre_archivo' => $nombreArchivoFinal,
-                    'ruta_archivo' => $documentoPath ?? $archivoPath,
-                    'link' => $request->input('link'),
-                    'observacion' => $request->input('observacion'),
-                    'id_usuario' => $userId,
-                ];
-                // Imprimir los datos para depuración
-                ArchivosDocumento::create($data);
-                DB::commit();
+                    'ruta_archivo'  => $rutaArchivoFinal,
+                    'link'          => $request->input('link'),
+                    'observacion'   => $request->input('observacion'),
+                    'id_usuario'    => $userId,
+                ]);
             });
 
             return redirect()->route('recepciondoc')->with('success', 'Operación exitosa');
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
+            // Depuración del error
+            dd($request->all(), $e);
             return redirect()->route('recepciondoc')->with('error', 'Hubo un problema con la operación. Por favor, inténtelo de nuevo.');
         }
     }
+
 
     private function handleFileUpload($file, $folder, $description)
     {
