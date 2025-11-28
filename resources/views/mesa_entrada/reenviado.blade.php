@@ -55,6 +55,74 @@
                     }
                 });
             });
+
+            var table = $('#table1').DataTable({
+        processing: true,
+        serverSide: true,
+        ajax: {
+            url: '{{ route("mesaentrada.finalizado.data") }}',
+            type: 'GET',
+            dataSrc: function(json) {
+                console.log("✅ Respuesta:", json);
+                return json.data;
+            },
+            error: function(xhr) {
+                console.error("❌ Error:", xhr.responseText);
+                Swal.fire('Error', 'No se pudieron cargar los datos.', 'error');
+            }
+        },
+
+        responsive: true,
+        autoWidth: false,
+
+        columns: [
+            { data: 'nro_mentrada' },
+            { data: 'anho' },
+            { data: 'fecha' },
+            { data: 'origen' },
+            { data: 'descripcion' },
+            { data: 'tipo_doc' },
+            { data: 'firmantes' },
+            { data: 'observacion' },
+            { data: 'estado' },
+            { data: 'usuario' },
+            { data: 'acciones', orderable:false, searchable:false }
+        ],
+
+        order: [[0,'desc']],
+
+        language: {
+            processing: "Cargando...",
+            search: "Buscar:",
+            lengthMenu: "Mostrar _MENU_ registros",
+            info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
+            infoEmpty: "No hay registros",
+            paginate: {
+                first: "Primero",
+                last: "Último",
+                next: "Siguiente",
+                previous: "Anterior"
+            }
+        }
+    });
+
+    // ✅ CONFIRMACIÓN DE FORMULARIOS
+    $(document).on('click', '.enviar-button', function() {
+        let form = $(this).closest('form');
+
+        Swal.fire({
+            title: 'Confirmar',
+            text: '¿Deseas continuar?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, continuar',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                form.submit();
+            }
+        });
+    });
         });
     </script>
 @endpush
@@ -64,12 +132,12 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-body">
-                    <table id="table1" class="table table-bordered table-hover" theme="light">
+                    <table id="table1" class="table table-bordered table-hover">
                         <thead>
                             <tr>
                                 <th>Nro MEntrada</th>
                                 <th>Año</th>
-                                <th>Fecha Del Documento</th>
+                                <th>Fecha</th>
                                 <th>Origen</th>
                                 <th>Descripcion</th>
                                 <th>Tipo Doc.</th>
@@ -80,85 +148,9 @@
                                 <th>Acciones</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            @foreach ($mesasEntrada as $row)
-                                <tr data-child-id="{{ $row->id }}">
-                                    
-                                    <td>{{ $row->nro_mentrada }}</td>
-                                    <td>{{ $row->anho }}</td>
-                                    <td>{{ $row->fecha_recepcion }}</td>
-                                    <td>{{ $row->origen->nombre ?? 'N/A' }}</td>
-                                    <td>{{ $row->tipoDoc->nombre ?? 'N/A' }}</td>
-                                    <td>{{ $row->tipoDocR->nombre ?? 'N/A' }}</td>
-                                    <td>{{ $row->nombres_firmantes ?? 'N/A' }}</td>
-                                    <td>{{ $row->observacion }}</td>
-                                    <td class="{{ $row->estado == '2' ? 'text-danger' : 'text-success' }}">
-                                        @if ($row->estado == '2')
-                                            Recepcionado
-                                        @elseif ($row->estado == '3')
-                                            Aceptado
-                                        @else
-                                            Redireccionado
-                                        @endif
-                                    </td>
-                                    <td>{{ $row->user->name ?? 'N/A' }}</td>
-                                    <td style="float:right;">
-                                        @if ($row->estado == 2 && $row->mapa_estado == 1)
-                                            <form action="{{ route('mesaentrada.aceptar', $row->id) }}" method="post"
-                                                class="d-inline enviar-form">
-                                                @csrf
-                                                <button type="button"
-                                                    class="btn btn-sm  btn-outline-secondary enviar-button">
-                                                    <i class="fas fa-check"></i>
-                                                </button>
-                                            </form>
-                                        @elseif($row->estado == 2 && $row->mapa_estado == 2)
-                                            {{-- <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal"
-                                            data-bs-target="#modalDestinos">
-                                            <i class="fas fa-paper-plane"></i>
-                                        </button> --}}
-                                            <x-adminlte-button theme="outline-danger" data-toggle="modal"
-                                                data-target="#modalDestinos" class="btn-sm " icon="fas fa-paper-plane"
-                                                onclick="cargarmentrada({{ $row->id }})" />
-                                            <x-adminlte-button theme="outline-danger" data-toggle="modal"
-                                                data-target="#modalCargaDocs" onclick="cargarmentrada({{ $row->id }})"
-                                                class="btn-sm " icon="fas fa-file-upload" />
-                                            <form action="{{ route('mesaentrada.finalizar', $row->id) }}" method="post"
-                                                class="d-inline enviar-form">
-                                                @csrf
-                                                <button type="button"
-                                                    class="btn btn-sm  btn-outline-secondary enviar-button">
-                                                    <i class="fas fa-flag-checkered"></i>
-                                                </button>
-                                            </form>
-                                        @endif
-
-                                        <a href="{{ route('reporte.recorrido', $row) }}" target="_blank"
-                                            class="btn btn-sm btn-outline-secondary">
-                                            <i class="fa fa-file-pdf"></i>
-                                        </a>
-                                        @if ($row->tiene_documentos)
-                                            <button type="button" class="btn btn-sm btn-outline-secondary"
-                                                onclick="openDocumentosModal({{ $row->id }})">
-                                                <i class="fa fa-sm fa-fw fa-print"></i>
-                                            </button>
-                                        @endif
-
-                                        @if ($usuario->autorizar_modif == 1 && $row->modificar == 0)
-                                            <form action="{{ route('mesaentrada.autorizarmodif', $row->id) }}"
-                                                method="post" class="d-inline enviar-form">
-                                                @csrf
-                                                <button type="button"
-                                                    class="btn btn-sm  btn-outline-secondary enviar-button">
-                                                    <i class="fas fa-unlock"></i>
-                                                </button>
-                                            </form>
-                                        @endif
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
+                        <tbody></tbody>
                     </table>
+
                 </div>
             </div>
         </div>
@@ -188,23 +180,7 @@
     <script>
         $(document).ready(function() {
             // Inicialización de DataTables
-            var table = $('#table1').DataTable({
-                responsive: true,
-                autoWidth: false,
-                columnDefs: [{
-                        className: 'details-control', // Agrega clase de control de detalles
-                        orderable: false, // No se puede ordenar por esta columna
-                        targets: 0 // Índice de la columna de flechita
-                    },
-                    {
-                        orderable: false,
-                        targets: -1 // Última columna (acciones)
-                    }
-                ],
-                order: [
-                    [2, 'desc']
-                ], // Ordenar por el ID (columna 1)
-            });
+            
 
             // Función para generar HTML de detalles adicionales
             function format(details) {
@@ -232,7 +208,7 @@
                 return detalleHTML;
             }
 
-            
+
         });
 
         function setMasDestinos(value) {

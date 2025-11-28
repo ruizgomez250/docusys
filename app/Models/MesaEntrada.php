@@ -36,7 +36,7 @@ class MesaEntrada extends Model
         'nro_suplementario',
         'modificar',
     ];
-    
+
 
     /**
      * Get the user that owns the mesa_entrada.
@@ -61,7 +61,7 @@ class MesaEntrada extends Model
     {
         return $this->belongsTo(TipoDoc::class, 'id_tipo_doc');
     }
-   
+
     public function tipoDocR()
     {
         return $this->belongsTo(TipoDocR::class, 'id_tipo_docr');
@@ -77,17 +77,23 @@ class MesaEntrada extends Model
     {
         return $this->hasMany(RecorridoDoc::class, 'id_mentrada');
     }
+
     public function documentos()
     {
-        return $this->hasMany(ArchivosDocumento::class, 'id_mentrada');
+        return $this->hasMany(ArchivosDocumento::class, 'id_mentrada', 'id');
     }
+
     public function firmantes()
     {
         return $this->belongsToMany(Firmante::class, 'mesa_entrada_firmante', 'id_mentrada', 'id_firmante');
     }
     public function mapaRecorridos()
-{
-    return $this->hasMany(MapaRecorrido::class, 'id_mentrada');
-}
-
+    {
+        return $this->hasMany(MapaRecorrido::class, 'id_mentrada');
+    }
+    public function ultimoRecorrido()
+    {
+        return $this->hasOne(MapaRecorrido::class, 'id_mentrada', 'id')
+            ->latest('created_at'); // trae el último por fecha
+    }
 }

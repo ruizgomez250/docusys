@@ -534,6 +534,142 @@ class MesaEntradaController extends Controller
             ->get();
         return view('mesa_entrada.finalizado', ['mesasEntrada' => $mesasEntrada, 'destinos' => $destinos, 'heads' => $heads]);
     }
+    public function finalizadoData(Request $request)
+    {
+        $userId = auth()->id();
+
+        $userDestino = UserDestino::where('user_id', $userId)->first();
+
+        if (!$userDestino) {
+            return response()->json([
+                'draw' => intval($request->draw),
+                'recordsTotal' => 0,
+                'recordsFiltered' => 0,
+                'data' => [],
+            ]);
+        }
+
+        $iddest = $userDestino->destino_id;
+
+        // ✅ QUERY BASE
+        $query = MesaEntrada::whereIn('id', function ($q) use ($iddest) {
+            $q->select('me.id')
+                ->from('mesa_entrada as me')
+                ->join('mapa_recorrido as mr', 'mr.id_mentrada', '=', 'me.id')
+                ->where('mr.id_actual', $iddest)
+                ->where('mr.estado', 0);
+        })
+            ->with([
+                'documentos:id,id_mentrada',
+                'user:id,name',
+                'firmantes:id,nombre',
+                // Traemos el último recorrido desde mapa_recorrido
+                'ultimoRecorrido' => function ($q) {
+                    $q->select('id', 'id_mentrada', 'id_actual', 'estado')
+                        ->orderBy('created_at', 'desc');
+                },
+                'origen:id,nombre',
+                'tipoDoc:id,nombre',
+                'tipoDocR:id,nombre',
+            ])
+            ->select('mesa_entrada.*');
+
+        // ✅ TOTAL REGISTROS
+        $total = $query->count();
+
+        // ✅ PAGINACIÓN DATATABLES
+        $start  = $request->start ?? 0;
+        $length = $request->length ?? 10;
+
+        $data = $query
+            ->orderBy('id', 'desc')
+            ->skip($start)
+            ->take($length)
+            ->get()
+            ->map(function ($row) {
+
+                $nombresFirmantes = $row->firmantes->pluck('nombre')->implode(', ');
+                $tieneDocumentos  = $row->documentos->isNotEmpty();
+
+                // ✅ ESTADO VISUAL según el último recorrido
+                $ultimoRecorrido = $row->ultimoRecorrido->first();
+                $estadoRecorrido = $ultimoRecorrido->estado ?? null;
+
+                if ($estadoRecorrido === 0) {
+                    $estadoTexto = '<span class="text-warning">Redireccionado</span>';
+                } elseif ($row->estado == 2) {
+                    $estadoTexto = '<span class="text-danger">Recepcionado</span>';
+                } elseif ($row->estado == 3) {
+                    $estadoTexto = '<span class="text-success">Aceptado</span>';
+                } else {
+                    $estadoTexto = '<span class="text-secondary">Desconocido</span>';
+                }
+
+                // ✅ BOTONES
+                $acciones = '';
+
+                if ($row->estado == 2) {
+                    $acciones .= '
+                <form action="' . route('mesaentrada.aceptar', $row->id) . '" method="post" class="d-inline enviar-form">
+                    ' . csrf_field() . '
+                    <button type="button" class="btn btn-sm btn-outline-secondary enviar-button">
+                        <i class="fas fa-check"></i>
+                    </button>
+                </form>';
+                }
+
+                $acciones .= '
+                <button class="btn btn-sm btn-outline-danger" data-toggle="modal"
+                        data-target="#modalDestinos"
+                        onclick="cargarmentrada(' . $row->id . ')">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+
+                <button class="btn btn-sm btn-outline-danger" data-toggle="modal"
+                        data-target="#modalCargaDocs"
+                        onclick="cargarmentrada(' . $row->id . ')">
+                    <i class="fas fa-file-upload"></i>
+                </button>
+
+                <a href="' . route('reporte.recorrido', $row->id) . '" target="_blank"
+                   class="btn btn-sm btn-outline-secondary">
+                    <i class="fa fa-file-pdf"></i>
+                </a>';
+
+                if ($tieneDocumentos) {
+                    $acciones .= '
+                <button type="button" class="btn btn-sm btn-outline-secondary"
+                        onclick="openDocumentosModal(' . $row->id . ')">
+                    <i class="fa fa-print"></i>
+                </button>';
+                }
+
+                return [
+                    'nro_mentrada' => $row->nro_mentrada,
+                    'anho'         => $row->anho,
+                    'fecha'        => $row->fecha_recepcion,
+                    'origen'       => $row->origen->nombre ?? 'N/A',
+                    'descripcion'  => $row->tipoDoc->nombre ?? 'N/A',
+                    'tipo_doc'     => $row->tipoDocR->nombre ?? 'N/A',
+                    'firmantes'    => $nombresFirmantes,
+                    'observacion'  => $row->observacion,
+                    'estado'       => $estadoTexto,
+                    'usuario'      => $row->user->name ?? 'N/A',
+                    'acciones'     => $acciones,
+                ];
+            });
+
+        return response()->json([
+            'draw'            => intval($request->draw),
+            'recordsTotal'    => $total,
+            'recordsFiltered' => $total,
+            'data'            => $data,
+        ]);
+    }
+
+
+
+
     /**
      * Show the form for creating a new resource.
      */
@@ -1774,7 +1910,7 @@ class MesaEntradaController extends Controller
                 ->distinct();
         })
             ->with([
-                'documentos:id,mesa_entrada_id',
+                'documentos:id,id_mentrada',
                 'recorridoDocs' => function ($q) {
                     $q->orderBy('created_at', 'desc')
                         ->with('destino:id,nombre');

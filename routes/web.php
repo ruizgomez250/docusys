@@ -76,6 +76,7 @@ Route::middleware('auth')->group(function () {
     
 // Ruta AJAX para datos (devuelve JSON en formato DataTables)
 Route::get('/mesa-entrada/recepcionado/data2', [MesaEntradaController::class, 'recepcionadoData'])->name('mesaentrada.recepcionado.data');
+Route::get('/mesa-entrada/recepcionado/finalizadodata', [MesaEntradaController::class, 'finalizadoData'])->name('mesaentrada.finalizado.data');
 });
 Route::post('/verificar-duplicado', [MesaEntradaController::class, 'verificarDuplicado'])->name('verificar-duplicado');
 Route::get('/mesaentrada/firmantes/{id}', [MesaEntradaController::class, 'firmantes'])->name('mesaentrada.firmantes');
