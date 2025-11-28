@@ -562,19 +562,42 @@ class MesaEntradaController extends Controller
                 'documentos:id,id_mentrada',
                 'user:id,name',
                 'firmantes:id,nombre',
-                // Traemos el último recorrido desde mapa_recorrido
-                'ultimoRecorrido' => function ($q) {
-                    $q->select('id', 'id_mentrada', 'id_actual', 'estado')
-                        ->orderBy('created_at', 'desc');
-                },
                 'origen:id,nombre',
                 'tipoDoc:id,nombre',
                 'tipoDocR:id,nombre',
+                'ultimoRecorrido' => function ($q) {
+                    $q->select('id', 'id_mentrada', 'id_actual', 'estado', 'created_at')
+                        ->orderBy('created_at', 'desc');
+                },
             ])
             ->select('mesa_entrada.*');
 
+        // ✅ BÚSQUEDA GLOBAL
+        $search = $request->input('search.value');
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('mesa_entrada.nro_mentrada', 'like', "%{$search}%")
+                    ->orWhere('mesa_entrada.anho', 'like', "%{$search}%")
+                    ->orWhere('mesa_entrada.fecha_recepcion', 'like', "%{$search}%")
+                    ->orWhereHas('origen', fn($q2) => $q2->where('nombre', 'like', "%{$search}%"))
+                    ->orWhereHas('tipoDoc', fn($q2) => $q2->where('nombre', 'like', "%{$search}%"))
+                    ->orWhereHas('tipoDocR', fn($q2) => $q2->where('nombre', 'like', "%{$search}%"))
+                    ->orWhereHas('firmantes', fn($q2) => $q2->where('nombre', 'like', "%{$search}%"))
+                    ->orWhere('observacion', 'like', "%{$search}%")
+                    ->orWhereHas('user', fn($q2) => $q2->where('name', 'like', "%{$search}%"));
+            });
+        }
+
         // ✅ TOTAL REGISTROS
-        $total = $query->count();
+        $recordsTotal = MesaEntrada::whereIn('id', function ($q) use ($iddest) {
+            $q->select('me.id')
+                ->from('mesa_entrada as me')
+                ->join('mapa_recorrido as mr', 'mr.id_mentrada', '=', 'me.id')
+                ->where('mr.id_actual', $iddest)
+                ->where('mr.estado', 0);
+        })->count();
+
+        $recordsFiltered = $query->count();
 
         // ✅ PAGINACIÓN DATATABLES
         $start  = $request->start ?? 0;
@@ -590,30 +613,22 @@ class MesaEntradaController extends Controller
                 $nombresFirmantes = $row->firmantes->pluck('nombre')->implode(', ');
                 $tieneDocumentos  = $row->documentos->isNotEmpty();
 
-                // ✅ ESTADO VISUAL según el último recorrido
+                // ✅ ESTADO VISUAL según último recorrido
                 $ultimoRecorrido = $row->ultimoRecorrido->first();
                 $estadoRecorrido = $ultimoRecorrido->estado ?? null;
 
                 if ($estadoRecorrido === 0) {
                     $estadoTexto = '<span class="text-warning">Redireccionado</span>';
-                } elseif ($row->estado == 2) {
+                } elseif ($estadoRecorrido == 2) {
                     $estadoTexto = '<span class="text-danger">Recepcionado</span>';
-                } elseif ($row->estado == 3) {
+                } elseif ($estadoRecorrido == 3) {
                     $estadoTexto = '<span class="text-success">Aceptado</span>';
                 } else {
                     $estadoTexto = '<span class="text-secondary">Desconocido</span>';
                 }
 
                 // ✅ BOTONES
-                $acciones = '';
-
-                
-
-                $acciones .= '
-                
-
-               
-
+                $acciones = '
                 <a href="' . route('reporte.recorrido', $row->id) . '" target="_blank"
                    class="btn btn-sm btn-outline-secondary">
                     <i class="fa fa-file-pdf"></i>
@@ -644,11 +659,12 @@ class MesaEntradaController extends Controller
 
         return response()->json([
             'draw'            => intval($request->draw),
-            'recordsTotal'    => $total,
-            'recordsFiltered' => $total,
+            'recordsTotal'    => $recordsTotal,
+            'recordsFiltered' => $recordsFiltered,
             'data'            => $data,
         ]);
     }
+
 
 
 
