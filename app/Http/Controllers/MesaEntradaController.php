@@ -447,54 +447,53 @@ class MesaEntradaController extends Controller
         $destinos = Destino::select('id', 'nombre')->get();
 
         // Consulta principal optimizada
-        $mesasEntrada = MesaEntrada::whereIn('id', function ($query) use ($iddest) {
-            $query->select('me.id')
-                ->from('mesa_entrada as me')
-                ->join('mapa_recorrido as mr', 'mr.id_mentrada', '=', 'me.id')
-                ->where('mr.id_actual', $iddest)
-                ->where('mr.estado', 0)
-                ->distinct();
-        })
-            ->with([
-                'documentos' => function ($query) {
-                    $query->select('id', 'mesa_entrada_id'); // Solo campos necesarios
-                },
-                'recorridoDocs' => function ($query) {
-                    $query->orderBy('created_at', 'desc')
-                        ->with(['destino' => function ($q) {
-                            $q->select('id', 'nombre');
-                        }]);
-                },
-                'user' => function ($query) {
-                    $query->select('id', 'name'); // Solo campos necesarios
-                },
-                'firmantes' => function ($query) {
-                    $query->select('firmantes.id', 'firmantes.nombre', 'mesa_entrada_firmante.id_mentrada')
-                        ->join('mesa_entrada_firmante', 'firmantes.id', '=', 'mesa_entrada_firmante.id_firmante');
-                }
-            ])
-            ->select('mesa_entrada.*') // Especificar campos si es necesario
-            ->cursor() // Procesamiento eficiente sin cargar todo en memoria
-            ->map(function ($mesaEntrada) {
-                // Verificar si tiene documentos
-                $mesaEntrada->tiene_documentos = $mesaEntrada->documentos->isNotEmpty();
+        // $mesasEntrada = MesaEntrada::whereIn('id', function ($query) use ($iddest) {
+        //     $query->select('me.id')
+        //         ->from('mesa_entrada as me')
+        //         ->join('mapa_recorrido as mr', 'mr.id_mentrada', '=', 'me.id')
+        //         ->where('mr.id_actual', $iddest)
+        //         ->where('mr.estado', 0)
+        //         ->distinct();
+        // })
+        //     ->with([
+        //         'documentos' => function ($query) {
+        //             $query->select('id', 'mesa_entrada_id'); // Solo campos necesarios
+        //         },
+        //         'recorridoDocs' => function ($query) {
+        //             $query->orderBy('created_at', 'desc')
+        //                 ->with(['destino' => function ($q) {
+        //                     $q->select('id', 'nombre');
+        //                 }]);
+        //         },
+        //         'user' => function ($query) {
+        //             $query->select('id', 'name'); // Solo campos necesarios
+        //         },
+        //         'firmantes' => function ($query) {
+        //             $query->select('firmantes.id', 'firmantes.nombre', 'mesa_entrada_firmante.id_mentrada')
+        //                 ->join('mesa_entrada_firmante', 'firmantes.id', '=', 'mesa_entrada_firmante.id_firmante');
+        //         }
+        //     ])
+        //     ->select('mesa_entrada.*') // Especificar campos si es necesario
+        //     ->cursor() // Procesamiento eficiente sin cargar todo en memoria
+        //     ->map(function ($mesaEntrada) {
+        //         // Verificar si tiene documentos
+        //         $mesaEntrada->tiene_documentos = $mesaEntrada->documentos->isNotEmpty();
 
-                // Obtener información del último recorrido
-                $ultimoRecorrido = $mesaEntrada->recorridoDocs->first();
-                $mesaEntrada->fecha_creacion_recorrido = optional($ultimoRecorrido)->created_at;
-                $mesaEntrada->estado_recorrido = optional($ultimoRecorrido)->estado;
-                $mesaEntrada->destino_nombre = optional($ultimoRecorrido->destino)->nombre;
+        //         // Obtener información del último recorrido
+        //         $ultimoRecorrido = $mesaEntrada->recorridoDocs->first();
+        //         $mesaEntrada->fecha_creacion_recorrido = optional($ultimoRecorrido)->created_at;
+        //         $mesaEntrada->estado_recorrido = optional($ultimoRecorrido)->estado;
+        //         $mesaEntrada->destino_nombre = optional($ultimoRecorrido->destino)->nombre;
 
-                // Concatenar nombres de firmantes
-                $mesaEntrada->nombres_firmantes = $mesaEntrada->firmantes
-                    ->pluck('nombre')
-                    ->implode(', ');
+        //         // Concatenar nombres de firmantes
+        //         $mesaEntrada->nombres_firmantes = $mesaEntrada->firmantes
+        //             ->pluck('nombre')
+        //             ->implode(', ');
 
-                return $mesaEntrada;
-            });
+        //         return $mesaEntrada;
+        //     });
 
         return view('mesa_entrada.reenviado', [
-            'mesasEntrada' => $mesasEntrada,
             'destinos' => $destinos,
             'heads' => $heads,
             'usuario' => $usuario
