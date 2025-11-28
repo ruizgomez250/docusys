@@ -259,7 +259,12 @@ class MesaEntradaController extends Controller
         // =========================
         // TOTAL
         // =========================
-        $recordsTotal = $query->count();
+        $recordsTotal = MesaEntrada::join('mapa_recorrido', 'mesa_entrada.id', '=', 'mapa_recorrido.id_mentrada')
+            ->where('mapa_recorrido.estado', '!=', 0)
+            ->where('mapa_recorrido.id_actual', $iddest)
+            ->count();
+        $recordsFiltered = $recordsTotal;
+
 
         // =========================
         // PAGINACIÓN
@@ -369,7 +374,7 @@ class MesaEntradaController extends Controller
         return response()->json([
             'draw' => intval($request->draw),
             'recordsTotal' => $recordsTotal,
-            'recordsFiltered' => $recordsTotal,
+            'recordsFiltered' => $recordsFiltered,
             'data' => $data
         ]);
     }
@@ -889,14 +894,14 @@ class MesaEntradaController extends Controller
             DB::transaction(function () use ($request) {
 
                 // Validación de los campos
-                    // $request->validate([
-                    //     'documento' => 'nullable|file|mimes:pdf,doc,docx|max:2048',
-                    //     'archivo'   => 'nullable|file|mimes:zip,rar|max:2048',
-                    //     'link'      => 'nullable|url',
-                    //     'observacion' => 'nullable|string|max:255',
-                    //     'descripcion' => 'nullable|string|max:255',
-                    //     'idmentrada1' => 'required|integer',
-                    // ]);
+                // $request->validate([
+                //     'documento' => 'nullable|file|mimes:pdf,doc,docx|max:2048',
+                //     'archivo'   => 'nullable|file|mimes:zip,rar|max:2048',
+                //     'link'      => 'nullable|url',
+                //     'observacion' => 'nullable|string|max:255',
+                //     'descripcion' => 'nullable|string|max:255',
+                //     'idmentrada1' => 'required|integer',
+                // ]);
 
 
                 $userId = auth()->id();
