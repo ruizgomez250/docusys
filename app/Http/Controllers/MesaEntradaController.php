@@ -608,28 +608,12 @@ class MesaEntradaController extends Controller
                 // ✅ BOTONES
                 $acciones = '';
 
-                if ($row->estado == 2) {
-                    $acciones .= '
-                <form action="' . route('mesaentrada.aceptar', $row->id) . '" method="post" class="d-inline enviar-form">
-                    ' . csrf_field() . '
-                    <button type="button" class="btn btn-sm btn-outline-secondary enviar-button">
-                        <i class="fas fa-check"></i>
-                    </button>
-                </form>';
-                }
+                
 
                 $acciones .= '
-                <button class="btn btn-sm btn-outline-danger" data-toggle="modal"
-                        data-target="#modalDestinos"
-                        onclick="cargarmentrada(' . $row->id . ')">
-                    <i class="fas fa-paper-plane"></i>
-                </button>
+                
 
-                <button class="btn btn-sm btn-outline-danger" data-toggle="modal"
-                        data-target="#modalCargaDocs"
-                        onclick="cargarmentrada(' . $row->id . ')">
-                    <i class="fas fa-file-upload"></i>
-                </button>
+               
 
                 <a href="' . route('reporte.recorrido', $row->id) . '" target="_blank"
                    class="btn btn-sm btn-outline-secondary">
