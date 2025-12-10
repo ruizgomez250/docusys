@@ -134,9 +134,9 @@ class ReporteController extends Controller
             me.fecha_recepcion,
             me.observacion
         FROM mesa_entrada me
-        INNER JOIN tipo_docsr td ON td.id = me.id_tipo_doc_r
+        INNER JOIN tipo_docsr td ON td.id = me.id_tipo_docr
         WHERE me.id_origen = ? AND me.fecha_recepcion BETWEEN ? AND ?
-        GROUP BY me.id_tipo_doc_r, td.nombre,me.nro_mentrada,me.id,me.fecha_recepcion,me.observacion,me.id_origen
+        GROUP BY me.id_tipo_docr, td.nombre,me.nro_mentrada,me.id,me.fecha_recepcion,me.observacion,me.id_origen
         ORDER BY total_por_tipo DESC;
     ";
             
@@ -152,9 +152,9 @@ class ReporteController extends Controller
             me.fecha_recepcion,
             me.observacion
         FROM mesa_entrada me
-        INNER JOIN tipo_docsr td ON td.id = me.id_tipo_doc_r
-        WHERE me.id_tipo_doc_r = ? AND me.fecha_recepcion BETWEEN ? AND ?
-        GROUP BY me.id_tipo_doc_r, td.nombre,me.nro_mentrada,me.id,me.fecha_recepcion,me.observacion,me.id_tipo_doc_r
+        INNER JOIN tipo_docsr td ON td.id = me.id_tipo_docr
+        WHERE me.id_tipo_docr = ? AND me.fecha_recepcion BETWEEN ? AND ?
+        GROUP BY me.id_tipo_docr, td.nombre,me.nro_mentrada,me.id,me.fecha_recepcion,me.observacion,me.id_tipo_docr
         ORDER BY total_por_tipo DESC;
     ";
           $documentosporfechas = DB::select($sql, [ $id,$fechadesde, $fechahasta]);  
@@ -168,9 +168,9 @@ class ReporteController extends Controller
             me.fecha_recepcion,
             me.observacion
         FROM mesa_entrada me
-        INNER JOIN tipo_docsr td ON td.id = me.id_tipo_doc_r
+        INNER JOIN tipo_docsr td ON td.id = me.id_tipo_docr
         WHERE me.fecha_recepcion BETWEEN ? AND ?
-        GROUP BY me.id_tipo_doc_r, td.nombre,me.nro_mentrada,me.id,me.fecha_recepcion,me.observacion
+        GROUP BY me.id_tipo_docr, td.nombre,me.nro_mentrada,me.id,me.fecha_recepcion,me.observacion
         ORDER BY total_por_tipo DESC;
     ";
             $documentosporfechas = DB::select($sql, [$fechadesde, $fechahasta]);
