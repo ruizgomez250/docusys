@@ -304,13 +304,13 @@ class ReporteController extends Controller
         //     ->groupBy('mesa_entrada.id_tipo_doc', 'tipo_docs.nombre')
         //     ->get();
         $documentosporfechas = MesaEntrada::select(
-            'mesa_entrada.id_tipo_doc_r',
+            'mesa_entrada.id_tipo_docr',
             'tipo_docsr.nombre',
             DB::raw('COUNT(*) as total_por_tipo')
         )
-            ->join('tipo_docsr', 'tipo_docsr.id', '=', 'mesa_entrada.id_tipo_doc_r')
+            ->join('tipo_docsr', 'tipo_docsr.id', '=', 'mesa_entrada.id_tipo_docr')
             ->whereBetween('mesa_entrada.fecha_recepcion', [$desde, $hasta])
-            ->groupBy('mesa_entrada.id_tipo_doc_r', 'tipo_docsr.nombre')
+            ->groupBy('mesa_entrada.id_tipo_docr', 'tipo_docsr.nombre')
             ->get();
 
         $pdf = new \TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
