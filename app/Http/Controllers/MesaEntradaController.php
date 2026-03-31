@@ -1520,7 +1520,16 @@ class MesaEntradaController extends Controller
             return redirect()->route('recepciondoc')->with('success', 'Mesa de Entrada actualizada.');
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->route('recepciondoc')->with('error', 'Ocurrió un error inesperado.');
+
+            // Obtener solo lo más importante
+            $mensajeError = $e->getMessage();
+            $archivo = basename($e->getFile());  // Solo el nombre del archivo, no la ruta completa
+            $linea = $e->getLine();
+
+            return redirect()->route('recepciondoc')->with(
+                'error',
+                "Error: {$mensajeError} (Archivo: {$archivo}, Línea: {$linea})"
+            );
         }
     }
 
