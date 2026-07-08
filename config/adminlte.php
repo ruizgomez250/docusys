@@ -22,7 +22,7 @@ return [
     |
     */
 
-    'title' => 'DocuSys',
+    'title' => 'Sistema de Trazabilidad Documental',
     'title_prefix' => '',
     'title_postfix' => '',
 
@@ -58,6 +58,8 @@ return [
     'google_fonts' => [
         'allowed' => true,
     ],
+
+    'google_fonts_url' => 'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap',
 
     /*
     |--------------------------------------------------------------------------
@@ -97,8 +99,8 @@ return [
             'path' => 'vendor/adminlte/dist/img/camara.png',
             'alt' => 'Auth Logo',
             'class' => '',
-            'width' => 180,
-            'height' => 180,
+            'width' => 90,
+            'height' => 90,
         ],
     ],
 
@@ -175,12 +177,12 @@ return [
     |
     */
 
-    'classes_auth_card' => 'card-outline card-purple',
+    'classes_auth_card' => 'card-outline card-primary',
     'classes_auth_header' => '',
     'classes_auth_body' => '',
     'classes_auth_footer' => '',
     'classes_auth_icon' => '',
-    'classes_auth_btn' => 'btn-flat btn-primary',
+    'classes_auth_btn' => 'btn-primary',
 
     /*
     |--------------------------------------------------------------------------
@@ -200,7 +202,7 @@ return [
     'classes_content_wrapper' => '',
     'classes_content_header' => '',
     'classes_content' => '',
-    'classes_sidebar' => 'sidebar-dark-primary elevation-4',
+    'classes_sidebar' => 'sidebar-dark-primary elevation-4 sidebar-modern',
     'classes_sidebar_nav' => '',
     'classes_topnav' => 'navbar-white navbar-light',
     'classes_topnav_nav' => 'navbar-expand',
@@ -437,6 +439,28 @@ return [
                 ],
             ],
         ],
+        [
+            'text'       => 'Dirección Proy. Estudio',
+            'icon'       => 'fas fa-project-diagram',
+            'icon_color' => 'secondary',
+            'classes' => 'custom-icon-box-black',
+            'content' => '<i class="fas fa-box"></i>',
+            'can'  => 'Proyectos en Estudio',
+            'submenu'        => [
+                [
+                    'text' => 'Lista de Documentos',
+                    'url'  => '/proyectos-en-estudio',
+                ],
+                [
+                    'text' => 'Proyectos Creados',
+                    'url'  => '/proyectos-en-estudio/listado',
+                ],
+                [
+                    'text' => 'Configuración',
+                    'url'  => '/proyectos-en-estudio/configuracion',
+                ],
+            ],
+        ],
         
 
         ['header' => 'account_settings'],
@@ -579,6 +603,16 @@ return [
                     'type' => 'css',
                     'asset' => true,
                     'location' => 'vendor/micss/mystyles.css',
+                ],
+            ],
+        ],
+        'modern' => [
+            'active' => true,
+            'files' => [
+                [
+                    'type' => 'css',
+                    'asset' => true,
+                    'location' => 'vendor/micss/modern.css',
                 ],
             ],
         ],

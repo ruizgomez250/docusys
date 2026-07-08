@@ -25,7 +25,16 @@ Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name
 
 
 Route::get('/home', function () {
-    return view('home');
+    $totalDocumentos = \App\Models\MesaEntrada::count();
+    $documentosHoy = \App\Models\MesaEntrada::whereDate('fecha_recepcion', \Carbon\Carbon::today())->count();
+    $pendientes = \App\Models\MesaEntrada::whereHas('mapaRecorridos', function ($q) {
+        $q->where('estado', 0);
+    })->count();
+    $finalizados = \App\Models\MesaEntrada::whereHas('mapaRecorridos', function ($q) {
+        $q->where('estado', '!=', 0);
+    })->count();
+
+    return view('home', compact('totalDocumentos', 'documentosHoy', 'pendientes', 'finalizados'));
 })->name('home')->middleware('auth');
 
 Route::get('mesas-entrada/data1', [MesaEntradaController::class, 'getData'])->name('recepcionadoData');
@@ -50,13 +59,26 @@ Route::middleware('auth')->group(function () {
     Route::get('/reporte/multiple', [ReporteController::class, 'generateMultipleReport'])
      ->name('reporte.multiple');
     Route::get('/autocomplete/firmante',  [AutocompleteController::class, 'getfirmante'])->name('obtenerfirmante');
+Route::get('/autocomplete/observacion',  [AutocompleteController::class, 'getObservacion'])->name('obtenerobservacion');
     Route::post('mesaentrada/{id}/enviar', [MesaEntradaController::class, 'enviar'])->name('mesaentrada.enviar');
     Route::post('mesaentrada/{id}/aceptar', [MesaEntradaController::class, 'aceptar'])->name('mesaentrada.aceptar');
     Route::post('mesaentrada/{id}/finalizar', [MesaEntradaController::class, 'finalizar'])->name('mesaentrada.finalizar');
     Route::post('reenviardoc', [MesaEntradaController::class, 'reenviardoc'])->name('reenviardoc');
     Route::post('mesaentrada/{id}/redirigir', [MesaEntradaController::class, 'redirigir'])->name('mesaentrada.redirigir');
     Route::post('/mesaentrada/storedocs', [MesaEntradaController::class, 'storedocs'])->name('mesaentrada.storedocs');
-    Route::get('/profile', [App\Http\Controllers\ProfileController::class, 'show'])->name('profile.show');
+    Route::get('/proyectos-en-estudio', [App\Http\Controllers\ProyectosEnEstudioController::class, 'index'])->name('proyectos-en-estudio.index');
+    Route::get('/proyectos-en-estudio/data', [App\Http\Controllers\ProyectosEnEstudioController::class, 'recepcionadoData'])->name('proyectos-en-estudio.data');
+    Route::get('/proyectos-en-estudio/listado', [App\Http\Controllers\ProyectosEnEstudioController::class, 'listado'])->name('proyectos-en-estudio.listado');
+    Route::get('/proyectos-en-estudio/listado-data', [App\Http\Controllers\ProyectosEnEstudioController::class, 'listadoData'])->name('proyectos-en-estudio.listado-data');
+    Route::get('/proyectos-en-estudio/crear/{id_mentrada}', [App\Http\Controllers\ProyectosEnEstudioController::class, 'create'])->name('proyectos-en-estudio.create');
+    Route::get('/proyectos-en-estudio/configuracion', [App\Http\Controllers\ProyectosEnEstudioController::class, 'configuracion'])->name('proyectos-en-estudio.configuracion');
+    Route::post('/proyectos-en-estudio/configuracion', [App\Http\Controllers\ProyectosEnEstudioController::class, 'updateConfiguracion'])->name('proyectos-en-estudio.update-config');
+    Route::get('/proyectos-en-estudio/{id}/pdf', [App\Http\Controllers\ProyectosEnEstudioController::class, 'downloadPDF'])->name('proyectos-en-estudio.pdf');
+    Route::get('/proyectos-en-estudio/{id}/word', [App\Http\Controllers\ProyectosEnEstudioController::class, 'downloadWord'])->name('proyectos-en-estudio.word');
+    Route::get('/proyectos-en-estudio/{id}', [App\Http\Controllers\ProyectosEnEstudioController::class, 'show'])->name('proyectos-en-estudio.show');
+    Route::put('/proyectos-en-estudio/{id}', [App\Http\Controllers\ProyectosEnEstudioController::class, 'update'])->name('proyectos-en-estudio.update');
+    Route::delete('/proyectos-en-estudio/{id}', [App\Http\Controllers\ProyectosEnEstudioController::class, 'destroy'])->name('proyectos-en-estudio.destroy');
+Route::get('/profile', [App\Http\Controllers\ProfileController::class, 'show'])->name('profile.show');
     Route::get('/profile/edit', [App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile/update', [App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
     Route::get('/profiles', [ProfilesController::class, 'index'])->name('profiles');

@@ -1544,9 +1544,12 @@ class MesaEntradaController extends Controller
         $pdf->Ln(25);
 
         // Insertar marca de agua
-        $pdf->SetAlpha(0.3); // Establece la opacidad al 10%
-        $pdf->Image('vendor/adminlte/dist/img/icono camara.png', 10, 50, 190); // Ajusta la posición y tamaño de la imagen
-        $pdf->SetAlpha(1); // Restablece la opacidad al 100%
+        $watermarkPath = public_path('vendor/adminlte/dist/img/icono camara.png');
+        if (file_exists($watermarkPath)) {
+            $pdf->SetAlpha(0.2);
+            $pdf->Image($watermarkPath, 10, 50, 190, '', 'PNG', '', '', false, 300, '', false, false, 0, false, false, false);
+            $pdf->SetAlpha(1);
+        }
         // Establecer título del documento
         $pdf->SetTextColor(0, 0, 0);
         $pdf->SetTitle('Recorrido del Documento');
@@ -1656,7 +1659,7 @@ class MesaEntradaController extends Controller
             if ($pdf->getPage() > $currentPage) {
                 // Insertar marca de agua
                 $pdf->SetAlpha(0.3); // Establece la opacidad al 10%
-                $pdf->Image('vendor/adminlte/dist/img/icono camara.png', 10, 50, 190); // Ajusta la posición y tamaño de la imagen
+                $pdf->Image(public_path('vendor/adminlte/dist/img/icono camara.png'), 10, 50, 190); // Ajusta la posición y tamaño de la imagen
                 $pdf->SetAlpha(1); // Restablece la opacidad al 100%
             }
         }
@@ -1695,7 +1698,7 @@ class MesaEntradaController extends Controller
         $pdf->SetFont('Times', '', 12);
         $pdf->AddPage();
         $pdf->SetAlpha(0.3); // Establece la opacidad al 10%
-        $pdf->Image('vendor/adminlte/dist/img/icono camara.png', 10, 50, 190); // Ajusta la posición y tamaño de la imagen
+        $pdf->Image(public_path('vendor/adminlte/dist/img/icono camara.png'), 10, 50, 190); // Ajusta la posición y tamaño de la imagen
         $pdf->SetAlpha(1); // Restablece la opacidad al 100%
         // Título del reporte
         $pdf->SetFont('Times', 'B', 14);
@@ -1728,7 +1731,7 @@ class MesaEntradaController extends Controller
             if ($pdf->getPage() > $currentPage) {
                 // Insertar marca de agua cuando cambie de página
                 $pdf->SetAlpha(0.3); // Establecer la opacidad al 30%
-                $pdf->Image('vendor/adminlte/dist/img/icono camara.png', 10, 50, 190); // Ajusta la posición y tamaño de la imagen
+                $pdf->Image(public_path('vendor/adminlte/dist/img/icono camara.png'), 10, 50, 190); // Ajusta la posición y tamaño de la imagen
                 $pdf->SetAlpha(1); // Restablecer la opacidad al 100%
 
                 // Actualizar la página actual

@@ -335,6 +335,33 @@
             itemn--;
 
         }
+        $('textarea[name="observacion"]').autocomplete({
+            minLength: 2,
+            source: function(request, response) {
+                $.ajax({
+                    url: "{{ route('obtenerobservacion') }}",
+                    contentType: "application/json",
+                    dataType: "json",
+                    data: {
+                        term: request.term
+                    },
+                    success: function(data) {
+                        var filteredData = Object.keys(data).map(function(key) {
+                            return {
+                                label: data[key],
+                                value: data[key]
+                            };
+                        });
+                        response(filteredData);
+                    }
+                });
+            },
+            select: function(event, ui) {
+                $(this).val(ui.item.value);
+            },
+            autoFocus: true
+        });
+
         $(document).on('focus', '.autocomplete-nombre', function() {
             $(this).autocomplete({
                 minLength: 0, // Cambiamos a 0 para que se dispare el autocompletado sin escribir

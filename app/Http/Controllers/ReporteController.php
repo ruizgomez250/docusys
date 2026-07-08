@@ -201,7 +201,7 @@ class ReporteController extends Controller
 
         // Insertar marca de agua en la primera página
         $pdf->SetAlpha(0.3); // Establece la opacidad al 30%
-        $pdf->Image('vendor/adminlte/dist/img/icono camara.png', 100, 50, 100); // Ajusta la posición y tamaño de la imagen
+        $pdf->Image(public_path('vendor/adminlte/dist/img/icono camara.png'), 100, 50, 100); // Ajusta la posición y tamaño de la imagen
         $pdf->SetAlpha(1); // Restablece la opacidad al 100%
 
         // Cabecera de la tabla
@@ -268,7 +268,7 @@ class ReporteController extends Controller
                 $pdf->Cell(0, 10, $titulo, 0, 1, 'C');
 
                 $pdf->SetAlpha(0.3);
-                $pdf->Image('vendor/adminlte/dist/img/icono camara.png', 100, 50, 100);
+                $pdf->Image(public_path('vendor/adminlte/dist/img/icono camara.png'), 100, 50, 100);
                 $pdf->SetAlpha(1);
             }
 
@@ -326,7 +326,7 @@ class ReporteController extends Controller
         $pdf->Cell(0, 10, $titulo, 0, 1, 'C');
 
         $pdf->SetAlpha(0.3);
-        $pdf->Image('vendor/adminlte/dist/img/icono camara.png', 50, 50, 100);
+        $pdf->Image(public_path('vendor/adminlte/dist/img/icono camara.png'), 50, 50, 100);
         $pdf->SetAlpha(1);
 
         // Cabecera de la tabla
@@ -354,7 +354,7 @@ class ReporteController extends Controller
                 $pdf->SetFont('Times', 'B', 10);
                 $pdf->Cell(0, 10, $titulo, 0, 1, 'C');
                 $pdf->SetAlpha(0.3);
-                $pdf->Image('vendor/adminlte/dist/img/icono camara.png', 50, 50, 100);
+                $pdf->Image(public_path('vendor/adminlte/dist/img/icono camara.png'), 50, 50, 100);
                 $pdf->SetAlpha(1);
 
                 // Redibujar cabecera de la tabla
@@ -400,7 +400,7 @@ class ReporteController extends Controller
         $pdf->Cell(0, 10, 'Documentos Recibidos Mesa de Entrada: ', 0, 1, 'C');
         $pdf->SetFont('Times', '', 12);
         $pdf->SetAlpha(0.3);
-        $pdf->Image('vendor/adminlte/dist/img/icono camara.png', 10, 50, 190);
+        $pdf->Image(public_path('vendor/adminlte/dist/img/icono camara.png'), 10, 50, 190);
         $pdf->SetAlpha(1);
         $pdf->SetLeftMargin(12);
         $pdf->Ln(10);
@@ -435,7 +435,7 @@ class ReporteController extends Controller
             if ($pdf->getPage() > $currentPage) {
                 // Insertar marca de agua
                 $pdf->SetAlpha(0.3); // Establece la opacidad al 10%
-                $pdf->Image('vendor/adminlte/dist/img/icono camara.png', 10, 50, 190); // Ajusta la posición y tamaño de la imagen
+                $pdf->Image(public_path('vendor/adminlte/dist/img/icono camara.png'), 10, 50, 190); // Ajusta la posición y tamaño de la imagen
                 $pdf->SetAlpha(1); // Restablece la opacidad al 100%
             }
         }

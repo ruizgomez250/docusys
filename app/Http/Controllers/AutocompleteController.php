@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Cliente;
 use App\Models\Firmante;
+use App\Models\MesaEntrada;
 use App\Models\Producto;
 use App\Models\Proveedor;
 use Illuminate\Http\Request;
@@ -44,6 +45,18 @@ class AutocompleteController extends Controller
         ->get();          
         return response()->json($results);
 
+    }
+
+    public function getObservacion(Request $request)
+    {
+        $search = $request->get('term');
+        $results = MesaEntrada::where('observacion', 'LIKE', '%' . $search . '%')
+            ->whereNotNull('observacion')
+            ->where('observacion', '!=', '')
+            ->distinct()
+            ->limit(10)
+            ->pluck('observacion');
+        return response()->json($results);
     }
 
 }
