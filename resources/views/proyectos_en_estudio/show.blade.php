@@ -31,6 +31,17 @@
             font-family: 'Times New Roman', Times, serif;
             font-size: 12pt;
         }
+        #tabla-tramites th,
+        #tabla-tramites td,
+        .obs-tramites-table th,
+        .obs-tramites-table td {
+            border: 1px solid #dee2e6;
+            padding: 4px;
+        }
+        #tabla-tramites,
+        .obs-tramites-table {
+            outline: 2px solid #adb5bd;
+        }
     </style>
 @endpush
 
@@ -44,25 +55,25 @@
                     case 'observacion':
                         var texto = $('#insert_observacion').val();
                         if (texto) {
-                            html = '<p>' + texto.replace(/\n/g, '<br>') + '</p>';
+                            html = texto.replace(/\n/g, '<br>');
                         }
                         break;
                     case 'presentado_por':
                         var texto = $('#insert_presentado_por').val();
                         if (texto) {
-                            html = '<p><em><u>PRESENTADO POR</u></em>: <strong>' + texto + '</strong></p>';
+                            html = '<em><u>PRESENTADO POR</u></em>: <strong>' + texto + '</strong>';
                         }
                         break;
                     case 'fecha':
                         var texto = $('#insert_fecha').val();
                         if (texto) {
-                            html = '<p><em><u>FECHA DE RECEPCIÓN</u></em>: <strong>' + texto + '</strong></p>';
+                            html = '<em><u>FECHA DE RECEPCI\u00D3N</u></em>: <strong>' + texto.toUpperCase() + '</strong>';
                         }
                         break;
                     case 'firma':
                         var texto = $('#insert_firma').val();
                         if (texto) {
-                            html = '<p style="text-align: center;">_____________________________<br><strong>' + texto + '</strong></p>';
+                            html = '<br><p style="text-align: center;">_____________________________<br><strong>' + texto + '</strong></p>';
                         }
                         break;
                     case 'expediente':
@@ -94,7 +105,7 @@
 
         function buildObsTableHtml(count) {
             var cellPad = 'padding: 4px;';
-            var html = '<table class="obs-tramites-table" style="border-collapse: collapse; width: 100%; margin: 10px 0;">';
+            var html = '<table class="obs-tramites-table" style="width: 100%; margin: 10px 0;">';
             html += '<thead><tr>';
             html += '<th style="' + cellPad + ' width: 20%;"></th>';
             html += '<th style="' + cellPad + '"><u>FECHA DE SESI\u00D3N</u></th>';
@@ -137,6 +148,54 @@
                     $contenido.summernote('pasteHTML', tableHtml);
                 }
             }
+        }
+
+        function formatearContenido() {
+            var $editor = $('#contenido');
+            if (!$editor.data('summernote')) return;
+            var html = $editor.summernote('code');
+
+            var tableHtml = '';
+            html = html.replace(/<table[^>]*class="[^"]*obs-tramites-table[^"]*"[^>]*>[\s\S]*?<\/table>/i, function(m) {
+                tableHtml = m;
+                return '%%TABLE%%';
+            });
+
+            html = html.replace(/<\/?(?:em|u|strong|i|b)[^>]*>/gi, '');
+            html = html.replace(/<\/p>/gi, '\n').replace(/<br\s*\/?>/gi, '\n');
+            html = html.replace(/<[^>]+>/g, '');
+            var text = $('<div>').html(html).text();
+
+            function normalize(s) {
+                return s.toUpperCase().replace(/Á/g, 'A').replace(/É/g, 'E').replace(/Í/g, 'I').replace(/Ó/g, 'O').replace(/Ú/g, 'U').replace(/Ü/g, 'U').replace(/Ñ/g, 'N');
+            }
+            var labels = ['FECHA DE RECEPCION', 'PRESENTADO POR', 'OBSERVACION', 'EXPEDIENTE', 'FIRMA', 'NRO EXPEDIENTE'];
+            var lines = text.split('\n');
+            var result = [];
+            for (var i = 0; i < lines.length; i++) {
+                var line = lines[i].trim();
+                if (!line) continue;
+                var idx = line.indexOf(':');
+                if (idx > 0) {
+                    var before = line.substring(0, idx).trim();
+                    var after = line.substring(idx + 1).trim();
+                    if (labels.indexOf(normalize(after)) !== -1) {
+                        var tmp = before;
+                        before = after;
+                        after = tmp;
+                    }
+                    result.push('<p><em><u>' + before.toUpperCase() + '</u></em>: <strong>' + after + '</strong></p>');
+                } else {
+                    result.push('<p>' + line + '</p>');
+                }
+            }
+
+            var output = result.join('\n');
+            if (tableHtml) {
+                output = output.replace('%%TABLE%%', tableHtml);
+            }
+
+            $editor.summernote('code', output);
         }
 
         $(document).ready(function() {
@@ -195,7 +254,7 @@
 
             $(document).on('keydown', function(e) {
                 if (!e.ctrlKey || !e.altKey) return;
-                switch (e.key) {
+                switch (e.key.toLowerCase()) {
                     case 'o': e.preventDefault(); insertarEnEditor('observacion'); break;
                     case 'p': e.preventDefault(); insertarEnEditor('presentado_por'); break;
                     case 'f': e.preventDefault(); insertarEnEditor('fecha'); break;
@@ -339,7 +398,7 @@
                                     </div>
                                     <div class="card-body">
                                         <p class="text-muted mb-0" id="sin-tramites">Sin trámites. Click en "Obs".</p>
-                                        <table id="tabla-tramites" class="table table-sm mb-0" style="display: none; border: 2px solid #dee2e6; border-collapse: collapse;">
+                                        <table id="tabla-tramites" class="table table-sm mb-0" style="display: none; border-collapse: collapse;">
                                             <thead>
                                                 <tr>
                                                     <th style="width: 20%;"></th>
@@ -384,6 +443,9 @@
 
                         <div class="form-group">
                             <label for="contenido">Contenido del Documento</label>
+                            <button type="button" class="btn btn-sm btn-outline-info float-right" onclick="formatearContenido()" title="Aplica: cursiva+subrayado a lo que está antes de «:» y negrita a lo que está después">
+                                <i class="fas fa-magic"></i> Formatear
+                            </button>
                             <textarea name="contenido" id="contenido" class="form-control">{{ old('contenido', $proyecto->contenido) }}</textarea>
                         </div>
 

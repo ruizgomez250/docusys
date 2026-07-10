@@ -6,6 +6,12 @@
             <h1 class="m-0 custom-heading">Proyectos Creados</h1>
         </div>
         <div class="col-6 text-right">
+            <a href="{{ route('proyectos-en-estudio.listado-pdf') }}" class="btn btn-danger" target="_blank">
+                <i class="fas fa-file-pdf"></i> PDF
+            </a>
+            <a href="{{ route('proyectos-en-estudio.listado-excel') }}" class="btn btn-success">
+                <i class="fas fa-file-excel"></i> Excel
+            </a>
             <a href="{{ route('proyectos-en-estudio.index') }}" class="btn btn-primary">
                 <i class="fas fa-plus"></i> Nuevo Proyecto
             </a>
@@ -48,7 +54,7 @@
                 ajax: '{{ route('proyectos-en-estudio.listado-data') }}',
                 columnDefs: [
                     { targets: 0, orderable: false },
-                    { targets: 4, orderable: false },
+                    { targets: 5, orderable: false },
                     { targets: 6, orderable: false, searchable: false },
                     { targets: 7, visible: false }
                 ],
@@ -58,7 +64,7 @@
                     { data: 'fecha_recepcion_texto', name: 'fecha_recepcion_texto', title: 'Fecha Recepción' },
                     { data: 'camara', name: 'camara', title: 'Cámara' },
                     { data: 'recepcion_nro', title: 'N° Recepción' },
-                    { data: 'cantidad_observaciones', name: 'cantidad_observaciones', title: 'Obs.' },
+                    { data: 'contenido', name: 'contenido', title: 'Contenido' },
                     { data: 'acciones', title: 'Acciones' },
                     { data: 'nro_expediente', name: 'nro_expediente', title: '' }
                 ],
@@ -127,7 +133,7 @@
                                 <th>Fecha Recepción</th>
                                 <th>Cámara</th>
                                 <th>N° Recepción</th>
-                                <th>Obs.</th>
+                                <th>Contenido</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>

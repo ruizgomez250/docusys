@@ -73,6 +73,8 @@ Route::get('/autocomplete/observacion',  [AutocompleteController::class, 'getObs
     Route::get('/proyectos-en-estudio/crear/{id_mentrada}', [App\Http\Controllers\ProyectosEnEstudioController::class, 'create'])->name('proyectos-en-estudio.create');
     Route::get('/proyectos-en-estudio/configuracion', [App\Http\Controllers\ProyectosEnEstudioController::class, 'configuracion'])->name('proyectos-en-estudio.configuracion');
     Route::post('/proyectos-en-estudio/configuracion', [App\Http\Controllers\ProyectosEnEstudioController::class, 'updateConfiguracion'])->name('proyectos-en-estudio.update-config');
+    Route::get('/proyectos-en-estudio/listado-pdf', [App\Http\Controllers\ProyectosEnEstudioController::class, 'exportListadoPDF'])->name('proyectos-en-estudio.listado-pdf');
+    Route::get('/proyectos-en-estudio/listado-excel', [App\Http\Controllers\ProyectosEnEstudioController::class, 'exportListadoExcel'])->name('proyectos-en-estudio.listado-excel');
     Route::get('/proyectos-en-estudio/{id}/pdf', [App\Http\Controllers\ProyectosEnEstudioController::class, 'downloadPDF'])->name('proyectos-en-estudio.pdf');
     Route::get('/proyectos-en-estudio/{id}/word', [App\Http\Controllers\ProyectosEnEstudioController::class, 'downloadWord'])->name('proyectos-en-estudio.word');
     Route::get('/proyectos-en-estudio/{id}', [App\Http\Controllers\ProyectosEnEstudioController::class, 'show'])->name('proyectos-en-estudio.show');

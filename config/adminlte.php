@@ -440,7 +440,7 @@ return [
             ],
         ],
         [
-            'text'       => 'Dirección Proy. Estudio',
+            'text'       => 'Dir. Proy. Estudio',
             'icon'       => 'fas fa-project-diagram',
             'icon_color' => 'secondary',
             'classes' => 'custom-icon-box-black',

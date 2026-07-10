@@ -18,6 +18,8 @@ use Illuminate\Support\Facades\DB;
 use PhpOffice\PhpWord\PhpWord;
 use PhpOffice\PhpWord\IOFactory;
 use PhpOffice\PhpWord\Shared\Html;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use TCPDF;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -59,6 +61,12 @@ class ProyectosEnEstudioController extends Controller
             })
             ->addColumn('recepcion_nro', function ($row) {
                 return $row->mesaEntrada->nro_mentrada . '/' . $row->mesaEntrada->anho;
+            })
+            ->addColumn('contenido', function ($row) {
+                $texto = strip_tags($row->contenido);
+                $texto = html_entity_decode($texto, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                $texto = preg_replace('/\s+/', ' ', $texto);
+                return mb_substr($texto, 0, 200) . (mb_strlen($texto) > 200 ? '...' : '');
             })
             ->addColumn('acciones', function ($row) {
                 $btn = '';
@@ -306,6 +314,129 @@ class ProyectosEnEstudioController extends Controller
 
         return redirect()->route('proyectos-en-estudio.configuracion')
             ->with('success', 'Configuración actualizada exitosamente.');
+    }
+
+    public function exportListadoPDF()
+    {
+        $proyectos = ProyectosEnEstudio::with('mesaEntrada')
+            ->orderBy('nro_expediente', 'desc')
+            ->get();
+
+        $pdf = new TCPDF('L', 'mm', 'A4', true, 'UTF-8', false);
+        $pdf->SetPrintHeader(false);
+        $pdf->SetPrintFooter(false);
+        $pdf->SetMargins(10, 15, 10);
+        $pdf->SetAutoPageBreak(true, 20);
+        $pdf->AddPage();
+
+        $pdf->SetFont('Times', 'B', 16);
+        $pdf->Cell(0, 10, 'LISTADO DE PROYECTOS CREADOS', 0, 1, 'C');
+        $pdf->Ln(5);
+
+        $html = '<table border="1" cellpadding="4" cellspacing="0" style="font-size: 9pt;">
+            <thead>
+                <tr style="background-color: #cccccc; font-weight: bold; text-align: center;">
+                    <td width="12%">Expediente</td>
+                    <td width="18%">Presentado Por</td>
+                    <td width="12%">Fecha Recepción</td>
+                    <td width="10%">Cámara</td>
+                    <td width="10%">N° Recepción</td>
+                    <td width="38%">Contenido</td>
+                </tr>
+            </thead>
+            <tbody>';
+
+        foreach ($proyectos as $row) {
+            $letra = '';
+            if ($row->camara == 'Senado') $letra = 'S';
+            elseif ($row->camara == 'Diputados') $letra = 'D';
+            elseif ($row->camara == 'Congreso') $letra = 'C';
+            $aa = substr($row->anho, -2);
+            $expediente = $letra . '-' . $aa . $row->nro_expediente;
+
+            $recepcion = $row->mesaEntrada ? $row->mesaEntrada->nro_mentrada . '/' . $row->mesaEntrada->anho : '';
+
+            $contenido = strip_tags($row->contenido);
+            $contenido = html_entity_decode($contenido, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $contenido = preg_replace('/\s+/', ' ', $contenido);
+            $contenido = mb_substr($contenido, 0, 300);
+
+            $html .= '<tr>
+                <td>' . $expediente . '</td>
+                <td>' . e($row->presentado_por) . '</td>
+                <td>' . e($row->fecha_recepcion_texto) . '</td>
+                <td>' . e($row->camara) . '</td>
+                <td>' . e($recepcion) . '</td>
+                <td>' . e($contenido) . '</td>
+            </tr>';
+        }
+
+        $html .= '</tbody></table>';
+
+        $pdf->writeHTML($html, true, false, true, false, '');
+        $pdf->Output('listado_proyectos.pdf', 'I');
+    }
+
+    public function exportListadoExcel()
+    {
+        $proyectos = ProyectosEnEstudio::with('mesaEntrada')
+            ->orderBy('nro_expediente', 'desc')
+            ->get();
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Proyectos');
+
+        $headers = ['Expediente', 'Presentado Por', 'Fecha Recepción', 'Cámara', 'N° Recepción', 'Contenido'];
+        $col = 1;
+        foreach ($headers as $header) {
+            $sheet->setCellValueByColumnAndRow($col, 1, $header);
+            $sheet->getStyleByColumnAndRow($col, 1)->getFont()->setBold(true);
+            $col++;
+        }
+
+        $sheet->getStyle('A1:F1')->getFill()
+            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+            ->getStartColor()->setARGB('FFCCCCCC');
+
+        $rowNum = 2;
+        foreach ($proyectos as $row) {
+            $letra = '';
+            if ($row->camara == 'Senado') $letra = 'S';
+            elseif ($row->camara == 'Diputados') $letra = 'D';
+            elseif ($row->camara == 'Congreso') $letra = 'C';
+            $aa = substr($row->anho, -2);
+            $expediente = $letra . '-' . $aa . $row->nro_expediente;
+
+            $recepcion = $row->mesaEntrada ? $row->mesaEntrada->nro_mentrada . '/' . $row->mesaEntrada->anho : '';
+
+            $contenido = strip_tags($row->contenido);
+            $contenido = html_entity_decode($contenido, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $contenido = preg_replace('/\s+/', ' ', $contenido);
+
+            $sheet->setCellValueByColumnAndRow(1, $rowNum, $expediente);
+            $sheet->setCellValueByColumnAndRow(2, $rowNum, $row->presentado_por);
+            $sheet->setCellValueByColumnAndRow(3, $rowNum, $row->fecha_recepcion_texto);
+            $sheet->setCellValueByColumnAndRow(4, $rowNum, $row->camara);
+            $sheet->setCellValueByColumnAndRow(5, $rowNum, $recepcion);
+            $sheet->setCellValueByColumnAndRow(6, $rowNum, $contenido);
+            $rowNum++;
+        }
+
+        foreach (range(1, 6) as $col) {
+            $sheet->getColumnDimensionByColumn($col)->setAutoSize(true);
+        }
+
+        $writer = new Xlsx($spreadsheet);
+        ob_start();
+        $writer->save('php://output');
+        $content = ob_get_clean();
+
+        $filename = 'listado_proyectos.xlsx';
+        return response($content, 200, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
     }
 
     public function downloadPDF($id)
