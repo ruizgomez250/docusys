@@ -6,7 +6,7 @@
             <h1 class="m-0 custom-heading">Proyectos Creados</h1>
         </div>
         <div class="col-6 text-right">
-            <a href="{{ route('proyectos-en-estudio.listado-pdf') }}" class="btn btn-danger" target="_blank">
+            <a href="{{ route('proyectos-en-estudio.listado-pdf') }}" class="btn btn-danger btn-generar-doc" target="_blank">
                 <i class="fas fa-file-pdf"></i> PDF
             </a>
             <a href="{{ route('proyectos-en-estudio.listado-excel') }}" class="btn btn-success">
@@ -70,6 +70,23 @@
                 ],
                 language: { url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json' },
                 order: [[7, 'desc']]
+            });
+
+            $(document).on('click', '.btn-generar-doc', function() {
+                Swal.fire({
+                    title: 'Generando documento...',
+                    text: 'Por favor espere',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    showConfirmButton: false,
+                    didOpen: function() { Swal.showLoading(); }
+                });
+                var timer = setInterval(function() {
+                    if (document.hasFocus()) {
+                        clearInterval(timer);
+                        Swal.close();
+                    }
+                }, 500);
             });
 
             $(document).on('click', '.delete-btn', function() {

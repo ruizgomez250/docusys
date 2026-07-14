@@ -8,6 +8,7 @@ use App\Models\MesaEntradaFirmante;
 use App\Models\NumeracionExpediente;
 use App\Models\ProyectosConfiguracion;
 use App\Models\ProyectosEnEstudio;
+use App\Models\Sesion;
 use App\Models\UserDestino;
 use Carbon\Carbon;
 use DOMDocument;
@@ -27,7 +28,7 @@ class ProyectosEnEstudioController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('permission:Proyectos en Estudio', ['only' => ['index', 'listado', 'show', 'configuracion']]);
+        $this->middleware('permission:Proyectos en Estudio', ['only' => ['index', 'listado', 'show', 'configuracion', 'listSesiones', 'listAsuntosEntrados', 'editSesion']]);
         $this->middleware('permission:Proyectos en Estudio', ['only' => ['store', 'create']]);
         $this->middleware('permission:Proyectos en Estudio', ['only' => ['update', 'edit']]);
         $this->middleware('permission:Proyectos en Estudio', ['only' => ['destroy']]);
@@ -150,6 +151,8 @@ class ProyectosEnEstudioController extends Controller
                 $q->where('mesa_entrada.nro_mentrada', 'like', "%{$search}%")
                     ->orWhere('mesa_entrada.anho', 'like', "%{$search}%")
                     ->orWhere('mesa_entrada.fecha_recepcion', 'like', "%{$search}%")
+                    ->orWhere('mesa_entrada.observacion', 'like', "%{$search}%")
+                    ->orWhere('u.name', 'like', "%{$search}%")
                     ->orWhere('f.nombre', 'like', "%{$search}%");
             });
         }
@@ -196,6 +199,8 @@ class ProyectosEnEstudioController extends Controller
         $config = ProyectosConfiguracion::firstOrCreate([], [
             'membrete' => null,
             'leyenda' => '',
+            'tipo_sesion' => 'EXTRAORDINARIA',
+            'nro_sesion' => 1,
             'ultimo_nro_expediente' => 0,
         ]);
 
@@ -213,6 +218,8 @@ class ProyectosEnEstudioController extends Controller
             'nro_expediente' => 0,
             'anho' => $anho,
             'camara' => $camara,
+            'acapite' => '',
+            'destino' => '',
             'presentado_por' => $firmantes,
             'fecha_recepcion_texto' => $fechaTexto,
             'leyenda' => $config ? $config->leyenda : '',
@@ -238,6 +245,8 @@ class ProyectosEnEstudioController extends Controller
 
         $data = [
             'camara' => $request->input('camara', $proyecto->camara),
+            'acapite' => $request->input('acapite', $proyecto->acapite),
+            'destino' => $request->input('destino', $proyecto->destino),
             'presentado_por' => $request->input('presentado_por', ''),
             'fecha_recepcion_texto' => $request->input('fecha_recepcion_texto', ''),
             'contenido' => $request->input('contenido'),
@@ -287,6 +296,8 @@ class ProyectosEnEstudioController extends Controller
         $config = ProyectosConfiguracion::firstOrCreate([], [
             'membrete' => null,
             'leyenda' => '',
+            'tipo_sesion' => 'EXTRAORDINARIA',
+            'nro_sesion' => 1,
             'ultimo_nro_expediente' => 0,
         ]);
         return view('proyectos_en_estudio.configuracion', compact('config'));
@@ -297,11 +308,15 @@ class ProyectosEnEstudioController extends Controller
         $config = ProyectosConfiguracion::firstOrCreate([], [
             'membrete' => null,
             'leyenda' => '',
+            'tipo_sesion' => 'EXTRAORDINARIA',
+            'nro_sesion' => 1,
             'ultimo_nro_expediente' => 0,
         ]);
 
         $config->update([
             'leyenda' => $request->input('leyenda', ''),
+            'tipo_sesion' => $request->input('tipo_sesion', 'EXTRAORDINARIA'),
+            'nro_sesion' => $request->input('nro_sesion', 1),
             'ultimo_nro_expediente' => $request->input('ultimo_nro_expediente', 0),
         ]);
 
@@ -518,6 +533,48 @@ class ProyectosEnEstudioController extends Controller
         $section = $phpWord->addSection();
         $header = $section->addHeader();
 
+        $watermarkPath = public_path('vendor/adminlte/dist/img/icono camara.png');
+        $tempWm = null;
+        if (file_exists($watermarkPath)) {
+            $original = imagecreatefrompng($watermarkPath);
+            if ($original) {
+                $origW = imagesx($original);
+                $origH = imagesy($original);
+                $targetW = 450;
+                $targetH = (int)($origH * ($targetW / $origW));
+
+                $img = imagecreatetruecolor($targetW, $targetH);
+                imagesavealpha($img, true);
+                $bg = imagecolorallocatealpha($img, 0, 0, 0, 127);
+                imagefill($img, 0, 0, $bg);
+                imagecopyresampled($img, $original, 0, 0, 0, 0, $targetW, $targetH, $origW, $origH);
+                imagedestroy($original);
+
+                for ($x = 0; $x < $targetW; $x++) {
+                    for ($y = 0; $y < $targetH; $y++) {
+                        $rgba = imagecolorat($img, $x, $y);
+                        $a = ($rgba >> 24) & 0x7F;
+                        $newA = min(127, $a + 124);
+                        imagesetpixel($img, $x, $y, imagecolorallocatealpha($img, ($rgba >> 16) & 0xFF, ($rgba >> 8) & 0xFF, $rgba & 0xFF, $newA));
+                    }
+                }
+
+                $tempWm = tempnam(sys_get_temp_dir(), 'wm_') . '.png';
+                imagepng($img, $tempWm);
+                imagedestroy($img);
+
+                $header->addWatermark($tempWm, [
+                    'width' => 450,
+                    'height' => $targetH,
+                    'posHorizontal' => 'center',
+                    'posHorizontalRel' => 'page',
+                    'posVertical' => 'center',
+                    'posVerticalRel' => 'page',
+                    'wrap' => 'behind',
+                ]);
+            }
+        }
+
         if ($config && $config->leyenda) {
             $header->addText('"' . strtoupper($config->leyenda) . '"', ['italic' => true, 'size' => 11], ['align' => 'center']);
         }
@@ -631,11 +688,335 @@ class ProyectosEnEstudioController extends Controller
         $objWriter->save('php://output');
         $content = ob_get_clean();
 
+        if ($tempWm && file_exists($tempWm)) {
+            @unlink($tempWm);
+        }
+
         $filename = 'proyecto_' . $proyecto->nro_expediente . '.docx';
         return response($content, 200, [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
             'Content-Disposition' => 'attachment; filename="' . $filename . '"',
         ]);
+    }
+
+    public function listSesiones()
+    {
+        $proyectos = ProyectosEnEstudio::with('mesaEntrada')
+            ->where('nro_expediente', '>', 0)
+            ->whereNull('sesion_id')
+            ->orderBy('nro_expediente', 'asc')
+            ->get();
+
+        $fechas = MesaEntrada::join('proyectos_en_estudio as p', 'mesa_entrada.id', '=', 'p.id_mentrada')
+            ->where('p.nro_expediente', '>', 0)
+            ->whereNull('p.sesion_id')
+            ->select(
+                'mesa_entrada.fecha_recepcion',
+                DB::raw('COUNT(p.id) as cantidad')
+            )
+            ->groupBy('mesa_entrada.fecha_recepcion')
+            ->orderBy('mesa_entrada.fecha_recepcion', 'desc')
+            ->get()
+            ->map(function ($item) {
+                $carbon = \Carbon\Carbon::parse($item->fecha_recepcion);
+                $dias = ['DOMINGO', 'LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO'];
+                $meses = [1 => 'ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
+                $item->fecha_texto = $dias[$carbon->dayOfWeek] . ', ' . $carbon->format('d') . ' DE ' . $meses[$carbon->month] . ' DE ' . $carbon->format('Y');
+                return $item;
+            });
+
+        return view('proyectos_en_estudio.sesiones', compact('proyectos', 'fechas'));
+    }
+
+    public function generarPDFSesion(Request $request)
+    {
+        $request->validate([
+            'doc_ids' => 'required|string',
+            'tipo_sesion' => 'required|string',
+            'nro_sesion' => 'required|integer|min:1',
+            'fecha_sesion' => 'required|date',
+        ]);
+
+        $ids = array_map('intval', explode(',', $request->input('doc_ids')));
+        $tipoSesion = strtoupper($request->input('tipo_sesion'));
+        $nroSesion = $request->input('nro_sesion');
+        $fechaSesion = $request->input('fecha_sesion');
+
+        $proyectos = ProyectosEnEstudio::with('mesaEntrada')
+            ->whereIn('id', $ids)
+            ->where('nro_expediente', '>', 0)
+            ->whereNull('sesion_id')
+            ->orderBy('nro_expediente', 'asc')
+            ->get();
+
+        if ($proyectos->isEmpty()) {
+            return response()->json(['error' => 'No se encontraron documentos seleccionados.'], 404);
+        }
+
+        DB::beginTransaction();
+        try {
+            $sesion = Sesion::create([
+                'fecha_sesion' => $fechaSesion,
+                'tipo_sesion' => $tipoSesion,
+                'nro_sesion' => $nroSesion,
+            ]);
+
+            ProyectosEnEstudio::whereIn('id', $ids)->update(['sesion_id' => $sesion->id]);
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['error' => 'Error al guardar la sesión: ' . $e->getMessage()], 500);
+        }
+
+        $carbon = \Carbon\Carbon::parse($fechaSesion);
+
+        $config = ProyectosConfiguracion::firstOrCreate([], [
+            'membrete' => null,
+            'leyenda' => '',
+            'tipo_sesion' => 'EXTRAORDINARIA',
+            'nro_sesion' => 1,
+            'ultimo_nro_expediente' => 0,
+        ]);
+
+        $dias = [0 => 'DOMINGO', 1 => 'LUNES', 2 => 'MARTES', 3 => 'MIERCOLES', 4 => 'JUEVES', 5 => 'VIERNES', 6 => 'SABADO'];
+        $meses = [1 => 'ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
+        $diaSemana = $dias[$carbon->dayOfWeek];
+        $diaNumero = $carbon->format('d');
+        $mesNombre = $meses[$carbon->month];
+        $anio = $carbon->format('Y');
+        $fechaFormateada = $diaSemana . ', ' . $diaNumero . ' DE ' . $mesNombre . ' DE ' . $anio;
+
+        $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
+        $pdf->SetPrintHeader(false);
+        $pdf->SetPrintFooter(false);
+        $pdf->SetMargins(20, 15, 20);
+        $pdf->SetAutoPageBreak(true, 30);
+        $pdf->setFontSubsetting(true);
+        $pdf->AddPage();
+
+        $pdf->SetAlpha(0.15);
+        $watermark = public_path('vendor/adminlte/dist/img/icono camara.png');
+        if (file_exists($watermark)) {
+            $pdf->Image($watermark, 15, 50, 180, '', 'PNG', '', '', false, 330, '', false, false, 0);
+        }
+        $pdf->SetAlpha(1);
+
+        if ($config && $config->leyenda) {
+            $pdf->SetFont('Times', 'I', 11);
+            $pdf->Cell(0, 8, '"' . strtoupper($config->leyenda) . '"', 0, 1, 'C');
+            $pdf->Ln(3);
+        }
+
+        if ($config && $config->membrete && file_exists(public_path($config->membrete))) {
+            $imgPath = public_path($config->membrete);
+            $imgData = base64_encode(file_get_contents($imgPath));
+            $imgHtml = '<div style="text-align: center;"><img src="@' . $imgData . '" width="70" /></div>';
+            $pdf->writeHTML($imgHtml, true, false, true, false, '');
+        }
+
+        $pdf->SetFont('Times', 'B', 13);
+        $pdf->Cell(0, 8, 'CONGRESO DE LA NACIÓN', 0, 1, 'C');
+        $pdf->SetFont('Times', 'B', 12);
+        $pdf->Cell(0, 8, 'HONORABLE CÁMARA DE DIPUTADOS', 0, 1, 'C');
+
+        $pdf->Ln(8);
+
+        $pdf->SetFont('Times', 'B', 16);
+        $pdf->Cell(0, 10, 'ASUNTOS ENTRADOS', 0, 1, 'C');
+
+        $pdf->SetFont('Times', 'B', 13);
+        $pdf->Cell(0, 8, 'SESIÓN ' . $tipoSesion . ' N° ' . $nroSesion, 0, 1, 'C');
+
+        $pdf->SetFont('Times', '', 12);
+        $pdf->Cell(0, 8, $fechaFormateada . '.', 0, 1, 'C');
+
+        $pdf->Ln(8);
+
+        foreach ($proyectos as $proyecto) {
+            $nroReal = $proyecto->nro_expediente;
+
+            $acapite = trim($proyecto->acapite ?? '');
+            if (!empty($acapite)) {
+                $acapiteLimpio = preg_replace('/<br\s*\/?>/i', '<br/>', $acapite);
+                $acapiteLimpio = preg_replace('/<\/?(?:thead|tbody)>/i', '', $acapiteLimpio);
+                $acapiteLimpio = preg_replace('/<!--StartFragment-->/i', '', $acapiteLimpio);
+                $acapiteLimpio = preg_replace('/<!--EndFragment-->/i', '', $acapiteLimpio);
+            } else {
+                $acapiteLimpio = '';
+            }
+
+            $destino = trim($proyecto->destino ?? '');
+            if (!empty($destino)) {
+                $destino = '. ' . $destino;
+            }
+
+            $html = '<p style="text-align: justify; font-family: Times, serif; font-size: 12pt;">'
+                . '<strong>' . $nroReal . '</strong>. '
+                . $acapiteLimpio
+                . $destino
+                . '</p>';
+
+            $pdf->writeHTML($html, true, false, true, false, '');
+            $pdf->Ln(3);
+        }
+
+        $filename = 'sesion_' . strtolower($tipoSesion) . '_nro_' . $nroSesion . '_' . $carbon->format('Y-m-d') . '.pdf';
+        $pdf->Output($filename, 'I');
+    }
+
+    public function listAsuntosEntrados(Request $request)
+    {
+        $query = Sesion::with('proyectos.mesaEntrada');
+
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('tipo_sesion', 'like', "%{$search}%")
+                    ->orWhere('nro_sesion', 'like', "%{$search}%")
+                    ->orWhere('fecha_sesion', 'like', "%{$search}%");
+            });
+        }
+
+        $sesiones = $query->orderByDesc('created_at')->get();
+
+        return view('proyectos_en_estudio.asuntos_entrados', compact('sesiones'));
+    }
+
+    public function editSesion($id)
+    {
+        $sesion = Sesion::with('proyectos.mesaEntrada')->findOrFail($id);
+
+        $dias = [0 => 'DOMINGO', 1 => 'LUNES', 2 => 'MARTES', 3 => 'MIERCOLES', 4 => 'JUEVES', 5 => 'VIERNES', 6 => 'SABADO'];
+        $meses = [1 => 'ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
+        $carbon = $sesion->fecha_sesion;
+        $sesion->fecha_texto = $dias[$carbon->dayOfWeek] . ', ' . $carbon->format('d') . ' DE ' . $meses[$carbon->month] . ' DE ' . $carbon->format('Y');
+
+        return view('proyectos_en_estudio.edit_sesion', compact('sesion'));
+    }
+
+    public function updateSesion(Request $request, $id)
+    {
+        $request->validate([
+            'tipo_sesion' => 'required|string',
+            'nro_sesion' => 'required|integer|min:1',
+            'fecha_sesion' => 'required|date',
+        ]);
+
+        $sesion = Sesion::findOrFail($id);
+        $sesion->update([
+            'tipo_sesion' => strtoupper($request->input('tipo_sesion')),
+            'nro_sesion' => $request->input('nro_sesion'),
+            'fecha_sesion' => $request->input('fecha_sesion'),
+        ]);
+
+        return redirect()->route('proyectos-en-estudio.asuntos-entrados')
+            ->with('success', 'Sesión actualizada exitosamente.');
+    }
+
+    public function downloadPDFSesion($id)
+    {
+        $sesion = Sesion::with('proyectos.mesaEntrada')->findOrFail($id);
+
+        $proyectos = $sesion->proyectos
+            ->sortBy('nro_expediente')
+            ->values();
+
+        $config = ProyectosConfiguracion::firstOrCreate([], [
+            'membrete' => null,
+            'leyenda' => '',
+            'tipo_sesion' => 'EXTRAORDINARIA',
+            'nro_sesion' => 1,
+            'ultimo_nro_expediente' => 0,
+        ]);
+
+        $carbon = $sesion->fecha_sesion;
+        $dias = [0 => 'DOMINGO', 1 => 'LUNES', 2 => 'MARTES', 3 => 'MIERCOLES', 4 => 'JUEVES', 5 => 'VIERNES', 6 => 'SABADO'];
+        $meses = [1 => 'ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
+        $fechaFormateada = $dias[$carbon->dayOfWeek] . ', ' . $carbon->format('d') . ' DE ' . $meses[$carbon->month] . ' DE ' . $carbon->format('Y');
+
+        $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
+        $pdf->SetPrintHeader(false);
+        $pdf->SetPrintFooter(false);
+        $pdf->SetMargins(20, 15, 20);
+        $pdf->SetAutoPageBreak(true, 30);
+        $pdf->setFontSubsetting(true);
+        $pdf->AddPage();
+
+        $pdf->SetAlpha(0.15);
+        $watermark = public_path('vendor/adminlte/dist/img/icono camara.png');
+        if (file_exists($watermark)) {
+            $pdf->Image($watermark, 15, 50, 180, '', 'PNG', '', '', false, 330, '', false, false, 0);
+        }
+        $pdf->SetAlpha(1);
+
+        if ($config && $config->leyenda) {
+            $pdf->SetFont('Times', 'I', 11);
+            $pdf->Cell(0, 8, '"' . strtoupper($config->leyenda) . '"', 0, 1, 'C');
+            $pdf->Ln(3);
+        }
+
+        if ($config && $config->membrete && file_exists(public_path($config->membrete))) {
+            $imgPath = public_path($config->membrete);
+            $imgData = base64_encode(file_get_contents($imgPath));
+            $imgHtml = '<div style="text-align: center;"><img src="@' . $imgData . '" width="70" /></div>';
+            $pdf->writeHTML($imgHtml, true, false, true, false, '');
+        }
+
+        $pdf->SetFont('Times', 'B', 13);
+        $pdf->Cell(0, 8, 'CONGRESO DE LA NACIÓN', 0, 1, 'C');
+        $pdf->SetFont('Times', 'B', 12);
+        $pdf->Cell(0, 8, 'HONORABLE CÁMARA DE DIPUTADOS', 0, 1, 'C');
+        $pdf->Ln(8);
+
+        $pdf->SetFont('Times', 'B', 16);
+        $pdf->Cell(0, 10, 'ASUNTOS ENTRADOS', 0, 1, 'C');
+        $pdf->SetFont('Times', 'B', 13);
+        $pdf->Cell(0, 8, 'SESIÓN ' . $sesion->tipo_sesion . ' N° ' . $sesion->nro_sesion, 0, 1, 'C');
+        $pdf->SetFont('Times', '', 12);
+        $pdf->Cell(0, 8, $fechaFormateada . '.', 0, 1, 'C');
+        $pdf->Ln(8);
+
+        foreach ($proyectos as $proyecto) {
+            $acapite = trim($proyecto->acapite ?? '');
+            if (!empty($acapite)) {
+                $acapiteLimpio = preg_replace('/<br\s*\/?>/i', '<br/>', $acapite);
+                $acapiteLimpio = preg_replace('/<\/?(?:thead|tbody)>/i', '', $acapiteLimpio);
+                $acapiteLimpio = preg_replace('/<!--StartFragment-->/i', '', $acapiteLimpio);
+                $acapiteLimpio = preg_replace('/<!--EndFragment-->/i', '', $acapiteLimpio);
+            } else {
+                $acapiteLimpio = '';
+            }
+
+            $destino = trim($proyecto->destino ?? '');
+            if (!empty($destino)) {
+                $destino = '. ' . $destino;
+            }
+
+            $html = '<p style="text-align: justify; font-family: Times, serif; font-size: 12pt;">'
+                . '<strong>' . $proyecto->nro_expediente . '</strong>. '
+                . $acapiteLimpio
+                . $destino
+                . '</p>';
+
+            $pdf->writeHTML($html, true, false, true, false, '');
+            $pdf->Ln(3);
+        }
+
+        $filename = 'sesion_' . strtolower($sesion->tipo_sesion) . '_nro_' . $sesion->nro_sesion . '_' . $carbon->format('Y-m-d') . '.pdf';
+        $pdf->Output($filename, 'I');
+    }
+
+    public function destroySesion($id)
+    {
+        $sesion = Sesion::findOrFail($id);
+
+        ProyectosEnEstudio::where('sesion_id', $sesion->id)->update(['sesion_id' => null]);
+
+        $sesion->delete();
+
+        return redirect()->route('proyectos-en-estudio.asuntos-entrados')
+            ->with('success', 'Sesión eliminada. Los documentos volvieron al listado general.');
     }
 
     public function destroy($id)

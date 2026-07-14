@@ -13,9 +13,12 @@ class ProyectosEnEstudio extends Model
 
     protected $fillable = [
         'id_mentrada',
+        'sesion_id',
         'nro_expediente',
         'anho',
         'camara',
+        'acapite',
+        'destino',
         'presentado_por',
         'fecha_recepcion_texto',
         'membrete',
@@ -27,6 +30,11 @@ class ProyectosEnEstudio extends Model
     public function mesaEntrada()
     {
         return $this->belongsTo(MesaEntrada::class, 'id_mentrada');
+    }
+
+    public function sesion()
+    {
+        return $this->belongsTo(Sesion::class, 'sesion_id');
     }
 
     public function observaciones()

@@ -7,6 +7,7 @@ use App\Models\Firmante;
 use App\Models\MesaEntrada;
 use App\Models\Producto;
 use App\Models\Proveedor;
+use App\Models\ProyectosEnEstudio;
 use Illuminate\Http\Request;
 
 class AutocompleteController extends Controller
@@ -56,6 +57,30 @@ class AutocompleteController extends Controller
             ->distinct()
             ->limit(10)
             ->pluck('observacion');
+        return response()->json($results);
+    }
+
+    public function getAcapite(Request $request)
+    {
+        $search = $request->get('term');
+        $results = ProyectosEnEstudio::where('acapite', 'LIKE', '%' . $search . '%')
+            ->whereNotNull('acapite')
+            ->where('acapite', '!=', '')
+            ->distinct()
+            ->limit(10)
+            ->pluck('acapite');
+        return response()->json($results);
+    }
+
+    public function getDestino(Request $request)
+    {
+        $search = $request->get('term');
+        $results = ProyectosEnEstudio::where('destino', 'LIKE', '%' . $search . '%')
+            ->whereNotNull('destino')
+            ->where('destino', '!=', '')
+            ->distinct()
+            ->limit(10)
+            ->pluck('destino');
         return response()->json($results);
     }
 

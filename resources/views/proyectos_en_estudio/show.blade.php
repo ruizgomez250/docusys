@@ -26,6 +26,7 @@
 
 @push('css')
     <link href="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-bs4.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('vendor/jquery-ui-1.13.2/jquery-ui.min.css') }}">
     <style>
         .note-editor.note-frame .note-editing-area .note-editable {
             font-family: 'Times New Roman', Times, serif;
@@ -47,6 +48,7 @@
 
 @push('js')
     <script src="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-bs4.min.js"></script>
+    <script src="{{ asset('vendor/jquery-ui-1.13.2/jquery-ui.min.js') }}"></script>
     <script>
         function insertarEnEditor(tipo) {
             var fn = function() {
@@ -130,9 +132,9 @@
             var label = getTramiteLabel(obsCounter);
             var row = '<tr>';
             row += '<td><strong>' + label + '</strong></td>';
-            row += '<td>____________________</td>';
-            row += '<td>____________________</td>';
-            row += '<td>____________________</td>';
+            row += '<td>________________</td>';
+            row += '<td>________________</td>';
+            row += '<td>________________</td>';
             row += '</tr>';
             $('#tramites-body').append(row);
             $('#tabla-tramites').show();
@@ -227,6 +229,9 @@
                 if ($('#contenido').data('summernote')) {
                     $('#contenido').val($('#contenido').summernote('code'));
                 }
+                if ($('#acapite').data('summernote')) {
+                    $('#acapite').val($('#acapite').summernote('code'));
+                }
             });
 
             $('#insert_presentado_por').on('input', function() {
@@ -252,6 +257,18 @@
                 defaultFontName: 'Times New Roman',
             });
 
+            $('#acapite').summernote({
+                height: 120,
+                toolbar: [
+                    ['font', ['bold', 'underline', 'italic', 'clear']],
+                    ['para', ['ul', 'ol', 'paragraph']],
+                ],
+                fontNames: ['Times New Roman', 'Arial'],
+                fontNamesIgnoreCheck: ['Times New Roman'],
+                defaultFontName: 'Times New Roman',
+                placeholder: 'Escriba el acapite con formato...',
+            });
+
             $(document).on('keydown', function(e) {
                 if (!e.ctrlKey || !e.altKey) return;
                 switch (e.key.toLowerCase()) {
@@ -262,6 +279,21 @@
                     case 'e': e.preventDefault(); insertarEnEditor('expediente'); break;
                     case 't': e.preventDefault(); agregarTramite(); break;
                 }
+            });
+
+            $('#destino').autocomplete({
+                source: function(request, response) {
+                    $.ajax({
+                        url: "{{ route('obtenerdestino') }}",
+                        dataType: "json",
+                        data: { term: request.term },
+                        success: function(data) {
+                            response(data);
+                        }
+                    });
+                },
+                minLength: 1,
+                autoFocus: true,
             });
         });
     </script>
@@ -308,6 +340,20 @@
                                         <option value="Diputados" {{ $proyecto->camara == 'Diputados' ? 'selected' : '' }}>Diputados</option>
                                         <option value="Congreso" {{ $proyecto->camara == 'Congreso' ? 'selected' : '' }}>Congreso</option>
                                     </select>
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="form-group">
+                                    <label for="acapite">Acapite</label>
+                                    <textarea name="acapite" id="acapite" class="form-control">{{ old('acapite', $proyecto->acapite) }}</textarea>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="destino">Destino</label>
+                                    <input type="text" name="destino" id="destino" class="form-control autocomplete-field"
+                                        value="{{ old('destino', $proyecto->destino) }}"
+                                        placeholder="Escriba o seleccione..." autocomplete="off">
                                 </div>
                             </div>
                         </div>
@@ -458,10 +504,10 @@
                                 </button>
 
                                 @if ($proyecto->nro_expediente > 0)
-                                    <a href="{{ route('proyectos-en-estudio.word', $proyecto->id) }}" class="btn btn-success">
+                                    <a href="{{ route('proyectos-en-estudio.word', $proyecto->id) }}" class="btn btn-success btn-generar-doc">
                                         <i class="fas fa-file-word"></i> Descargar Word
                                     </a>
-                                    <a href="{{ route('proyectos-en-estudio.pdf', $proyecto->id) }}" class="btn btn-danger">
+                                    <a href="{{ route('proyectos-en-estudio.pdf', $proyecto->id) }}" class="btn btn-danger btn-generar-doc">
                                         <i class="fas fa-file-pdf"></i> Descargar PDF
                                     </a>
                                 @endif
@@ -490,6 +536,23 @@
 @push('js')
     <script>
         $(document).ready(function() {
+            $(document).on('click', '.btn-generar-doc', function() {
+                Swal.fire({
+                    title: 'Generando documento...',
+                    text: 'Por favor espere',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    showConfirmButton: false,
+                    didOpen: function() { Swal.showLoading(); }
+                });
+                var timer = setInterval(function() {
+                    if (document.hasFocus()) {
+                        clearInterval(timer);
+                        Swal.close();
+                    }
+                }, 500);
+            });
+
             $('.delete-button').on('click', function() {
                 var form = $(this).closest('.delete-form');
                 Swal.fire({

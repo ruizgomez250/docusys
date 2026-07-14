@@ -14,6 +14,8 @@ class ProyectosConfiguracion extends Model
     protected $fillable = [
         'membrete',
         'leyenda',
+        'tipo_sesion',
+        'nro_sesion',
         'ultimo_nro_expediente',
     ];
 }

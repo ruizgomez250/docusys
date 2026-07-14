@@ -113,6 +113,31 @@
 
                         <hr>
 
+                        <h5><i class="fas fa-gavel"></i> Datos de la Sesión</h5>
+                        <p class="text-muted">Estos datos se utilizan en el encabezado de los documentos PDF agrupados por fecha.</p>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="tipo_sesion">Tipo de Sesión</label>
+                                    <select name="tipo_sesion" id="tipo_sesion" class="form-control">
+                                        <option value="EXTRAORDINARIA" {{ old('tipo_sesion', $config->tipo_sesion ?? 'EXTRAORDINARIA') == 'EXTRAORDINARIA' ? 'selected' : '' }}>EXTRAORDINARIA</option>
+                                        <option value="ORDINARIA" {{ old('tipo_sesion', $config->tipo_sesion ?? '') == 'ORDINARIA' ? 'selected' : '' }}>ORDINARIA</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="nro_sesion">N° de Sesión</label>
+                                    <input type="number" name="nro_sesion" id="nro_sesion"
+                                        class="form-control" min="1"
+                                        value="{{ old('nro_sesion', $config->nro_sesion ?? 1) }}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr>
+
                         <div class="row">
                             <div class="col-12">
                                 <button type="submit" class="btn btn-primary">

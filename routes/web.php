@@ -75,6 +75,13 @@ Route::get('/autocomplete/observacion',  [AutocompleteController::class, 'getObs
     Route::post('/proyectos-en-estudio/configuracion', [App\Http\Controllers\ProyectosEnEstudioController::class, 'updateConfiguracion'])->name('proyectos-en-estudio.update-config');
     Route::get('/proyectos-en-estudio/listado-pdf', [App\Http\Controllers\ProyectosEnEstudioController::class, 'exportListadoPDF'])->name('proyectos-en-estudio.listado-pdf');
     Route::get('/proyectos-en-estudio/listado-excel', [App\Http\Controllers\ProyectosEnEstudioController::class, 'exportListadoExcel'])->name('proyectos-en-estudio.listado-excel');
+    Route::get('/proyectos-en-estudio/sesiones', [App\Http\Controllers\ProyectosEnEstudioController::class, 'listSesiones'])->name('proyectos-en-estudio.sesiones');
+    Route::post('/proyectos-en-estudio/sesiones/generar-pdf', [App\Http\Controllers\ProyectosEnEstudioController::class, 'generarPDFSesion'])->name('proyectos-en-estudio.sesiones.generar-pdf');
+    Route::get('/proyectos-en-estudio/asuntos-entrados', [App\Http\Controllers\ProyectosEnEstudioController::class, 'listAsuntosEntrados'])->name('proyectos-en-estudio.asuntos-entrados');
+    Route::get('/proyectos-en-estudio/asuntos-entrados/{id}/pdf', [App\Http\Controllers\ProyectosEnEstudioController::class, 'downloadPDFSesion'])->name('proyectos-en-estudio.asuntos-entrados.pdf');
+    Route::get('/proyectos-en-estudio/asuntos-entrados/{id}/editar', [App\Http\Controllers\ProyectosEnEstudioController::class, 'editSesion'])->name('proyectos-en-estudio.edit-sesion');
+    Route::put('/proyectos-en-estudio/asuntos-entrados/{id}', [App\Http\Controllers\ProyectosEnEstudioController::class, 'updateSesion'])->name('proyectos-en-estudio.update-sesion');
+    Route::delete('/proyectos-en-estudio/sesiones/{id}', [App\Http\Controllers\ProyectosEnEstudioController::class, 'destroySesion'])->name('proyectos-en-estudio.destroy-sesion');
     Route::get('/proyectos-en-estudio/{id}/pdf', [App\Http\Controllers\ProyectosEnEstudioController::class, 'downloadPDF'])->name('proyectos-en-estudio.pdf');
     Route::get('/proyectos-en-estudio/{id}/word', [App\Http\Controllers\ProyectosEnEstudioController::class, 'downloadWord'])->name('proyectos-en-estudio.word');
     Route::get('/proyectos-en-estudio/{id}', [App\Http\Controllers\ProyectosEnEstudioController::class, 'show'])->name('proyectos-en-estudio.show');
@@ -119,6 +126,8 @@ Route::get('/mesaentrada/reenviados/data', [MesaEntradaController::class, 'getDa
 Route::get('/autocomplete',  [AutocompleteController::class, 'autocomplete'])->name('autocomplete');
 Route::get('/autocomplete/proveedor',  [AutocompleteController::class, 'proveedor'])->name('obtenerproveedor');
 Route::get('/autocomplete/producto',  [AutocompleteController::class, 'getproducto'])->name('obtenerproducto');
+Route::get('/autocomplete/acapite', [AutocompleteController::class, 'getAcapite'])->name('obteneracapite');
+Route::get('/autocomplete/destino', [AutocompleteController::class, 'getDestino'])->name('obtenerdestino');
 //Route::post('/guardar-categoria', 'CategoriaController@storeCat')->name('guardar-categoria');
 Route::get('/create', function () {
     return view('create');
