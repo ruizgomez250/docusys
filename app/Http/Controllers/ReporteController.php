@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\MesaEntrada;
 use App\Models\MesaEntradaFirmante;
 use App\Models\Origen;
+use App\Models\ProyectosConfiguracion;
 use App\Models\TipoDoc;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -392,18 +393,48 @@ class ReporteController extends Controller
         $mesas = MesaEntrada::whereIn('id', $ids)->get();
 
 
+        $config = ProyectosConfiguracion::first();
+
         $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
         $pdf->SetPrintHeader(false);
-        $pdf->SetFont('Times', '', 14);
+        $pdf->SetPrintFooter(false);
+        $pdf->SetMargins(20, 15, 20);
+        $pdf->SetAutoPageBreak(true, 30);
+        $pdf->setFontSubsetting(true);
         $pdf->AddPage();
-        $pdf->SetFont('helvetica', 'IU', 12); // I = Italic, U = Underline
+
+        $pdf->SetAlpha(0.15);
+        $watermark = public_path('vendor/adminlte/dist/img/icono camara.png');
+        if (file_exists($watermark)) {
+            $pdf->Image($watermark, 15, 50, 180, '', 'PNG', '', '', false, 330, '', false, false, 0);
+        }
+        $pdf->SetAlpha(1);
+
+        if ($config && $config->leyenda) {
+            $pdf->SetFont('Times', 'I', 11);
+            $pdf->Cell(0, 8, '"' . strtoupper($config->leyenda) . '"', 0, 1, 'C');
+            $pdf->Ln(3);
+        }
+
+        if ($config && $config->membrete && file_exists(public_path($config->membrete))) {
+            $imgPath = public_path($config->membrete);
+            $imgData = base64_encode(file_get_contents($imgPath));
+            $imgHtml = '<div style="text-align: center;"><img src="@' . $imgData . '" width="70" /></div>';
+            $pdf->writeHTML($imgHtml, true, false, true, false, '');
+        }
+
+        $pdf->SetFont('Times', 'B', 13);
+        $pdf->Cell(0, 8, 'CONGRESO DE LA NACIÓN', 0, 1, 'C');
+        $pdf->SetFont('Times', 'B', 12);
+        $pdf->Cell(0, 8, 'HONORABLE CÁMARA DE DIPUTADOS', 0, 1, 'C');
+
+        $pdf->Ln(5);
+
+        $pdf->SetFont('helvetica', 'IU', 12);
         $pdf->Cell(0, 10, 'Documentos Recibidos Mesa de Entrada: ', 0, 1, 'C');
         $pdf->SetFont('Times', '', 12);
-        $pdf->SetAlpha(0.3);
-        $pdf->Image(public_path('vendor/adminlte/dist/img/icono camara.png'), 10, 50, 190);
-        $pdf->SetAlpha(1);
         $pdf->SetLeftMargin(12);
-        $pdf->Ln(10);
+        $pdf->Ln(5);
 
         foreach ($mesas as $index => $mesa) {
             $funcionario = (new MesaEntradaFirmante)->obtenerFirmantesPorMesaEntrada($mesa->id);
