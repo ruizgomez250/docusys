@@ -517,8 +517,47 @@ class ProyectosEnEstudioController extends Controller
         $contenido = $proyecto->contenido;
         if (!empty(trim($contenido))) {
             $pdf->SetFont('Times', '', 11);
-            $html = '<div style="text-align: justify; font-family: Times, serif; font-size: 12pt;">' . $contenido . '</div>';
-            $pdf->writeHTML($html, true, false, true, false, '');
+
+            if (strpos($contenido, 'obs-tramites-table') !== false) {
+                $tablePattern = '/<table[^>]*class="[^"]*obs-tramites-table[^"]*"[^>]*>.*?<\/table>/is';
+                if (preg_match($tablePattern, $contenido, $matches, PREG_OFFSET_CAPTURE)) {
+                    $beforeTable = substr($contenido, 0, $matches[0][1]);
+                    $tableHtml = $matches[0][0];
+                    $afterTable = substr($contenido, $matches[0][1] + strlen($matches[0][0]));
+
+                    if (!empty(trim($beforeTable))) {
+                        $html = '<div style="text-align: justify; font-family: Times, serif; font-size: 12pt;">' . $beforeTable . '</div>';
+                        $pdf->writeHTML($html, true, false, true, false, '');
+                    }
+
+                    $cleanHtml = preg_replace('/\bborder="[^"]*"/i', '', $tableHtml);
+                    $cleanHtml = preg_replace('/\bcellpadding="[^"]*"/i', '', $cleanHtml);
+                    $cleanHtml = preg_replace('/\bcellspacing="[^"]*"/i', '', $cleanHtml);
+                    $cleanHtml = preg_replace('/style="[^"]*"/i', '', $cleanHtml);
+                    $cleanHtml = preg_replace('/<table\b/', '<table border="0" cellpadding="4" cellspacing="0"', $cleanHtml, 1);
+                    $cleanHtml = preg_replace('/<th\b/', '<th border="0"', $cleanHtml);
+                    $cleanHtml = preg_replace('/<td\b/', '<td border="0"', $cleanHtml);
+
+                    $margins = $pdf->getMargins();
+                    $tableWidth = $pdf->getPageWidth() - $margins['left'] - $margins['right'];
+
+                    $yBefore = $pdf->GetY();
+                    $html = '<div style="font-family: Times, serif; font-size: 12pt;">' . $cleanHtml . '</div>';
+                    $pdf->writeHTML($html, true, false, true, false, '');
+                    $yAfter = $pdf->GetY();
+
+                    $pdf->SetLineStyle(['width' => 0.5, 'color' => [0, 0, 0], 'cap' => 'butt', 'join' => 'miter']);
+                    $pdf->Rect($margins['left'], $yBefore, $tableWidth, $yAfter - $yBefore, 'D');
+
+                    if (!empty(trim($afterTable))) {
+                        $html = '<div style="text-align: justify; font-family: Times, serif; font-size: 12pt;">' . $afterTable . '</div>';
+                        $pdf->writeHTML($html, true, false, true, false, '');
+                    }
+                }
+            } else {
+                $html = '<div style="text-align: justify; font-family: Times, serif; font-size: 12pt;">' . $contenido . '</div>';
+                $pdf->writeHTML($html, true, false, true, false, '');
+            }
         }
 
         $pdf->Output('proyecto_' . $proyecto->nro_expediente . '.pdf', 'I');
@@ -535,6 +574,7 @@ class ProyectosEnEstudioController extends Controller
 
         $watermarkPath = public_path('vendor/adminlte/dist/img/icono camara.png');
         $tempWm = null;
+
         if (file_exists($watermarkPath)) {
             $original = imagecreatefrompng($watermarkPath);
             if ($original) {
@@ -545,17 +585,53 @@ class ProyectosEnEstudioController extends Controller
 
                 $img = imagecreatetruecolor($targetW, $targetH);
                 imagesavealpha($img, true);
+
                 $bg = imagecolorallocatealpha($img, 0, 0, 0, 127);
                 imagefill($img, 0, 0, $bg);
-                imagecopyresampled($img, $original, 0, 0, 0, 0, $targetW, $targetH, $origW, $origH);
+
+                imagecopyresampled(
+                    $img,
+                    $original,
+                    0,
+                    0,
+                    0,
+                    0,
+                    $targetW,
+                    $targetH,
+                    $origW,
+                    $origH
+                );
+
                 imagedestroy($original);
 
+                // Hacer la marca mucho más clara
                 for ($x = 0; $x < $targetW; $x++) {
                     for ($y = 0; $y < $targetH; $y++) {
+
                         $rgba = imagecolorat($img, $x, $y);
+
                         $a = ($rgba >> 24) & 0x7F;
-                        $newA = min(127, $a + 124);
-                        imagesetpixel($img, $x, $y, imagecolorallocatealpha($img, ($rgba >> 16) & 0xFF, ($rgba >> 8) & 0xFF, $rgba & 0xFF, $newA));
+                        $r = ($rgba >> 16) & 0xFF;
+                        $g = ($rgba >> 8) & 0xFF;
+                        $b = $rgba & 0xFF;
+
+                        // Mezclar con blanco (80%)
+                        $r = (int)($r + (255 - $r) * 0.80);
+                        $g = (int)($g + (255 - $g) * 0.80);
+                        $b = (int)($b + (255 - $b) * 0.80);
+
+                        // Mucha transparencia
+                        $newA = min(127, $a + 118);
+
+                        $color = imagecolorallocatealpha(
+                            $img,
+                            $r,
+                            $g,
+                            $b,
+                            $newA
+                        );
+
+                        imagesetpixel($img, $x, $y, $color);
                     }
                 }
 
@@ -613,74 +689,127 @@ class ProyectosEnEstudioController extends Controller
 
         $contenido = $proyecto->contenido;
         if (!empty(trim($contenido))) {
-            $contenidoLimpio = preg_replace('/<br\s*\/?>/i', '<br/>', $contenido);
-            $contenidoLimpio = preg_replace('/<img([^>]+)>/i', '<img$1/>', $contenidoLimpio);
-            $contenidoLimpio = preg_replace('/<hr(\s*)>/i', '<hr$1/>', $contenidoLimpio);
-            $contenidoLimpio = preg_replace('/&(?![a-zA-Z0-9#]+;)/', '&amp;', $contenidoLimpio);
-            $contenidoLimpio = preg_replace('/<\/?(?:thead|tbody)>/i', '', $contenidoLimpio);
-            $contenidoLimpio = preg_replace('/<!--StartFragment-->/i', '', $contenidoLimpio);
-            $contenidoLimpio = preg_replace('/<!--EndFragment-->/i', '', $contenidoLimpio);
-            $contenidoLimpio = preg_replace('/<p[^>]*>\s*(<table[\s>])/i', '$1', $contenidoLimpio);
-            $contenidoLimpio = preg_replace('/(<\/table>)\s*<\/p>/i', '$1', $contenidoLimpio);
+            if (strpos($contenido, 'obs-tramites-table') !== false) {
+                $tablePattern = '/<table[^>]*class="[^"]*obs-tramites-table[^"]*"[^>]*>.*?<\/table>/is';
+                if (preg_match($tablePattern, $contenido, $matches, PREG_OFFSET_CAPTURE)) {
+                    $beforeTable = substr($contenido, 0, $matches[0][1]);
+                    $tableHtml = $matches[0][0];
+                    $afterTable = substr($contenido, $matches[0][1] + strlen($matches[0][0]));
 
-            $useErrors = libxml_use_internal_errors(true);
-            $dom = new DOMDocument();
-            $dom->loadHTML('<?xml encoding="UTF-8">' . $contenidoLimpio, LIBXML_NOERROR | LIBXML_NOWARNING);
+                    if (!empty(trim($beforeTable))) {
+                        $beforeTable = preg_replace('/<br\s*\/?>/i', '<br/>', $beforeTable);
+                        $beforeTable = preg_replace('/<img([^>]+)>/i', '<img$1/>', $beforeTable);
+                        $beforeTable = preg_replace('/<hr(\s*)>/i', '<hr$1/>', $beforeTable);
+                        $beforeTable = preg_replace('/&(?![a-zA-Z0-9#]+;)/', '&amp;', $beforeTable);
+                        $beforeTable = preg_replace('/<\/?(?:html|head|body)[^>]*>/i', '', $beforeTable);
+                        Html::addHtml($section, '<div style="text-align: justify;">' . $beforeTable . '</div>', false, false);
+                    }
 
-            foreach ($dom->getElementsByTagName('table') as $table) {
-                if (strpos($table->getAttribute('class'), 'obs-tramites-table') !== false) {
-                    $tableStyle = $table->getAttribute('style');
-                    $tableStyle = preg_replace('/border\s*:\s*[^;]+;?/i', '', $tableStyle);
-                    $table->setAttribute('style', trim($tableStyle));
+                    $tableDom = new DOMDocument();
+                    $tableDom->loadHTML('<?xml encoding="UTF-8">' . $tableHtml, LIBXML_NOERROR | LIBXML_NOWARNING);
+                    $tableNode = $tableDom->getElementsByTagName('table')->item(0);
 
-                    $rows = $table->getElementsByTagName('tr');
-                    $rowCount = $rows->length;
-                    foreach ($rows as $rowIndex => $row) {
-                        $cells = [];
-                        foreach ($row->childNodes as $child) {
-                            if ($child->nodeName === 'td' || $child->nodeName === 'th') {
-                                $cells[] = $child;
-                            }
-                        }
-                        $colCount = count($cells);
-                        foreach ($cells as $colIndex => $cell) {
-                            $style = $cell->getAttribute('style');
-                            $additions = [];
-                            if ($rowIndex === 0) $additions[] = 'border-top: 3px #000 solid';
-                            if ($rowIndex === $rowCount - 1) $additions[] = 'border-bottom: 3px #000 solid';
-                            if ($colIndex === 0) $additions[] = 'border-left: 3px #000 solid';
-                            if ($colIndex === $colCount - 1) $additions[] = 'border-right: 3px #000 solid';
-                            if (!empty($additions)) {
-                                $cell->setAttribute('style', $style . '; ' . implode('; ', $additions));
-                            }
+                    $colWidths = [];
+                    $thNodes = $tableDom->getElementsByTagName('th');
+                    if ($thNodes->length > 0) {
+                        foreach ($thNodes as $th) {
+                            $w = $th->getAttribute('width');
+                            $colWidths[] = !empty($w) ? (int) $w : 25;
                         }
                     }
+
+                    $rows = $tableNode->getElementsByTagName('tr');
+                    $rowCount = $rows->length;
+
+                    $margins = $section->getSettings();
+                    $pageWidth = $margins['pageSizeW'] ?? 11906;
+                    $marginLeft = $margins['marginLeft'] ?? 1440;
+                    $marginRight = $margins['marginRight'] ?? 1440;
+                    $usableWidth = $pageWidth - $marginLeft - $marginRight;
+
+                    $table = $section->addTable([
+                        'borderSize' => 0,
+                        'width' => $usableWidth,
+                        'unit' => \PhpOffice\PhpWord\SimpleType\TblWidth::TWIP,
+                    ]);
+
+                    foreach ($rows as $rowIndex => $row) {
+                        $table->addRow();
+                        $tdNodes = [];
+                        foreach ($row->childNodes as $child) {
+                            if ($child->nodeName === 'td' || $child->nodeName === 'th') {
+                                $tdNodes[] = $child;
+                            }
+                        }
+                        $colCount = count($tdNodes);
+                        foreach ($tdNodes as $colIndex => $td) {
+                            $pct = isset($colWidths[$colIndex]) ? $colWidths[$colIndex] : (100 / $colCount);
+                            $cellWidth = (int) ($usableWidth * $pct / 100);
+
+                            $noBorder = [
+                                'borderTopSize' => 0, 'borderTopColor' => 'FFFFFF', 'borderTopStyle' => 'nil',
+                                'borderBottomSize' => 0, 'borderBottomColor' => 'FFFFFF', 'borderBottomStyle' => 'nil',
+                                'borderLeftSize' => 0, 'borderLeftColor' => 'FFFFFF', 'borderLeftStyle' => 'nil',
+                                'borderRightSize' => 0, 'borderRightColor' => 'FFFFFF', 'borderRightStyle' => 'nil',
+                            ];
+                            if ($rowIndex === 0) {
+                                $noBorder['borderTopSize'] = 16;
+                                $noBorder['borderTopColor'] = '000000';
+                                $noBorder['borderTopStyle'] = 'single';
+                            }
+                            if ($rowIndex === $rowCount - 1) {
+                                $noBorder['borderBottomSize'] = 16;
+                                $noBorder['borderBottomColor'] = '000000';
+                                $noBorder['borderBottomStyle'] = 'single';
+                            }
+                            if ($colIndex === 0) {
+                                $noBorder['borderLeftSize'] = 16;
+                                $noBorder['borderLeftColor'] = '000000';
+                                $noBorder['borderLeftStyle'] = 'single';
+                            }
+                            if ($colIndex === $colCount - 1) {
+                                $noBorder['borderRightSize'] = 16;
+                                $noBorder['borderRightColor'] = '000000';
+                                $noBorder['borderRightStyle'] = 'single';
+                            }
+
+                            $cellStyle = array_merge([
+                                'width' => $cellWidth,
+                                'unit' => \PhpOffice\PhpWord\SimpleType\TblWidth::TWIP,
+                            ], $noBorder);
+
+                            $cell = $table->addCell($cellWidth, $cellStyle);
+                            $text = trim($td->textContent);
+                            $isHeader = ($td->nodeName === 'th');
+                            $runs = $td->getElementsByTagName('strong') ?: $td->getElementsByTagName('b');
+                            if ($runs->length > 0) {
+                                $text = trim($runs->item(0)->textContent);
+                            }
+                            $fontOpts = ['size' => 11];
+                            if ($isHeader || $runs->length > 0) {
+                                $fontOpts['bold'] = true;
+                            }
+                            $cell->addText($text, $fontOpts);
+                        }
+                    }
+
+                    if (!empty(trim($afterTable))) {
+                        $afterTable = preg_replace('/<br\s*\/?>/i', '<br/>', $afterTable);
+                        $afterTable = preg_replace('/<img([^>]+)>/i', '<img$1/>', $afterTable);
+                        $afterTable = preg_replace('/<hr(\s*)>/i', '<hr$1/>', $afterTable);
+                        $afterTable = preg_replace('/&(?![a-zA-Z0-9#]+;)/', '&amp;', $afterTable);
+                        $afterTable = preg_replace('/<\/?(?:html|head|body)[^>]*>/i', '', $afterTable);
+                        Html::addHtml($section, '<div style="text-align: justify;">' . $afterTable . '</div>', false, false);
+                    }
                 }
+            } else {
+                $contenidoLimpio = preg_replace('/<br\s*\/?>/i', '<br/>', $contenido);
+                $contenidoLimpio = preg_replace('/<img([^>]+)>/i', '<img$1/>', $contenidoLimpio);
+                $contenidoLimpio = preg_replace('/<hr(\s*)>/i', '<hr$1/>', $contenidoLimpio);
+                $contenidoLimpio = preg_replace('/&(?![a-zA-Z0-9#]+;)/', '&amp;', $contenidoLimpio);
+                $contenidoLimpio = preg_replace('/<\/?(?:html|head|body)[^>]*>/i', '', $contenidoLimpio);
+                Html::addHtml($section, $contenidoLimpio, false, false);
             }
-
-            $body = $dom->getElementsByTagName('body')->item(0);
-            $contenidoLimpio = '';
-            if ($body) {
-                foreach ($body->childNodes as $child) {
-                    $contenidoLimpio .= $dom->saveXML($child, LIBXML_NOXMLDECL);
-                }
-            }
-            $contenidoLimpio = preg_replace('/<\/?(?:br|hr|img)([^>]*)><\/(?:br|hr|img)>/i', '<$1/>', $contenidoLimpio);
-            $contenidoLimpio = preg_replace(
-                '/border:\s*([0-9]+[^\s;]*)\s+(#[a-fA-F0-9]+|[a-zA-Z]+)\s+(#[a-fA-F0-9]+|[a-zA-Z]+)/i',
-                'border: $1 $3 $2',
-                $contenidoLimpio
-            );
-            libxml_clear_errors();
-            libxml_use_internal_errors($useErrors);
-
-            Html::addHtml($section, $contenidoLimpio, false, false);
-        }
-
-        $observacion = trim($proyecto->mesaEntrada->observacion ?? '');
-        if (!empty($observacion)) {
-            $section->addTextBreak(1);
-            Html::addHtml($section, '<div style="border: 1px #000 solid; padding: 10px; text-align: justify;">' . nl2br(htmlspecialchars($observacion)) . '</div>', false, false);
         }
 
         $objWriter = IOFactory::createWriter($phpWord, 'Word2007');

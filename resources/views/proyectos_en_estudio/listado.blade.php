@@ -6,6 +6,12 @@
             <h1 class="m-0 custom-heading">Proyectos Creados</h1>
         </div>
         <div class="col-6 text-right">
+            <a href="{{ route('proyectos-en-estudio.sesiones') }}" class="btn btn-danger btn-sm">
+                <i class="fas fa-file-pdf"></i> Generar PDF de Sesión
+            </a>
+            <a href="{{ route('proyectos-en-estudio.asuntos-entrados') }}" class="btn btn-info btn-sm">
+                <i class="fas fa-list"></i> Asuntos Entrados
+            </a>
             <a href="{{ route('proyectos-en-estudio.listado-pdf') }}" class="btn btn-danger btn-generar-doc" target="_blank">
                 <i class="fas fa-file-pdf"></i> PDF
             </a>

@@ -36,12 +36,13 @@
         #tabla-tramites td,
         .obs-tramites-table th,
         .obs-tramites-table td {
-            border: 1px solid #dee2e6;
+            border: none !important;
             padding: 4px;
         }
         #tabla-tramites,
         .obs-tramites-table {
-            outline: 2px solid #adb5bd;
+            border: 2px solid #adb5bd;
+            border-collapse: collapse;
         }
     </style>
 @endpush
@@ -106,21 +107,20 @@
         }
 
         function buildObsTableHtml(count) {
-            var cellPad = 'padding: 4px;';
-            var html = '<table class="obs-tramites-table" style="width: 100%; margin: 10px 0;">';
+            var html = '<table class="obs-tramites-table" border="0" cellpadding="4" cellspacing="0" style="width: 100%; margin: 10px 0; border-collapse: collapse;">';
             html += '<thead><tr>';
-            html += '<th style="' + cellPad + ' width: 20%;"></th>';
-            html += '<th style="' + cellPad + '"><u>FECHA DE SESI\u00D3N</u></th>';
-            html += '<th style="' + cellPad + '">C\u00C1MARA</th>';
-            html += '<th style="' + cellPad + '">RESULTADO</th>';
+            html += '<th border="0" width="18%" style="padding: 4px;"></th>';
+            html += '<th border="0" width="28%" style="padding: 4px;">FECHA DE SESI\u00D3N</th>';
+            html += '<th border="0" width="22%" style="padding: 4px;">C\u00C1MARA</th>';
+            html += '<th border="0" width="32%" style="padding: 4px;">RESULTADO</th>';
             html += '</tr></thead><tbody>';
             for (var i = 1; i <= count; i++) {
                 var label = getTramiteLabel(i);
                 html += '<tr>';
-                html += '<td style="' + cellPad + '"><strong>' + label + '</strong></td>';
-                html += '<td style="' + cellPad + '">____________________</td>';
-                html += '<td style="' + cellPad + '">____________________</td>';
-                html += '<td style="' + cellPad + '">____________________</td>';
+                html += '<td border="0" width="18%" style="padding: 4px;"><strong>' + label + '</strong></td>';
+                html += '<td border="0" width="28%" style="padding: 4px;">__________</td>';
+                html += '<td border="0" width="22%" style="padding: 4px;">__________</td>';
+                html += '<td border="0" width="32%" style="padding: 4px;">__________</td>';
                 html += '</tr>';
             }
             html += '</tbody></table>';
@@ -131,10 +131,10 @@
             obsCounter++;
             var label = getTramiteLabel(obsCounter);
             var row = '<tr>';
-            row += '<td><strong>' + label + '</strong></td>';
-            row += '<td>________________</td>';
-            row += '<td>________________</td>';
-            row += '<td>________________</td>';
+            row += '<td border="0" width="18%" style="padding: 4px;"><strong>' + label + '</strong></td>';
+            row += '<td border="0" width="28%" style="padding: 4px;">__________</td>';
+            row += '<td border="0" width="22%" style="padding: 4px;">__________</td>';
+            row += '<td border="0" width="32%" style="padding: 4px;">__________</td>';
             row += '</tr>';
             $('#tramites-body').append(row);
             $('#tabla-tramites').show();
@@ -444,13 +444,13 @@
                                     </div>
                                     <div class="card-body">
                                         <p class="text-muted mb-0" id="sin-tramites">Sin trámites. Click en "Obs".</p>
-                                        <table id="tabla-tramites" class="table table-sm mb-0" style="display: none; border-collapse: collapse;">
+                                        <table id="tabla-tramites" class="table table-sm mb-0" border="0" cellpadding="4" cellspacing="0" style="display: none; border-collapse: collapse;">
                                             <thead>
                                                 <tr>
-                                                    <th style="width: 20%;"></th>
-                                                    <th><u>FECHA DE SESIÓN</u></th>
-                                                    <th>CÁMARA</th>
-                                                    <th>RESULTADO</th>
+                                                    <th border="0" width="18%" style="padding: 4px;"></th>
+                                                    <th border="0" width="28%" style="padding: 4px;">FECHA DE SESIÓN</th>
+                                                    <th border="0" width="22%" style="padding: 4px;">CÁMARA</th>
+                                                    <th border="0" width="32%" style="padding: 4px;">RESULTADO</th>
                                                 </tr>
                                             </thead>
                                             <tbody id="tramites-body"></tbody>

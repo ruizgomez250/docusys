@@ -118,12 +118,7 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
-                    <a href="{{ route('proyectos-en-estudio.sesiones') }}" class="btn btn-danger btn-sm">
-                        <i class="fas fa-file-pdf"></i> Generar PDF de Sesión
-                    </a>
-                    <a href="{{ route('proyectos-en-estudio.asuntos-entrados') }}" class="btn btn-info btn-sm">
-                        <i class="fas fa-list"></i> Asuntos Entrados
-                    </a>
+                    <span class="card-title"><i class="fas fa-inbox"></i> Documentos Recepcionados</span>
                 </div>
                 <div class="card-body">
                     <table id="table1" class="table table-bordered table-hover">
