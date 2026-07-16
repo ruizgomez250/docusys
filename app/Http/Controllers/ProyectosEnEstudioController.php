@@ -747,10 +747,18 @@ class ProyectosEnEstudioController extends Controller
                             $cellWidth = (int) ($usableWidth * $pct / 100);
 
                             $noBorder = [
-                                'borderTopSize' => 0, 'borderTopColor' => 'FFFFFF', 'borderTopStyle' => 'nil',
-                                'borderBottomSize' => 0, 'borderBottomColor' => 'FFFFFF', 'borderBottomStyle' => 'nil',
-                                'borderLeftSize' => 0, 'borderLeftColor' => 'FFFFFF', 'borderLeftStyle' => 'nil',
-                                'borderRightSize' => 0, 'borderRightColor' => 'FFFFFF', 'borderRightStyle' => 'nil',
+                                'borderTopSize' => 0,
+                                'borderTopColor' => 'FFFFFF',
+                                'borderTopStyle' => 'nil',
+                                'borderBottomSize' => 0,
+                                'borderBottomColor' => 'FFFFFF',
+                                'borderBottomStyle' => 'nil',
+                                'borderLeftSize' => 0,
+                                'borderLeftColor' => 'FFFFFF',
+                                'borderLeftStyle' => 'nil',
+                                'borderRightSize' => 0,
+                                'borderRightColor' => 'FFFFFF',
+                                'borderRightStyle' => 'nil',
                             ];
                             if ($rowIndex === 0) {
                                 $noBorder['borderTopSize'] = 16;
@@ -1109,24 +1117,26 @@ class ProyectosEnEstudioController extends Controller
         foreach ($proyectos as $proyecto) {
             $acapite = trim($proyecto->acapite ?? '');
             if (!empty($acapite)) {
-                $acapiteLimpio = preg_replace('/<br\s*\/?>/i', '<br/>', $acapite);
-                $acapiteLimpio = preg_replace('/<\/?(?:thead|tbody)>/i', '', $acapiteLimpio);
-                $acapiteLimpio = preg_replace('/<!--StartFragment-->/i', '', $acapiteLimpio);
-                $acapiteLimpio = preg_replace('/<!--EndFragment-->/i', '', $acapiteLimpio);
+                $acapiteLimpio = strip_tags($acapite);
+                $acapiteLimpio = trim(preg_replace('/\s+/', ' ', $acapiteLimpio));
             } else {
                 $acapiteLimpio = '';
             }
 
             $destino = trim($proyecto->destino ?? '');
-            if (!empty($destino)) {
-                $destino = '. ' . $destino;
-            }
 
-            $html = '<p style="text-align: justify; font-family: Times, serif; font-size: 12pt;">'
-                . '<strong>' . $proyecto->nro_expediente . '</strong>. '
-                . $acapiteLimpio
-                . $destino
-                . '</p>';
+            $linea = '<strong>' . $proyecto->nro_expediente . '</strong>';
+            if (!empty($acapiteLimpio)) {
+                $linea .= '. ' . $acapiteLimpio;
+            }
+            if (!empty($destino)) {
+                $linea .= '. ' . $destino;
+            }
+            $linea .= '.';
+
+            $html = '<p style="text-align: justify; font-family: Times, serif; font-size: 12pt; margin: 0; padding: 0;">';
+            $html .= $linea;
+            $html .= '</p>';
 
             $pdf->writeHTML($html, true, false, true, false, '');
             $pdf->Ln(3);

@@ -155,49 +155,75 @@
         function formatearContenido() {
             var $editor = $('#contenido');
             if (!$editor.data('summernote')) return;
-            var html = $editor.summernote('code');
-
-            var tableHtml = '';
-            html = html.replace(/<table[^>]*class="[^"]*obs-tramites-table[^"]*"[^>]*>[\s\S]*?<\/table>/i, function(m) {
-                tableHtml = m;
-                return '%%TABLE%%';
-            });
-
-            html = html.replace(/<\/?(?:em|u|strong|i|b)[^>]*>/gi, '');
-            html = html.replace(/<\/p>/gi, '\n').replace(/<br\s*\/?>/gi, '\n');
-            html = html.replace(/<[^>]+>/g, '');
-            var text = $('<div>').html(html).text();
 
             function normalize(s) {
                 return s.toUpperCase().replace(/Á/g, 'A').replace(/É/g, 'E').replace(/Í/g, 'I').replace(/Ó/g, 'O').replace(/Ú/g, 'U').replace(/Ü/g, 'U').replace(/Ñ/g, 'N');
             }
             var labels = ['FECHA DE RECEPCION', 'PRESENTADO POR', 'OBSERVACION', 'EXPEDIENTE', 'FIRMA', 'NRO EXPEDIENTE'];
-            var lines = text.split('\n');
-            var result = [];
-            for (var i = 0; i < lines.length; i++) {
-                var line = lines[i].trim();
-                if (!line) continue;
-                var idx = line.indexOf(':');
-                if (idx > 0) {
-                    var before = line.substring(0, idx).trim();
-                    var after = line.substring(idx + 1).trim();
-                    if (labels.indexOf(normalize(after)) !== -1) {
-                        var tmp = before;
-                        before = after;
-                        after = tmp;
+
+            function formatLines(text) {
+                var lines = text.split('\n');
+                var result = [];
+                for (var i = 0; i < lines.length; i++) {
+                    var line = lines[i].trim();
+                    if (!line) continue;
+                    var idx = line.indexOf(':');
+                    if (idx > 0) {
+                        var before = line.substring(0, idx).trim();
+                        var after = line.substring(idx + 1).trim();
+                        if (labels.indexOf(normalize(after)) !== -1) {
+                            var tmp = before;
+                            before = after;
+                            after = tmp;
+                        }
+                        result.push('<p><em><u>' + before.toUpperCase() + '</u></em>: <strong>' + after + '</strong></p>');
+                    } else {
+                        result.push('<p>' + line + '</p>');
                     }
-                    result.push('<p><em><u>' + before.toUpperCase() + '</u></em>: <strong>' + after + '</strong></p>');
-                } else {
-                    result.push('<p>' + line + '</p>');
                 }
+                return result.join('\n');
             }
 
-            var output = result.join('\n');
-            if (tableHtml) {
-                output = output.replace('%%TABLE%%', tableHtml);
-            }
+            var sel = window.getSelection();
+            if (sel && sel.rangeCount > 0 && !sel.isCollapsed && $editor.find('.note-editable').has(sel.anchorNode).length > 0) {
+                var range = sel.getRangeAt(0);
+                var div = document.createElement('div');
+                div.appendChild(range.cloneContents());
+                var selectedHtml = div.innerHTML;
+                if (!selectedHtml.trim()) return;
 
-            $editor.summernote('code', output);
+                var tempDiv = document.createElement('div');
+                tempDiv.innerHTML = selectedHtml;
+                var plainText = tempDiv.textContent || tempDiv.innerText || '';
+                var formatted = formatLines(plainText);
+
+                range.deleteContents();
+                var temp = document.createElement('div');
+                temp.innerHTML = formatted;
+                var frag = document.createDocumentFragment();
+                while (temp.firstChild) frag.appendChild(temp.firstChild);
+                range.insertNode(frag);
+
+                sel.removeAllRanges();
+                $editor.summernote('triggerSave');
+            } else {
+                var html = $editor.summernote('code');
+                var tableHtml = '';
+                html = html.replace(/<table[^>]*class="[^"]*obs-tramites-table[^"]*"[^>]*>[\s\S]*?<\/table>/i, function(m) {
+                    tableHtml = m;
+                    return '%%TABLE%%';
+                });
+                html = html.replace(/<\/?(?:em|u|strong|i|b)[^>]*>/gi, '');
+                html = html.replace(/<\/p>/gi, '\n').replace(/<br\s*\/?>/gi, '\n');
+                html = html.replace(/<[^>]+>/g, '');
+                var text = $('<div>').html(html).text();
+
+                var output = formatLines(text);
+                if (tableHtml) {
+                    output = output.replace('%%TABLE%%', tableHtml);
+                }
+                $editor.summernote('code', output);
+            }
         }
 
         $(document).ready(function() {
@@ -331,7 +357,7 @@
                         @method('PUT')
 
                         <div class="row">
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="camara">Cámara de Origen</label>
                                     <select name="camara" id="camara" class="form-control">
@@ -342,18 +368,20 @@
                                     </select>
                                 </div>
                             </div>
-                            <div class="col-md-8">
-                                <div class="form-group">
-                                    <label for="acapite">Acapite</label>
-                                    <textarea name="acapite" id="acapite" class="form-control">{{ old('acapite', $proyecto->acapite) }}</textarea>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="destino">Destino</label>
                                     <input type="text" name="destino" id="destino" class="form-control autocomplete-field"
                                         value="{{ old('destino', $proyecto->destino) }}"
                                         placeholder="Escriba o seleccione..." autocomplete="off">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="form-group">
+                                    <label for="acapite">Acapite</label>
+                                    <textarea name="acapite" id="acapite" class="form-control">{{ old('acapite', $proyecto->acapite) }}</textarea>
                                 </div>
                             </div>
                         </div>
@@ -363,135 +391,63 @@
                         <input type="hidden" name="cantidad_observaciones" value="{{ old('cantidad_observaciones', $proyecto->cantidad_observaciones) }}">
 
                         <hr>
-                        <h5><i class="fas fa-tools"></i> Composición del Documento</h5>
-                        <p class="text-muted">Use los botones para insertar cada elemento en la posición del cursor dentro del editor.</p>
 
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="card card-outline card-info">
-                                    <div class="card-header">
-                                        <h3 class="card-title">Observación
-                                            <small class="badge badge-light text-muted font-weight-normal" style="font-size: 10px; margin-left: 4px;">Ctrl+Alt+O</small>
-                                        </h3>
-                                        <button type="button" class="btn btn-sm btn-info float-right" onclick="insertarEnEditor('observacion')">
-                                            <i class="fas fa-plus"></i> Agregar al documento
-                                        </button>
-                                    </div>
-                                    <div class="card-body">
-                                        <textarea id="insert_observacion" class="form-control" rows="3">{{ $proyecto->mesaEntrada->observacion ?? '' }}</textarea>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="card card-outline card-success">
-                                    <div class="card-header">
-                                        <h3 class="card-title">Presentado Por
-                                            <small class="badge badge-light text-muted font-weight-normal" style="font-size: 10px; margin-left: 4px;">Ctrl+Alt+P</small>
-                                        </h3>
-                                        <button type="button" class="btn btn-sm btn-success float-right" onclick="insertarEnEditor('presentado_por')">
-                                            <i class="fas fa-plus"></i> Agregar
-                                        </button>
-                                    </div>
-                                    <div class="card-body">
-                                        <input type="text" id="insert_presentado_por" class="form-control"
-                                            value="{{ old('presentado_por', $proyecto->presentado_por) }}">
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="card card-outline card-warning">
-                                    <div class="card-header">
-                                        <h3 class="card-title">Fecha Recepción
-                                            <small class="badge badge-light text-muted font-weight-normal" style="font-size: 10px; margin-left: 4px;">Ctrl+Alt+F</small>
-                                        </h3>
-                                        <button type="button" class="btn btn-sm btn-warning float-right" onclick="insertarEnEditor('fecha')">
-                                            <i class="fas fa-plus"></i> Agregar
-                                        </button>
-                                    </div>
-                                    <div class="card-body">
-                                        <input type="text" id="insert_fecha" class="form-control"
-                                            value="{{ old('fecha_recepcion_texto', $proyecto->fecha_recepcion_texto) }}">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="card card-outline card-secondary">
-                                    <div class="card-header">
-                                        <h3 class="card-title">Firma
-                                            <small class="badge badge-light text-muted font-weight-normal" style="font-size: 10px; margin-left: 4px;">Ctrl+Alt+S</small>
-                                        </h3>
-                                        <button type="button" class="btn btn-sm btn-secondary float-right" onclick="insertarEnEditor('firma')">
-                                            <i class="fas fa-plus"></i> Agregar
-                                        </button>
-                                    </div>
-                                    <div class="card-body">
-                                        <input type="text" id="insert_firma" class="form-control" value="SECRETARIO GENERAL">
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="card card-outline card-dark">
-                                    <div class="card-header">
-                                        <h3 class="card-title">Trámites
-                                            <small class="badge badge-light text-muted font-weight-normal" style="font-size: 10px; margin-left: 4px;">Ctrl+Alt+T</small>
-                                        </h3>
-                                        <button type="button" class="btn btn-sm btn-dark float-right" onclick="agregarTramite()">
-                                            <i class="fas fa-list"></i> Obs
-                                        </button>
-                                    </div>
-                                    <div class="card-body">
-                                        <p class="text-muted mb-0" id="sin-tramites">Sin trámites. Click en "Obs".</p>
-                                        <table id="tabla-tramites" class="table table-sm mb-0" border="0" cellpadding="4" cellspacing="0" style="display: none; border-collapse: collapse;">
-                                            <thead>
-                                                <tr>
-                                                    <th border="0" width="18%" style="padding: 4px;"></th>
-                                                    <th border="0" width="28%" style="padding: 4px;">FECHA DE SESIÓN</th>
-                                                    <th border="0" width="22%" style="padding: 4px;">CÁMARA</th>
-                                                    <th border="0" width="32%" style="padding: 4px;">RESULTADO</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody id="tramites-body"></tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
+                        <div id="campos-ocultos" style="display:none;">
+                            <textarea id="insert_observacion">{{ $proyecto->mesaEntrada->observacion ?? '' }}</textarea>
+                            <input type="text" id="insert_presentado_por" value="{{ old('presentado_por', $proyecto->presentado_por) }}">
+                            <input type="text" id="insert_fecha" value="{{ old('fecha_recepcion_texto', $proyecto->fecha_recepcion_texto) }}">
+                            <input type="text" id="insert_firma" value="SECRETARIO GENERAL">
                             @if ($proyecto->nro_expediente > 0)
-                                <div class="col-md-4">
-                                    <div class="card card-outline card-primary">
-                                        <div class="card-header">
-                                        <h3 class="card-title">N° Expediente
-                                            <small class="badge badge-light text-muted font-weight-normal" style="font-size: 10px; margin-left: 4px;">Ctrl+Alt+E</small>
-                                        </h3>
-                                        <button type="button" class="btn btn-sm btn-primary float-right" onclick="insertarEnEditor('expediente')">
-                                                <i class="fas fa-plus"></i> Agregar
-                                            </button>
-                                        </div>
-                                        <div class="card-body">
-                                            @php
-                                                $letra = '';
-                                                if ($proyecto->camara == 'Senado') $letra = 'S';
-                                                elseif ($proyecto->camara == 'Diputados') $letra = 'D';
-                                                elseif ($proyecto->camara == 'Congreso') $letra = 'C';
-                                                $aa = substr($proyecto->anho, -2);
-                                            @endphp
-                                            <input type="text" id="insert_expediente" class="form-control"
-                                                value="EXP No {{ $letra }} - {{ $aa }}{{ $proyecto->nro_expediente }}" readonly>
-                                        </div>
-                                    </div>
-                                </div>
+                                @php
+                                    $letra = '';
+                                    if ($proyecto->camara == 'Senado') $letra = 'S';
+                                    elseif ($proyecto->camara == 'Diputados') $letra = 'D';
+                                    elseif ($proyecto->camara == 'Congreso') $letra = 'C';
+                                    $aa = substr($proyecto->anho, -2);
+                                @endphp
+                                <input type="text" id="insert_expediente" value="EXP No {{ $letra }} - {{ $aa }}{{ $proyecto->nro_expediente }}">
                             @endif
+                            <p class="text-muted mb-0" id="sin-tramites">Sin trámites. Click en "Obs".</p>
+                            <table id="tabla-tramites" class="table table-sm mb-0" border="0" cellpadding="4" cellspacing="0" style="display: none; border-collapse: collapse;">
+                                <thead>
+                                    <tr>
+                                        <th border="0" width="18%" style="padding: 4px;"></th>
+                                        <th border="0" width="28%" style="padding: 4px;">FECHA DE SESIÓN</th>
+                                        <th border="0" width="22%" style="padding: 4px;">CÁMARA</th>
+                                        <th border="0" width="32%" style="padding: 4px;">RESULTADO</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tramites-body"></tbody>
+                            </table>
                         </div>
-
-                        <hr>
 
                         <div class="form-group">
                             <label for="contenido">Contenido del Documento</label>
-                            <button type="button" class="btn btn-sm btn-outline-info float-right" onclick="formatearContenido()" title="Aplica: cursiva+subrayado a lo que está antes de «:» y negrita a lo que está después">
-                                <i class="fas fa-magic"></i> Formatear
-                            </button>
+                            <div class="float-right btn-group">
+                                <button type="button" class="btn btn-sm btn-outline-info" onclick="formatearContenido()" title="Formatear selección o todo el contenido">
+                                    <i class="fas fa-magic"></i> Formatear
+                                </button>
+                                <button type="button" class="btn btn-sm btn-info" onclick="insertarEnEditor('observacion')" title="Observación (Ctrl+Alt+O)">
+                                    <i class="fas fa-sticky-note"></i> Obs <small class="text-muted">Ctrl+Alt+O</small>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-success" onclick="insertarEnEditor('presentado_por')" title="Presentado Por (Ctrl+Alt+P)">
+                                    <i class="fas fa-user"></i> Presentado por <small class="text-muted">Ctrl+Alt+P</small>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-warning" onclick="insertarEnEditor('fecha')" title="Fecha de Recepción (Ctrl+Alt+F)">
+                                    <i class="fas fa-calendar"></i> Fecha <small class="text-muted">Ctrl+Alt+F</small>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-secondary" onclick="insertarEnEditor('firma')" title="Firma (Ctrl+Alt+S)">
+                                    <i class="fas fa-signature"></i> Firma <small class="text-muted">Ctrl+Alt+S</small>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-dark" onclick="agregarTramite()" title="Trámites (Ctrl+Alt+T)">
+                                    <i class="fas fa-list"></i> Trámites <small class="text-muted">Ctrl+Alt+T</small>
+                                </button>
+                                @if ($proyecto->nro_expediente > 0)
+                                <button type="button" class="btn btn-sm btn-primary" onclick="insertarEnEditor('expediente')" title="N° Expediente (Ctrl+Alt+E)">
+                                    <i class="fas fa-hashtag"></i> Expediente <small class="text-muted">Ctrl+Alt+E</small>
+                                </button>
+                                @endif
+                            </div>
                             <textarea name="contenido" id="contenido" class="form-control">{{ old('contenido', $proyecto->contenido) }}</textarea>
                         </div>
 
