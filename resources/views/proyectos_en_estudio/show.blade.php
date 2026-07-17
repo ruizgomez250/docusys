@@ -428,19 +428,19 @@
                                     <i class="fas fa-magic"></i> Formatear
                                 </button>
                                 <button type="button" class="btn btn-sm btn-info" onclick="insertarEnEditor('observacion')" title="Observación (Ctrl+Alt+O)">
-                                    <i class="fas fa-sticky-note"></i> Obs <small class="text-muted">Ctrl+Alt+O</small>
+                                    <i class="fas fa-sticky-note"></i> Obs <small class="text-white">Ctrl+Alt+O</small>
                                 </button>
                                 <button type="button" class="btn btn-sm btn-success" onclick="insertarEnEditor('presentado_por')" title="Presentado Por (Ctrl+Alt+P)">
-                                    <i class="fas fa-user"></i> Presentado por <small class="text-muted">Ctrl+Alt+P</small>
+                                    <i class="fas fa-user"></i> Presentado por <small class="text-white">Ctrl+Alt+P</small>
                                 </button>
                                 <button type="button" class="btn btn-sm btn-warning" onclick="insertarEnEditor('fecha')" title="Fecha de Recepción (Ctrl+Alt+F)">
-                                    <i class="fas fa-calendar"></i> Fecha <small class="text-muted">Ctrl+Alt+F</small>
+                                    <i class="fas fa-calendar"></i> Fecha <small class="text-white">Ctrl+Alt+F</small>
                                 </button>
                                 <button type="button" class="btn btn-sm btn-secondary" onclick="insertarEnEditor('firma')" title="Firma (Ctrl+Alt+S)">
                                     <i class="fas fa-signature"></i> Firma <small class="text-muted">Ctrl+Alt+S</small>
                                 </button>
                                 <button type="button" class="btn btn-sm btn-dark" onclick="agregarTramite()" title="Trámites (Ctrl+Alt+T)">
-                                    <i class="fas fa-list"></i> Trámites <small class="text-muted">Ctrl+Alt+T</small>
+                                    <i class="fas fa-list"></i> Trámites <small class="text-white">Ctrl+Alt+T</small>
                                 </button>
                                 @if ($proyecto->nro_expediente > 0)
                                 <button type="button" class="btn btn-sm btn-primary" onclick="insertarEnEditor('expediente')" title="N° Expediente (Ctrl+Alt+E)">
