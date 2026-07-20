@@ -1002,6 +1002,50 @@ class ProyectosEnEstudioController extends Controller
         $pdf->Output($filename, 'I');
     }
 
+    public function prepararSesion(Request $request)
+    {
+        $request->validate([
+            'doc_ids' => 'required|string',
+            'tipo_sesion' => 'required|string',
+            'nro_sesion' => 'required|integer|min:1',
+            'fecha_sesion' => 'required|date',
+        ]);
+
+        $ids = array_map('intval', explode(',', $request->input('doc_ids')));
+        $tipoSesion = strtoupper($request->input('tipo_sesion'));
+        $nroSesion = $request->input('nro_sesion');
+        $fechaSesion = $request->input('fecha_sesion');
+
+        $proyectos = ProyectosEnEstudio::with('mesaEntrada')
+            ->whereIn('id', $ids)
+            ->where('nro_expediente', '>', 0)
+            ->whereNull('sesion_id')
+            ->orderBy('nro_expediente', 'asc')
+            ->get();
+
+        if ($proyectos->isEmpty()) {
+            return response()->json(['error' => 'No se encontraron documentos seleccionados.'], 404);
+        }
+
+        DB::beginTransaction();
+        try {
+            $sesion = Sesion::create([
+                'fecha_sesion' => $fechaSesion,
+                'tipo_sesion' => $tipoSesion,
+                'nro_sesion' => $nroSesion,
+            ]);
+
+            ProyectosEnEstudio::whereIn('id', $ids)->update(['sesion_id' => $sesion->id]);
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['error' => 'Error al guardar la sesión: ' . $e->getMessage()], 500);
+        }
+
+        return response()->json(['success' => true, 'sesion_id' => $sesion->id]);
+    }
+
     public function listAsuntosEntrados(Request $request)
     {
         $query = Sesion::with('proyectos.mesaEntrada');

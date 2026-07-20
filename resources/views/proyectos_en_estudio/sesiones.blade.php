@@ -3,12 +3,15 @@
 @section('content_header')
     <div class="row">
         <div class="col-6">
-            <h1 class="m-0 custom-heading">Generar PDF de Sesión</h1>
+            <h1 class="m-0 custom-heading">Generar Asuntos Entrados</h1>
         </div>
         <div class="col-6">
-            <a href="{{ route('proyectos-en-estudio.index') }}" class="btn btn-secondary" style="float: right;">
-                <i class="fas fa-arrow-left"></i> Volver
-            </a>
+                    <a href="{{ route('proyectos-en-estudio.asuntos-entrados') }}" class="btn btn-info">
+                        <i class="fas fa-list"></i> Asuntos Entrados
+                    </a>
+                    <a href="{{ route('proyectos-en-estudio.index') }}" class="btn btn-secondary" style="float: right;">
+                        <i class="fas fa-arrow-left"></i> Volver
+                    </a>
         </div>
     </div>
 @stop
@@ -113,7 +116,7 @@
                 }
 
                 Swal.fire({
-                    title: 'Generando PDF...',
+                    title: 'Preparando sesión...',
                     text: 'Por favor espere',
                     allowOutsideClick: false,
                     allowEscapeKey: false,
@@ -122,7 +125,7 @@
                 });
 
                 $.ajax({
-                    url: '{{ route("proyectos-en-estudio.sesiones.generar-pdf") }}',
+                    url: '{{ route("proyectos-en-estudio.sesiones.preparar") }}',
                     type: 'POST',
                     data: {
                         _token: '{{ csrf_token() }}',
@@ -131,24 +134,12 @@
                         nro_sesion: nro,
                         fecha_sesion: fecha
                     },
-                    xhrFields: {
-                        responseType: 'blob'
-                    },
-                    success: function(data) {
+                    success: function(response) {
                         Swal.close();
-                        var blob = new Blob([data], { type: 'application/pdf' });
-                        var url = window.URL.createObjectURL(blob);
-                        var a = document.createElement('a');
-                        a.href = url;
-                        a.download = 'sesion_' + tipo.toLowerCase() + '_' + nro + '.pdf';
-                        document.body.appendChild(a);
-                        a.click();
-                        window.URL.revokeObjectURL(url);
-                        a.remove();
                         window.location.href = '{{ route("proyectos-en-estudio.asuntos-entrados") }}';
                     },
                     error: function() {
-                        Swal.fire('Error', 'No se pudo generar el PDF.', 'error');
+                        Swal.fire('Error', 'No se pudo preparar la sesión.', 'error');
                     }
                 });
             });
@@ -166,7 +157,7 @@
                     </h3>
                     <div class="card-tools">
                         <button type="button" class="btn btn-danger" id="btnGenerar" disabled>
-                            <i class="fas fa-file-pdf"></i> Generar PDF de Sesión (<span id="selectedCount">0</span>)
+                            <i class="fas fa-file-pdf"></i> Generar Asuntos Ent. (<span id="selectedCount">0</span>)
                         </button>
                     </div>
                 </div>
@@ -281,7 +272,7 @@
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
                         <button type="submit" class="btn btn-danger">
-                            <i class="fas fa-file-pdf"></i> Generar PDF
+                            <i class="fas fa-file-pdf"></i> Generar Asuntos Ent.
                         </button>
                     </div>
                 </form>

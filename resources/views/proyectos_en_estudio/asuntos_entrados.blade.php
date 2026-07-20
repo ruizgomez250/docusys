@@ -9,7 +9,7 @@
             <a href="{{ route('proyectos-en-estudio.sesiones') }}" class="btn btn-primary btn-sm" style="float: right; margin-left: 5px;">
                 <i class="fas fa-plus"></i> Nueva Sesión
             </a>
-            <a href="{{ route('proyectos-en-estudio.index') }}" class="btn btn-secondary btn-sm" style="float: right;">
+            <a href="{{ route('proyectos-en-estudio.listado') }}" class="btn btn-secondary btn-sm" style="float: right;">
                 <i class="fas fa-arrow-left"></i> Volver
             </a>
         </div>

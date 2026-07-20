@@ -77,6 +77,7 @@ Route::get('/autocomplete/observacion',  [AutocompleteController::class, 'getObs
     Route::get('/proyectos-en-estudio/listado-excel', [App\Http\Controllers\ProyectosEnEstudioController::class, 'exportListadoExcel'])->name('proyectos-en-estudio.listado-excel');
     Route::get('/proyectos-en-estudio/sesiones', [App\Http\Controllers\ProyectosEnEstudioController::class, 'listSesiones'])->name('proyectos-en-estudio.sesiones');
     Route::post('/proyectos-en-estudio/sesiones/generar-pdf', [App\Http\Controllers\ProyectosEnEstudioController::class, 'generarPDFSesion'])->name('proyectos-en-estudio.sesiones.generar-pdf');
+    Route::post('/proyectos-en-estudio/sesiones/preparar', [App\Http\Controllers\ProyectosEnEstudioController::class, 'prepararSesion'])->name('proyectos-en-estudio.sesiones.preparar');
     Route::get('/proyectos-en-estudio/asuntos-entrados', [App\Http\Controllers\ProyectosEnEstudioController::class, 'listAsuntosEntrados'])->name('proyectos-en-estudio.asuntos-entrados');
     Route::get('/proyectos-en-estudio/asuntos-entrados/{id}/pdf', [App\Http\Controllers\ProyectosEnEstudioController::class, 'downloadPDFSesion'])->name('proyectos-en-estudio.asuntos-entrados.pdf');
     Route::get('/proyectos-en-estudio/asuntos-entrados/{id}/editar', [App\Http\Controllers\ProyectosEnEstudioController::class, 'editSesion'])->name('proyectos-en-estudio.edit-sesion');

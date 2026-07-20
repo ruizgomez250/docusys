@@ -7,7 +7,7 @@
         </div>
         <div class="col-6 text-right">
             <a href="{{ route('proyectos-en-estudio.sesiones') }}" class="btn btn-danger btn-sm">
-                <i class="fas fa-file-pdf"></i> Generar PDF de Sesión
+                <i class="fas fa-file-pdf"></i> Generar Asuntos Ent.
             </a>
             <a href="{{ route('proyectos-en-estudio.asuntos-entrados') }}" class="btn btn-info btn-sm">
                 <i class="fas fa-list"></i> Asuntos Entrados
