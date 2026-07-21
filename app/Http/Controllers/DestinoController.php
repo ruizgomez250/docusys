@@ -6,6 +6,7 @@ use App\Models\Destino;
 use Exception;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class DestinoController extends Controller
 {
@@ -136,5 +137,34 @@ class DestinoController extends Controller
             // Redirigir con un mensaje de error
             return redirect()->route('destino.index')->with('error', 'Hubo un problema al intentar eliminar el registro. Por favor, inténtelo de nuevo.');
         }
+    }
+
+    public function search(Request $request)
+    {
+        $search = $request->input('search', '');
+        $query = Destino::query();
+
+        if ($search) {
+            $query->where('nombre', 'LIKE', "%{$search}%");
+        }
+
+        $destinos = $query->orderBy('nombre')->get(['id', 'nombre']);
+
+        return response()->json($destinos);
+    }
+
+    public function storeAjax(Request $request)
+    {
+        $request->validate([
+            'nombre' => 'required|string|max:255',
+        ]);
+
+        $destino = Destino::create([
+            'nombre' => $request->input('nombre'),
+            'default' => 0,
+            'orden' => 0,
+        ]);
+
+        return response()->json(['id' => $destino->id, 'nombre' => $destino->nombre]);
     }
 }

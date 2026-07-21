@@ -49,6 +49,8 @@ Route::middleware('auth')->group(function () {
     Route::resource('/reportes', ReporteController::class);
     Route::resource('/tipodoc', TipoDocController::class);
     Route::resource('/destino', DestinoController::class);
+    Route::get('/destino/search', [DestinoController::class, 'search'])->name('destino.search');
+    Route::post('/destino/store-ajax', [DestinoController::class, 'storeAjax'])->name('destino.store-ajax');
     Route::resource('/origen', OrigenController::class);
     Route::resource('mesaentrada', MesaEntradaController::class);
     Route::resource('usuariodestino', UserDestinoController::class);

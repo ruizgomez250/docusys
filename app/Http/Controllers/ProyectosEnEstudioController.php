@@ -234,29 +234,46 @@ class ProyectosEnEstudioController extends Controller
     public function show($id)
     {
         $proyecto = ProyectosEnEstudio::with(['mesaEntrada.firmantes', 'mesaEntrada.origen', 'mesaEntrada.tipoDoc'])->findOrFail($id);
-        return view('proyectos_en_estudio.show', compact('proyecto'));
+        $destinos = Destino::orderBy('nombre')->get();
+        return view('proyectos_en_estudio.show', compact('proyecto', 'destinos'));
     }
 
     public function update(Request $request, $id)
     {
         $proyecto = ProyectosEnEstudio::findOrFail($id);
+        $user = Auth::user();
+
+        $puedeCabecera = $user->can('Editar Cabecera Proyectos');
+        $puedeContenido = $user->can('Editar Contenido Proyectos');
+
+        if (!$puedeCabecera && !$puedeContenido) {
+            return redirect()->route('proyectos-en-estudio.show', $proyecto->id)
+                ->with('error', 'No tiene permisos para editar este proyecto.');
+        }
+
         $anho = date('Y');
         $mensaje = 'Proyecto actualizado exitosamente.';
 
         $data = [
-            'camara' => $request->input('camara', $proyecto->camara),
-            'acapite' => $request->input('acapite', $proyecto->acapite),
-            'destino' => $request->input('destino', $proyecto->destino),
             'presentado_por' => $request->input('presentado_por', ''),
             'fecha_recepcion_texto' => $request->input('fecha_recepcion_texto', ''),
-            'contenido' => $request->input('contenido'),
             'cantidad_observaciones' => $request->input('cantidad_observaciones', 1),
         ];
+
+        if ($puedeCabecera) {
+            $data['camara'] = $request->input('camara', $proyecto->camara);
+            $data['destino'] = $request->input('destino', $proyecto->destino);
+            $data['acapite'] = $request->input('acapite', $proyecto->acapite);
+        }
+
+        if ($puedeContenido) {
+            $data['contenido'] = $request->input('contenido');
+        }
 
         DB::beginTransaction();
 
         try {
-            if ($proyecto->nro_expediente == 0) {
+            if ($proyecto->nro_expediente == 0 && $puedeContenido) {
                 $config = ProyectosConfiguracion::firstOrCreate([], [
                     'membrete' => null,
                     'leyenda' => '',

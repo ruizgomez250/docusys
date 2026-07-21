@@ -23,6 +23,12 @@
 @stop
 
 @section('plugins.Sweetalert2', true)
+@section('plugins.Select2', true)
+
+@php
+    $puedeCabecera = Auth::user()->can('Editar Cabecera Proyectos');
+    $puedeContenido = Auth::user()->can('Editar Contenido Proyectos');
+@endphp
 
 @push('css')
     <link href="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-bs4.min.css" rel="stylesheet">
@@ -161,41 +167,65 @@
             }
             var labels = ['FECHA DE RECEPCION', 'PRESENTADO POR', 'OBSERVACION', 'EXPEDIENTE', 'FIRMA', 'NRO EXPEDIENTE'];
 
-            function formatLines(text) {
+            function formatLine(line) {
+                line = line.trim();
+                if (!line) return '';
+                var idx = line.indexOf(':');
+                if (idx > 0) {
+                    var before = line.substring(0, idx).trim();
+                    var after = line.substring(idx + 1).trim();
+                    if (labels.indexOf(normalize(after)) !== -1) {
+                        var tmp = before;
+                        before = after;
+                        after = tmp;
+                    }
+                    return '<p><em><u>' + before.toUpperCase() + '</u></em>: <strong>' + after + '</strong></p>';
+                }
+                return '<p>' + line + '</p>';
+            }
+
+            function stripTags(html) {
+                var t = document.createElement('div');
+                t.innerHTML = html;
+                return t.textContent || t.innerText || '';
+            }
+
+            function formatHtml(html) {
+                var tableHtml = '';
+                html = html.replace(/<table[^>]*class="[^"]*obs-tramites-table[^"]*"[^>]*>[\s\S]*?<\/table>/i, function(m) {
+                    tableHtml = m;
+                    return '%%TABLE%%';
+                });
+                html = html.replace(/<\/?(?:em|u|strong|i|b)[^>]*>/gi, '');
+                html = html.replace(/<\/p>/gi, '\n').replace(/<br\s*\/?>/gi, '\n');
+                html = html.replace(/<[^>]+>/g, '');
+                var text = stripTags(html);
                 var lines = text.split('\n');
                 var result = [];
                 for (var i = 0; i < lines.length; i++) {
-                    var line = lines[i].trim();
-                    if (!line) continue;
-                    var idx = line.indexOf(':');
-                    if (idx > 0) {
-                        var before = line.substring(0, idx).trim();
-                        var after = line.substring(idx + 1).trim();
-                        if (labels.indexOf(normalize(after)) !== -1) {
-                            var tmp = before;
-                            before = after;
-                            after = tmp;
-                        }
-                        result.push('<p><em><u>' + before.toUpperCase() + '</u></em>: <strong>' + after + '</strong></p>');
-                    } else {
-                        result.push('<p>' + line + '</p>');
-                    }
+                    var f = formatLine(lines[i]);
+                    if (f) result.push(f);
                 }
-                return result.join('\n');
+                var output = result.join('\n');
+                if (tableHtml) {
+                    output = output.replace('%%TABLE%%', tableHtml);
+                }
+                return output;
             }
 
             var sel = window.getSelection();
             if (sel && sel.rangeCount > 0 && !sel.isCollapsed && $editor.find('.note-editable').has(sel.anchorNode).length > 0) {
                 var range = sel.getRangeAt(0);
-                var div = document.createElement('div');
-                div.appendChild(range.cloneContents());
-                var selectedHtml = div.innerHTML;
-                if (!selectedHtml.trim()) return;
+                var selectedText = sel.toString();
+                if (!selectedText.trim()) return;
 
-                var tempDiv = document.createElement('div');
-                tempDiv.innerHTML = selectedHtml;
-                var plainText = tempDiv.textContent || tempDiv.innerText || '';
-                var formatted = formatLines(plainText);
+                var lines = selectedText.split('\n');
+                var result = [];
+                for (var i = 0; i < lines.length; i++) {
+                    var f = formatLine(lines[i]);
+                    if (f) result.push(f);
+                }
+                var formatted = result.join('');
 
                 range.deleteContents();
                 var temp = document.createElement('div');
@@ -208,21 +238,8 @@
                 $editor.summernote('triggerSave');
             } else {
                 var html = $editor.summernote('code');
-                var tableHtml = '';
-                html = html.replace(/<table[^>]*class="[^"]*obs-tramites-table[^"]*"[^>]*>[\s\S]*?<\/table>/i, function(m) {
-                    tableHtml = m;
-                    return '%%TABLE%%';
-                });
-                html = html.replace(/<\/?(?:em|u|strong|i|b)[^>]*>/gi, '');
-                html = html.replace(/<\/p>/gi, '\n').replace(/<br\s*\/?>/gi, '\n');
-                html = html.replace(/<[^>]+>/g, '');
-                var text = $('<div>').html(html).text();
-
-                var output = formatLines(text);
-                if (tableHtml) {
-                    output = output.replace('%%TABLE%%', tableHtml);
-                }
-                $editor.summernote('code', output);
+                var formatted = formatHtml(html);
+                $editor.summernote('code', formatted);
             }
         }
 
@@ -267,6 +284,7 @@
                 $('input[name="fecha_recepcion_texto"]').val($(this).val());
             });
 
+            @if ($puedeContenido)
             $('#contenido').summernote({
                 height: 500,
                 toolbar: [
@@ -282,7 +300,9 @@
                 fontNamesIgnoreCheck: ['Times New Roman'],
                 defaultFontName: 'Times New Roman',
             });
+            @endif
 
+            @if ($puedeCabecera)
             $('#acapite').summernote({
                 height: 120,
                 toolbar: [
@@ -294,6 +314,7 @@
                 defaultFontName: 'Times New Roman',
                 placeholder: 'Escriba el acapite con formato...',
             });
+            @endif
 
             $(document).on('keydown', function(e) {
                 if (!e.ctrlKey || !e.altKey) return;
@@ -307,20 +328,55 @@
                 }
             });
 
-            $('#destino').autocomplete({
-                source: function(request, response) {
-                    $.ajax({
-                        url: "{{ route('obtenerdestino') }}",
-                        dataType: "json",
-                        data: { term: request.term },
-                        success: function(data) {
-                            response(data);
-                        }
-                    });
+            @if ($puedeCabecera)
+            @if ($proyecto->destino)
+            var option = new Option('{{ $proyecto->destino }}', '{{ $proyecto->destino }}', true, true);
+            $('#destino').append(option).trigger('change');
+            @endif
+            @endif
+        });
+
+        function abrirModalDestino() {
+            $('#nuevo_destino').val('');
+            $('#modalDestino').modal('show');
+            setTimeout(function() { $('#nuevo_destino').focus(); }, 300);
+        }
+
+        $(document).on('click', '#btnGuardarDestino', function() {
+            var nombre = $('#nuevo_destino').val().trim();
+            if (!nombre) {
+                Swal.fire('Atención', 'Debe escribir el nombre del destino.', 'warning');
+                return;
+            }
+
+            $.ajax({
+                url: "{{ route('destino.store-ajax') }}",
+                type: 'POST',
+                data: {
+                    _token: '{{ csrf_token() }}',
+                    nombre: nombre
                 },
-                minLength: 1,
-                autoFocus: true,
+                success: function(data) {
+                    var newOption = new Option(data.nombre, data.nombre, true, true);
+                    $('#destino').append(newOption).trigger('change');
+                    $('#modalDestino').modal('hide');
+                    Swal.fire('Éxito', 'Destino agregado correctamente.', 'success');
+                },
+                error: function(xhr) {
+                    var msg = 'Error al guardar.';
+                    if (xhr.responseJSON && xhr.responseJSON.errors && xhr.responseJSON.errors.nombre) {
+                        msg = xhr.responseJSON.errors.nombre[0];
+                    }
+                    Swal.fire('Error', msg, 'error');
+                }
             });
+        });
+
+        $('#nuevo_destino').on('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                $('#btnGuardarDestino').click();
+            }
         });
     </script>
 @endpush
@@ -360,7 +416,7 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="camara">Cámara de Origen</label>
-                                    <select name="camara" id="camara" class="form-control">
+                                    <select name="camara" id="camara" class="form-control" {{ !$puedeCabecera ? 'disabled' : '' }}>
                                         <option value="">Seleccionar...</option>
                                         <option value="Senado" {{ $proyecto->camara == 'Senado' ? 'selected' : '' }}>Senado</option>
                                         <option value="Diputados" {{ $proyecto->camara == 'Diputados' ? 'selected' : '' }}>Diputados</option>
@@ -370,10 +426,23 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label for="destino">Destino</label>
-                                    <input type="text" name="destino" id="destino" class="form-control autocomplete-field"
-                                        value="{{ old('destino', $proyecto->destino) }}"
-                                        placeholder="Escriba o seleccione..." autocomplete="off">
+                                    <label for="destino">Destino
+                                        @if ($puedeCabecera)
+                                        <a href="javascript:void(0)" onclick="abrirModalDestino()" title="Agregar nuevo destino"
+                                            style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; border:1px solid #6c757d; color:#6c757d; font-size:14px; font-weight:bold; margin-left:6px; vertical-align:middle; line-height:1; cursor:pointer; transition: all 0.2s;"
+                                            onmouseover="this.style.backgroundColor='#007bff'; this.style.borderColor='#007bff'; this.style.color='#fff';"
+                                            onmouseout="this.style.backgroundColor=''; this.style.borderColor='#6c757d'; this.style.color='#6c757d';">
+                                            +
+                                        </a>
+                                        @endif
+                                    </label>
+                                    <x-adminlte-select2 name="destino" id="destino"
+                                        fgroup-class="col-md-12" :disabled="!$puedeCabecera">
+                                        <option value="">Seleccionar...</option>
+                                        @foreach ($destinos as $dest)
+                                            <option value="{{ $dest->nombre }}" {{ $proyecto->destino == $dest->nombre ? 'selected' : '' }}>{{ $dest->nombre }}</option>
+                                        @endforeach
+                                    </x-adminlte-select2>
                                 </div>
                             </div>
                         </div>
@@ -381,7 +450,11 @@
                             <div class="col-md-12">
                                 <div class="form-group">
                                     <label for="acapite">Acapite</label>
+                                    @if ($puedeCabecera)
                                     <textarea name="acapite" id="acapite" class="form-control">{{ old('acapite', $proyecto->acapite) }}</textarea>
+                                    @else
+                                        <div class="form-control" style="min-height:120px; background-color:#e9ecef; cursor:default; overflow:auto;">{!! $proyecto->acapite !!}</div>
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -423,6 +496,7 @@
 
                         <div class="form-group">
                             <label for="contenido">Contenido del Documento</label>
+                            @if ($puedeContenido)
                             <div class="float-right btn-group">
                                 <button type="button" class="btn btn-sm btn-outline-info" onclick="formatearContenido()" title="Formatear selección o todo el contenido">
                                     <i class="fas fa-magic"></i> Formatear
@@ -448,16 +522,23 @@
                                 </button>
                                 @endif
                             </div>
+                            @endif
+                            @if ($puedeContenido)
                             <textarea name="contenido" id="contenido" class="form-control">{{ old('contenido', $proyecto->contenido) }}</textarea>
+                            @else
+                                <div class="form-control" style="min-height:500px; background-color:#e9ecef; cursor:default; overflow:auto;">{!! $proyecto->contenido !!}</div>
+                            @endif
                         </div>
 
                         <hr>
 
                         <div class="row">
                             <div class="col-12">
+                                @if ($puedeCabecera || $puedeContenido)
                                 <button type="submit" class="btn btn-primary">
                                     <i class="fas fa-save"></i> Guardar Cambios
                                 </button>
+                                @endif
 
                                 @if ($proyecto->nro_expediente > 0)
                                     <a href="{{ route('proyectos-en-estudio.word', $proyecto->id) }}" class="btn btn-success btn-generar-doc">
@@ -487,6 +568,33 @@
             </div>
         </div>
     </div>
+
+    @if ($puedeCabecera)
+    <div class="modal fade" id="modalDestino" tabindex="-1" role="dialog" aria-labelledby="modalDestinoLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalDestinoLabel">Agregar Nuevo Destino</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="nuevo_destino">Nombre del Destino</label>
+                        <input type="text" class="form-control" id="nuevo_destino" placeholder="Escriba el nombre del destino...">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="btnGuardarDestino">
+                        <i class="fas fa-save"></i> Guardar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 @stop
 
 @push('js')

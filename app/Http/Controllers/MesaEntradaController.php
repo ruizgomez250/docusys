@@ -1129,94 +1129,104 @@ class MesaEntradaController extends Controller
     public function update(Request $request, $id)
     {
         try {
-            DB::transaction(function () use ($request, $id) {
-                $validatedData = $request->validate([
-                    'id_origen' => 'required|integer',
-                    'modificar' => 'nullable|integer',
-                    'id_tipo_doc' => 'required|integer',
-                    'id_tipo_docr' => 'required|integer',
-                    'id_destino' => 'required|integer',
-                    'observacion' => 'nullable|string',
-                    'idfirmante' => 'required|array',
-                    'cedula' => 'required|array',
-                    'nombre' => 'required|array',
-                    'telefono' => 'required|array',
-                    'email.*' => 'nullable|email',
-                ]);
+            $user = Auth::user();
+            $puedeCabecera = $user->can('Editar Cabecera Mesa Entrada');
+            $puedeContenido = $user->can('Editar Contenido Mesa Entrada');
 
+            if (!$puedeCabecera && !$puedeContenido) {
+                return redirect()->route('mesaentrada.index')->with('error', 'No tiene permisos para editar.');
+            }
+
+            DB::transaction(function () use ($request, $id, $puedeCabecera, $puedeContenido) {
                 $mesaEntrada = MesaEntrada::findOrFail($id);
 
-                // Actualizar los campos de MesaEntrada
-                $mesaEntrada->update([
-                    'id_origen' => $validatedData['id_origen'],
-                    'id_tipo_doc' => $validatedData['id_tipo_doc'],
-                    'id_tipo_docr' => $validatedData['id_tipo_docr'],
-                    'id_destino' => $validatedData['id_destino'],
-                    'observacion' => $validatedData['observacion'],
-                    'modificar' => 0,
-                ]);
+                if ($puedeCabecera) {
+                    $cabeceraData = $request->validate([
+                        'id_origen' => 'required|integer',
+                        'id_tipo_doc' => 'required|integer',
+                        'id_tipo_docr' => 'required|integer',
+                        'id_destino' => 'required|integer',
+                    ]);
 
-                MapaRecorrido::where('id_mentrada', $mesaEntrada->id)
-                    ->update(['id_destino' => $validatedData['id_destino']]);
+                    $mesaEntrada->update([
+                        'id_origen' => $cabeceraData['id_origen'],
+                        'id_tipo_doc' => $cabeceraData['id_tipo_doc'],
+                        'id_tipo_docr' => $cabeceraData['id_tipo_docr'],
+                        'id_destino' => $cabeceraData['id_destino'],
+                        'modificar' => 0,
+                    ]);
 
-                date_default_timezone_set('America/Argentina/Buenos_Aires'); // Cambia 'America/Asuncion' por tu zona horaria
+                    MapaRecorrido::where('id_mentrada', $mesaEntrada->id)
+                        ->update(['id_destino' => $cabeceraData['id_destino']]);
 
-                // Obtener la fecha y hora actual en el formato deseado
-                $destino = Destino::find($validatedData['id_destino']);
-                RecorridoDoc::where('id_mentrada', $mesaEntrada->id)
-                    ->latest() // Obtiene el más reciente
-                    ->first()  // Toma el primer resultado
-                    ->update(['descripcion' => 'Recepcionado: ' . $destino->nombre]);
-                // Obtener los firmantes actuales
-                $currentFirmantes = MesaEntradaFirmante::where('id_mentrada', $mesaEntrada->id)
-                    ->pluck('id_firmante')
-                    ->toArray();
+                    date_default_timezone_set('America/Argentina/Buenos_Aires');
 
-                // Determinar los firmantes que se eliminarán
-                $newFirmantes = $validatedData['idfirmante'];
-                $firmantesToDelete = array_diff($currentFirmantes, $newFirmantes);
-
-                // Eliminar firmantes que ya no están en la lista
-                if (!empty($firmantesToDelete)) {
-                    MesaEntradaFirmante::whereIn('id_firmante', $firmantesToDelete)
-                        ->where('id_mentrada', $mesaEntrada->id)
-                        ->delete();
+                    $destino = Destino::find($cabeceraData['id_destino']);
+                    RecorridoDoc::where('id_mentrada', $mesaEntrada->id)
+                        ->latest()
+                        ->first()
+                        ->update(['descripcion' => 'Recepcionado: ' . $destino->nombre]);
                 }
 
-                foreach ($validatedData['idfirmante'] as $index => $idfirmante) {
-                    // Si el idfirmante es 0, crear un nuevo registro de Firmante
-                    if ($idfirmante == 0) {
-                        $firmanteData = [
-                            'nombre' => $validatedData['nombre'][$index],
-                            'cedula' => $validatedData['cedula'][$index],
-                            'telefono' => $validatedData['telefono'][$index],
-                        ];
+                if ($puedeContenido) {
+                    $contenidoData = $request->validate([
+                        'observacion' => 'nullable|string',
+                        'idfirmante' => 'required|array',
+                        'cedula' => 'required|array',
+                        'nombre' => 'required|array',
+                        'telefono' => 'required|array',
+                        'email.*' => 'nullable|email',
+                    ]);
 
-                        // Agregar el correo electrónico si está presente y no es null
-                        if (isset($validatedData['email'][$index])) {
-                            $firmanteData['correo'] = $validatedData['email'][$index];
-                        }
+                    $mesaEntrada->update([
+                        'observacion' => $contenidoData['observacion'],
+                        'modificar' => 0,
+                    ]);
 
-                        $firmante = Firmante::create($firmanteData);
-                    } else {
-                        // Buscar el firmante en la base de datos y actualizar si existe
-                        $firmante = Firmante::find($idfirmante);
-                        if ($firmante) {
-                            $firmante->update([
-                                'nombre' => $validatedData['nombre'][$index],
-                                'cedula' => $validatedData['cedula'][$index],
-                                'telefono' => $validatedData['telefono'][$index],
-                                'correo' => $validatedData['email'][$index] ?? null,
-                            ]);
-                        }
+                    $currentFirmantes = MesaEntradaFirmante::where('id_mentrada', $mesaEntrada->id)
+                        ->pluck('id_firmante')
+                        ->toArray();
+
+                    $newFirmantes = $contenidoData['idfirmante'];
+                    $firmantesToDelete = array_diff($currentFirmantes, $newFirmantes);
+
+                    if (!empty($firmantesToDelete)) {
+                        MesaEntradaFirmante::whereIn('id_firmante', $firmantesToDelete)
+                            ->where('id_mentrada', $mesaEntrada->id)
+                            ->delete();
                     }
 
-                    // Guardar en mesa_entrada_firmante
-                    if ($firmante) {
-                        MesaEntradaFirmante::updateOrCreate(
-                            ['id_mentrada' => $mesaEntrada->id, 'id_firmante' => $firmante->id],
-                            ['created_at' => now(), 'updated_at' => now()]
-                        );
+                    foreach ($contenidoData['idfirmante'] as $index => $idfirmante) {
+                        if ($idfirmante == 0) {
+                            $firmanteData = [
+                                'nombre' => $contenidoData['nombre'][$index],
+                                'cedula' => $contenidoData['cedula'][$index],
+                                'telefono' => $contenidoData['telefono'][$index],
+                            ];
+
+                            if (isset($contenidoData['email'][$index])) {
+                                $firmanteData['correo'] = $contenidoData['email'][$index];
+                            }
+
+                            $firmante = Firmante::create($firmanteData);
+                        } else {
+                            $firmante = Firmante::find($idfirmante);
+                            if ($firmante) {
+                                $firmante->update([
+                                    'nombre' => $contenidoData['nombre'][$index],
+                                    'cedula' => $contenidoData['cedula'][$index],
+                                    'telefono' => $contenidoData['telefono'][$index],
+                                    'correo' => $contenidoData['email'][$index] ?? null,
+                                ]);
+                            }
+                        }
+
+                        if ($firmante) {
+                            MesaEntradaFirmante::updateOrCreate(
+                                ['id_mentrada' => $mesaEntrada->id, 'id_firmante' => $firmante->id],
+                                ['created_at' => now(), 'updated_at' => now()]
+                            );
+                        }
                     }
                 }
             });

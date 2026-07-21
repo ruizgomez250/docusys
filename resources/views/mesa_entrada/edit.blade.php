@@ -5,6 +5,11 @@
 @stop
 @section('plugins.Sweetalert2', true)
 
+@php
+    $puedeCabecera = Auth::user()->can('Editar Cabecera Mesa Entrada');
+    $puedeContenido = Auth::user()->can('Editar Contenido Mesa Entrada');
+@endphp
+
 @push('js')
     <script>
         $(document).ready(function() {
@@ -59,7 +64,8 @@
                         </div>
 
                         <div class="row">
-                            <x-adminlte-select2 name="id_origen" label="Origen" fgroup-class="col-md-4" required>
+                            <x-adminlte-select2 name="id_origen" label="Origen" fgroup-class="col-md-4"
+                                :disabled="!$puedeCabecera" required>
                                 @foreach ($origenes as $origen)
                                     <option value="{{ $origen->id }}"
                                         {{ $mesaEntrada->id_origen == $origen->id ? 'selected' : '' }}>{{ $origen->nombre }}
@@ -68,7 +74,7 @@
                             </x-adminlte-select2>
 
                             <x-adminlte-select2 name="id_tipo_docr" label="Tipo de Documento" fgroup-class="col-md-4"
-                                required>
+                                :disabled="!$puedeCabecera" required>
                                 @foreach ($tiposDocR as $tipoDocR)
                                     <option value="{{ $tipoDocR->id }}"
                                         {{ $mesaEntrada->id_tipo_docr == $tipoDocR->id ? 'selected' : '' }}>
@@ -76,7 +82,8 @@
                                 @endforeach
                             </x-adminlte-select2>
 
-                            <x-adminlte-select2 name="id_destino" label="Destino" fgroup-class="col-md-4" required>
+                            <x-adminlte-select2 name="id_destino" label="Destino" fgroup-class="col-md-4"
+                                :disabled="!$puedeCabecera" required>
                                 @foreach ($destinos as $destino)
                                     <option value="{{ $destino->id }}"
                                         {{ $mesaEntrada->id_destino == $destino->id ? 'selected' : '' }}>
@@ -87,12 +94,12 @@
 
                         <div class="row">
                             <x-adminlte-textarea name="observacion" label="Observación" placeholder="Ingresar Observación"
-                                fgroup-class="col-md-12">{{ old('observacion', $mesaEntrada->observacion) }}</x-adminlte-textarea>
+                                fgroup-class="col-md-12" :disabled="!$puedeContenido">{{ old('observacion', $mesaEntrada->observacion) }}</x-adminlte-textarea>
                         </div>
 
                         <hr>
 
-                        <div id="items">
+                        <div id="items" style="{{ !$puedeContenido ? 'pointer-events: none; opacity: 0.6;' : '' }}">
                             <div class="item" style="background-color: #343A40;">
                                 <div class="row ml-2">
                                     <label for="" class="col-2" style="color: white;">NUMERO</label>
@@ -108,22 +115,26 @@
                                         <input type="number" name="item[]" class="codigo_id form-control col-2"
                                             placeholder="Código" value="{{ $index + 1 }}" required readonly>
                                         <input type="text" name="cedula[]" class="autocomplete-cedula form-control col-2"
-                                            value="{{ $firmante->cedula }}" required>
+                                            value="{{ $firmante->cedula }}" {{ !$puedeContenido ? 'readonly' : '' }} required>
                                         <input type="hidden" name="idfirmante[]" value="{{ $firmante->id }}"
                                             class="codigo_id form-control col-1" required>
                                         <input type="text" name="nombre[]" class="autocomplete-nombre form-control col-3"
-                                            value="{{ $firmante->nombre }}" required>
+                                            value="{{ $firmante->nombre }}" {{ !$puedeContenido ? 'readonly' : '' }} required>
                                         <input type="text" name="telefono[]" class="form-control col-2"
-                                            value="{{ $firmante->telefono }}">
+                                            value="{{ $firmante->telefono }}" {{ !$puedeContenido ? 'readonly' : '' }}>
                                         <input type="text" name="email[]" class="form-control col-2"
-                                            value="{{ $firmante->email }}">
-                                        <button class="btn-remove btn btn-outline-danger ml-2" type="button"><i
-                                                class="fa fa-trash" aria-hidden="true"></i></button>
+                                            value="{{ $firmante->email }}" {{ !$puedeContenido ? 'readonly' : '' }}>
+                                        @if($puedeContenido)
+                                            <button class="btn-remove btn btn-outline-danger ml-2" type="button"><i
+                                                    class="fa fa-trash" aria-hidden="true"></i></button>
+                                        @endif
                                     </div>
                                 </div>
                             @endforeach
                         </div>
-                        <button onclick="addNewItem()" class="btn btn-primary mt-2" type="button">Agregar Ítem</button>
+                        @if($puedeContenido)
+                            <button onclick="addNewItem()" class="btn btn-primary mt-2" type="button">Agregar Ítem</button>
+                        @endif
 
                         <hr>
 
@@ -131,8 +142,10 @@
                             <div class="form-group col-md-12">
                                 <a class="btn btn-danger" style="float: right;"
                                     href="{{ route('mesaentrada.index') }}">Cancelar</a>
-                                <x-adminlte-button class="btn-group" style="float: right;" type="submit" label="Actualizar"
-                                    theme="primary" icon="fas fa-lg fa-save" />
+                                @if($puedeCabecera || $puedeContenido)
+                                    <x-adminlte-button class="btn-group" style="float: right;" type="submit" label="Actualizar"
+                                        theme="primary" icon="fas fa-lg fa-save" />
+                                @endif
                             </div>
                         </div>
                     </form>
@@ -147,14 +160,13 @@
     <script>
         document.querySelectorAll('.btn-remove').forEach(btn => {
             btn.addEventListener('click', function() {
-                const itemToRemove = btn.closest('.item'); // Obtiene el contenedor más cercano
+                const itemToRemove = btn.closest('.item');
                 removeItem(itemToRemove);
             });
         });
         itemn = {{ count($firmantes) }};
         const itemsContainer = document.getElementById('items');
 
-        // Función para agregar un nuevo ítem de compra
         function addNewItem() {
             itemn++;
             const newItem = document.createElement("div");
@@ -223,7 +235,7 @@
         function removeItem(itemToRemove) {
             if (itemToRemove) {
                 itemsContainer.removeChild(itemToRemove);
-                itemn--; // Decrementa si es necesario
+                itemn--;
             }
         }
 
