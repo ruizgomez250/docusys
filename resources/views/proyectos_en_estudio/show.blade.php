@@ -5,13 +5,18 @@
         <div class="col-6">
             <h1 class="m-0 custom-heading">Proyecto en Estudio N° 
                 @php
+                    if ($proyecto->usar_documento_padre && $proyecto->documentoPadre) {
+                        $expediente = $proyecto->documentoPadre;
+                    } else {
+                        $expediente = $proyecto;
+                    }
                     $letra = '';
-                    if ($proyecto->camara == 'Senado') $letra = 'S';
-                    elseif ($proyecto->camara == 'Diputados') $letra = 'D';
-                    elseif ($proyecto->camara == 'Congreso') $letra = 'C';
-                    $aa = substr($proyecto->anho, -2);
+                    if ($expediente->camara == 'Senado') $letra = 'S';
+                    elseif ($expediente->camara == 'Diputados') $letra = 'D';
+                    elseif ($expediente->camara == 'Congreso') $letra = 'C';
+                    $aa = substr($expediente->anho, -2);
                 @endphp
-                {{ $letra }}-{{ $aa }}{{ $proyecto->nro_expediente }}
+                {{ $letra }}-{{ $aa }}{{ $expediente->nro_expediente }}
             </h1>
         </div>
         <div class="col-6">
@@ -85,10 +90,10 @@
                             html = '<br><p style="text-align: center;">_____________________________<br><strong>' + texto + '</strong></p>';
                         }
                         break;
-                    case 'expediente':
-                        var texto = $('#insert_expediente').val();
+                    case 'documento_padre':
+                        var texto = $('#documento_padre_formato').val();
                         if (texto) {
-                            html = '<p style="text-align: right;"><strong>' + texto + '</strong></p>';
+                            html = '<strong>' + texto + '</strong>';
                         }
                         break;
                 }
@@ -323,8 +328,8 @@
                     case 'p': e.preventDefault(); insertarEnEditor('presentado_por'); break;
                     case 'f': e.preventDefault(); insertarEnEditor('fecha'); break;
                     case 's': e.preventDefault(); insertarEnEditor('firma'); break;
-                    case 'e': e.preventDefault(); insertarEnEditor('expediente'); break;
                     case 't': e.preventDefault(); agregarTramite(); break;
+                    case 'd': e.preventDefault(); if ($('#usar_documento_padre').is(':checked')) { abrirModalDocumentoPadre(); } break;
                 }
             });
 
@@ -334,6 +339,74 @@
             $('#destino').append(option).trigger('change');
             @endif
             @endif
+
+            $('#usar_documento_padre').on('change', function() {
+                var checked = $(this).is(':checked');
+                $('#btnDocumentoPadre').prop('disabled', !checked);
+                if (!checked) {
+                    $('#documento_padre_id').val('');
+                    $('#documento_padre_formato').val('');
+                }
+            }).trigger('change');
+
+            var tablaDocumentoPadre = null;
+
+            window.abrirModalDocumentoPadre = function() {
+                if (!$('#usar_documento_padre').is(':checked')) return;
+                $('#modalDocumentoPadre').modal('show');
+                $('#documento-padre-seleccionado').hide();
+                $('#btnConfirmarDocumentoPadre').prop('disabled', true);
+
+                if (tablaDocumentoPadre) {
+                    tablaDocumentoPadre.ajax.reload();
+                } else {
+                    tablaDocumentoPadre = $('#tabla-documento-padre').DataTable({
+                        processing: true,
+                        serverSide: true,
+                        ajax: {
+                            url: '{{ route("proyectos-en-estudio.listado-data-modal") }}',
+                            data: function(d) {
+                                d.exclude_id = '{{ $proyecto->id }}';
+                            }
+                        },
+                        columns: [
+                            { data: 'expediente_formato', title: 'Expediente' },
+                            { data: 'presentado_por', name: 'presentado_por', title: 'Presentado Por' },
+                            { data: 'fecha_recepcion_texto', name: 'fecha_recepcion_texto', title: 'Fecha Recepción' },
+                            { data: 'camara', name: 'camara', title: 'Cámara' },
+                            { data: 'acciones', title: 'Acciones', orderable: false, searchable: false }
+                        ],
+                        language: { url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json' },
+                        order: [[0, 'desc']]
+                    });
+                }
+            };
+
+            $(document).on('click', '.btn-seleccionar-padre', function() {
+                $('.btn-seleccionar-padre').removeClass('btn-success').addClass('btn-primary').html('<i class="fas fa-check"></i> Seleccionar');
+                $(this).removeClass('btn-primary').addClass('btn-success').html('<i class="fas fa-check-double"></i> Seleccionado');
+                var expediente = $(this).data('expediente');
+                var id = $(this).data('id');
+                $('#documento-padre-seleccionado').show();
+                $('#documento-padre-texto').text(expediente);
+                $('#btnConfirmarDocumentoPadre').prop('disabled', false).data('id', id).data('expediente', expediente);
+            });
+
+            $('#btnConfirmarDocumentoPadre').on('click', function() {
+                var id = $(this).data('id');
+                var expediente = $(this).data('expediente');
+                $('#documento_padre_id').val(id);
+                $('#documento_padre_formato').val(expediente);
+                $('#modalDocumentoPadre').modal('hide');
+                insertarEnEditor('documento_padre');
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Documento Padre asignado',
+                    text: expediente + ' ha sido seleccionado.',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            });
         });
 
         function abrirModalDestino() {
@@ -388,15 +461,22 @@
                 <div class="card-header">
                     <h3 class="card-title">
                         <i class="fas fa-file-alt"></i>
-                        @if ($proyecto->nro_expediente > 0)
+                        @php
+                            if ($proyecto->usar_documento_padre && $proyecto->documentoPadre) {
+                                $expediente = $proyecto->documentoPadre;
+                            } else {
+                                $expediente = $proyecto;
+                            }
+                        @endphp
+                        @if ($expediente->nro_expediente > 0)
                             @php
                                 $letra = '';
-                                if ($proyecto->camara == 'Senado') $letra = 'S';
-                                elseif ($proyecto->camara == 'Diputados') $letra = 'D';
-                                elseif ($proyecto->camara == 'Congreso') $letra = 'C';
-                                $aa = substr($proyecto->anho, -2);
+                                if ($expediente->camara == 'Senado') $letra = 'S';
+                                elseif ($expediente->camara == 'Diputados') $letra = 'D';
+                                elseif ($expediente->camara == 'Congreso') $letra = 'C';
+                                $aa = substr($expediente->anho, -2);
                             @endphp
-                            Expediente N° {{ $letra }}-{{ $aa }}{{ $proyecto->nro_expediente }}
+                            Expediente N° {{ $letra }}-{{ $aa }}{{ $expediente->nro_expediente }}
                         @else
                             <span class="text-warning"><em>Pendiente</em></span>
                         @endif
@@ -462,6 +542,7 @@
                         <input type="hidden" name="presentado_por" value="{{ old('presentado_por', $proyecto->presentado_por) }}">
                         <input type="hidden" name="fecha_recepcion_texto" value="{{ old('fecha_recepcion_texto', $proyecto->fecha_recepcion_texto) }}">
                         <input type="hidden" name="cantidad_observaciones" value="{{ old('cantidad_observaciones', $proyecto->cantidad_observaciones) }}">
+                        <input type="hidden" name="documento_padre_id" id="documento_padre_id" value="{{ old('documento_padre_id', $proyecto->documento_padre_id) }}">
 
                         <hr>
 
@@ -480,6 +561,7 @@
                                 @endphp
                                 <input type="text" id="insert_expediente" value="EXP No {{ $letra }} - {{ $aa }}{{ $proyecto->nro_expediente }}">
                             @endif
+                            <input type="text" id="documento_padre_formato" value="@if($proyecto->documento_padre_id && $proyecto->documentoPadre)({{ 'Exp. No. ' . (($proyecto->documentoPadre->camara == 'Senado') ? 'S' : (($proyecto->documentoPadre->camara == 'Diputados') ? 'D' : 'C')) . '-' . substr($proyecto->documentoPadre->anho, -2) . $proyecto->documentoPadre->nro_expediente }})@endif">
                             <p class="text-muted mb-0" id="sin-tramites">Sin trámites. Click en "Obs".</p>
                             <table id="tabla-tramites" class="table table-sm mb-0" border="0" cellpadding="4" cellspacing="0" style="display: none; border-collapse: collapse;">
                                 <thead>
@@ -497,7 +579,14 @@
                         <div class="form-group">
                             <label for="contenido">Contenido del Documento</label>
                             @if ($puedeContenido)
-                            <div class="float-right btn-group">
+                            <div style="float: right; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; justify-content: flex-end;">
+                                <div style="display: inline-flex; align-items: center; gap: 3px; background: #dc3545; border-radius: 4px; padding: 2px 6px;">
+                                    <input type="checkbox" id="usar_documento_padre" name="usar_documento_padre" value="1" {{ old('usar_documento_padre', $proyecto->usar_documento_padre) ? 'checked' : '' }} style="margin: 0; cursor: pointer;">
+                                    <label for="usar_documento_padre" style="color: #fff; font-size: 0.8rem; margin: 0; cursor: pointer; white-space: nowrap;">Doc. Padre</label>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-danger" id="btnDocumentoPadre" onclick="abrirModalDocumentoPadre()" title="Documento Padre" disabled>
+                                    <i class="fas fa-sitemap"></i>
+                                </button>
                                 <button type="button" class="btn btn-sm btn-outline-info" onclick="formatearContenido()" title="Formatear selección o todo el contenido">
                                     <i class="fas fa-magic"></i> Formatear
                                 </button>
@@ -516,12 +605,8 @@
                                 <button type="button" class="btn btn-sm btn-dark" onclick="agregarTramite()" title="Trámites (Ctrl+Alt+T)">
                                     <i class="fas fa-list"></i> Trámites <small class="text-white">Ctrl+Alt+T</small>
                                 </button>
-                                @if ($proyecto->nro_expediente > 0)
-                                <button type="button" class="btn btn-sm btn-primary" onclick="insertarEnEditor('expediente')" title="N° Expediente (Ctrl+Alt+E)">
-                                    <i class="fas fa-hashtag"></i> Expediente <small class="text-muted">Ctrl+Alt+E</small>
-                                </button>
-                                @endif
                             </div>
+                            <div style="clear: both;"></div>
                             @endif
                             @if ($puedeContenido)
                             <textarea name="contenido" id="contenido" class="form-control">{{ old('contenido', $proyecto->contenido) }}</textarea>
@@ -541,10 +626,18 @@
                                 @endif
 
                                 @if ($proyecto->nro_expediente > 0)
+                                    @if ($proyecto->usar_documento_padre && $proyecto->documentoPadre)
+                                    <a href="{{ route('proyectos-en-estudio.word-padre', $proyecto->id) }}" class="btn btn-success btn-generar-doc">
+                                        <i class="fas fa-file-word"></i> Word (Doc. Padre)
+                                    </a>
+                                    <a href="{{ route('proyectos-en-estudio.pdf-padre', $proyecto->id) }}" class="btn btn-danger btn-generar-doc" target="_blank">
+                                        <i class="fas fa-file-pdf"></i> PDF (Doc. Padre)
+                                    </a>
+                                    @endif
                                     <a href="{{ route('proyectos-en-estudio.word', $proyecto->id) }}" class="btn btn-success btn-generar-doc">
                                         <i class="fas fa-file-word"></i> Descargar Word
                                     </a>
-                                    <a href="{{ route('proyectos-en-estudio.pdf', $proyecto->id) }}" class="btn btn-danger btn-generar-doc">
+                                    <a href="{{ route('proyectos-en-estudio.pdf', $proyecto->id) }}" class="btn btn-danger btn-generar-doc" target="_blank">
                                         <i class="fas fa-file-pdf"></i> Descargar PDF
                                     </a>
                                 @endif
@@ -589,6 +682,43 @@
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
                     <button type="button" class="btn btn-primary" id="btnGuardarDestino">
                         <i class="fas fa-save"></i> Guardar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    @if ($puedeContenido)
+    <div class="modal fade" id="modalDocumentoPadre" tabindex="-1" role="dialog" aria-labelledby="modalDocumentoPadreLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="modalDocumentoPadreLabel"><i class="fas fa-sitemap"></i> Seleccionar Documento Padre</h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div id="documento-padre-seleccionado" style="display:none;" class="alert alert-success">
+                        <strong>Seleccionado:</strong> <span id="documento-padre-texto"></span>
+                    </div>
+                    <table id="tabla-documento-padre" class="table table-bordered table-striped table-sm" style="width:100%">
+                        <thead>
+                            <tr>
+                                <th>Expediente</th>
+                                <th>Presentado Por</th>
+                                <th>Fecha Recepción</th>
+                                <th>Cámara</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-success" id="btnConfirmarDocumentoPadre" disabled>
+                        <i class="fas fa-check"></i> Confirmar Selección
                     </button>
                 </div>
             </div>

@@ -72,6 +72,7 @@ Route::get('/autocomplete/observacion',  [AutocompleteController::class, 'getObs
     Route::get('/proyectos-en-estudio/data', [App\Http\Controllers\ProyectosEnEstudioController::class, 'recepcionadoData'])->name('proyectos-en-estudio.data');
     Route::get('/proyectos-en-estudio/listado', [App\Http\Controllers\ProyectosEnEstudioController::class, 'listado'])->name('proyectos-en-estudio.listado');
     Route::get('/proyectos-en-estudio/listado-data', [App\Http\Controllers\ProyectosEnEstudioController::class, 'listadoData'])->name('proyectos-en-estudio.listado-data');
+    Route::get('/proyectos-en-estudio/listado-data-modal', [App\Http\Controllers\ProyectosEnEstudioController::class, 'listadoDataForModal'])->name('proyectos-en-estudio.listado-data-modal');
     Route::get('/proyectos-en-estudio/crear/{id_mentrada}', [App\Http\Controllers\ProyectosEnEstudioController::class, 'create'])->name('proyectos-en-estudio.create');
     Route::get('/proyectos-en-estudio/configuracion', [App\Http\Controllers\ProyectosEnEstudioController::class, 'configuracion'])->name('proyectos-en-estudio.configuracion');
     Route::post('/proyectos-en-estudio/configuracion', [App\Http\Controllers\ProyectosEnEstudioController::class, 'updateConfiguracion'])->name('proyectos-en-estudio.update-config');
@@ -87,6 +88,8 @@ Route::get('/autocomplete/observacion',  [AutocompleteController::class, 'getObs
     Route::delete('/proyectos-en-estudio/sesiones/{id}', [App\Http\Controllers\ProyectosEnEstudioController::class, 'destroySesion'])->name('proyectos-en-estudio.destroy-sesion');
     Route::get('/proyectos-en-estudio/{id}/pdf', [App\Http\Controllers\ProyectosEnEstudioController::class, 'downloadPDF'])->name('proyectos-en-estudio.pdf');
     Route::get('/proyectos-en-estudio/{id}/word', [App\Http\Controllers\ProyectosEnEstudioController::class, 'downloadWord'])->name('proyectos-en-estudio.word');
+    Route::get('/proyectos-en-estudio/{id}/pdf-padre', [App\Http\Controllers\ProyectosEnEstudioController::class, 'downloadPDFConPadre'])->name('proyectos-en-estudio.pdf-padre');
+    Route::get('/proyectos-en-estudio/{id}/word-padre', [App\Http\Controllers\ProyectosEnEstudioController::class, 'downloadWordConPadre'])->name('proyectos-en-estudio.word-padre');
     Route::get('/proyectos-en-estudio/{id}', [App\Http\Controllers\ProyectosEnEstudioController::class, 'show'])->name('proyectos-en-estudio.show');
     Route::put('/proyectos-en-estudio/{id}', [App\Http\Controllers\ProyectosEnEstudioController::class, 'update'])->name('proyectos-en-estudio.update');
     Route::delete('/proyectos-en-estudio/{id}', [App\Http\Controllers\ProyectosEnEstudioController::class, 'destroy'])->name('proyectos-en-estudio.destroy');

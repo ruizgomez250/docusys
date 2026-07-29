@@ -48,7 +48,7 @@ class ProyectosEnEstudioController extends Controller
 
     public function listadoData()
     {
-        $proyectos = ProyectosEnEstudio::with('mesaEntrada')
+        $proyectos = ProyectosEnEstudio::with('mesaEntrada', 'documentoPadre')
             ->select('proyectos_en_estudio.*');
 
         return DataTables::of($proyectos)
@@ -71,8 +71,12 @@ class ProyectosEnEstudioController extends Controller
             })
             ->addColumn('acciones', function ($row) {
                 $btn = '';
+                if ($row->usar_documento_padre && $row->documentoPadre) {
+                    $btn .= '<a href="' . route('proyectos-en-estudio.pdf-padre', $row->id) . '" class="btn btn-sm btn-outline-danger mr-1" title="PDF (Doc. Padre)" target="_blank"><i class="fas fa-file-pdf"></i><sup>P</sup></a>';
+                    $btn .= '<a href="' . route('proyectos-en-estudio.word-padre', $row->id) . '" class="btn btn-sm btn-outline-success mr-1" title="Word (Doc. Padre)"><i class="fas fa-file-word"></i><sup>P</sup></a>';
+                }
                 $btn .= '<a href="' . route('proyectos-en-estudio.show', $row->id) . '" class="btn btn-sm btn-info mr-1" title="Editar"><i class="fas fa-edit"></i></a>';
-                $btn .= '<a href="' . route('proyectos-en-estudio.pdf', $row->id) . '" class="btn btn-sm btn-danger mr-1" title="PDF"><i class="fas fa-file-pdf"></i></a>';
+                $btn .= '<a href="' . route('proyectos-en-estudio.pdf', $row->id) . '" class="btn btn-sm btn-danger mr-1" title="PDF" target="_blank"><i class="fas fa-file-pdf"></i></a>';
                 $btn .= '<a href="' . route('proyectos-en-estudio.word', $row->id) . '" class="btn btn-sm btn-success mr-1" title="Word"><i class="fas fa-file-word"></i></a>';
 
                 $ultimo = ProyectosEnEstudio::max('nro_expediente');
@@ -82,6 +86,40 @@ class ProyectosEnEstudioController extends Controller
                     $btn .= '<button type="button" class="btn btn-sm btn-secondary" disabled title="No se puede eliminar (no es el último)"><i class="fas fa-trash"></i></button>';
                 }
                 return $btn;
+            })
+            ->rawColumns(['acciones'])
+            ->make(true);
+    }
+
+    public function listadoDataForModal(Request $request)
+    {
+        $excludeId = $request->input('exclude_id', null);
+
+        $proyectos = ProyectosEnEstudio::with('mesaEntrada')
+            ->where('nro_expediente', '>', 0)
+            ->select('proyectos_en_estudio.*');
+
+        if ($excludeId) {
+            $proyectos->where('id', '!=', $excludeId);
+        }
+
+        return DataTables::of($proyectos)
+            ->addColumn('expediente_formato', function ($row) {
+                $letra = '';
+                if ($row->camara == 'Senado') $letra = 'S';
+                elseif ($row->camara == 'Diputados') $letra = 'D';
+                elseif ($row->camara == 'Congreso') $letra = 'C';
+                $aa = substr($row->anho, -2);
+                return '(Exp. No. ' . $letra . '-' . $aa . $row->nro_expediente . ')';
+            })
+            ->addColumn('acciones', function ($row) {
+                $letra = '';
+                if ($row->camara == 'Senado') $letra = 'S';
+                elseif ($row->camara == 'Diputados') $letra = 'D';
+                elseif ($row->camara == 'Congreso') $letra = 'C';
+                $aa = substr($row->anho, -2);
+                $formato = '(Exp. No. ' . $letra . '-' . $aa . $row->nro_expediente . ')';
+                return '<button type="button" class="btn btn-sm btn-primary btn-seleccionar-padre" data-id="' . $row->id . '" data-expediente="' . e($formato) . '"><i class="fas fa-check"></i> Seleccionar</button>';
             })
             ->rawColumns(['acciones'])
             ->make(true);
@@ -258,6 +296,8 @@ class ProyectosEnEstudioController extends Controller
             'presentado_por' => $request->input('presentado_por', ''),
             'fecha_recepcion_texto' => $request->input('fecha_recepcion_texto', ''),
             'cantidad_observaciones' => $request->input('cantidad_observaciones', 1),
+            'usar_documento_padre' => $request->boolean('usar_documento_padre'),
+            'documento_padre_id' => $request->input('documento_padre_id'),
         ];
 
         if ($puedeCabecera) {
@@ -474,6 +514,9 @@ class ProyectosEnEstudioController extends Controller
     public function downloadPDF($id)
     {
         $proyecto = ProyectosEnEstudio::with('mesaEntrada')->findOrFail($id);
+        if ($proyecto->usar_documento_padre && $proyecto->documento_padre_id) {
+            $proyecto->load('documentoPadre');
+        }
         $config = ProyectosConfiguracion::first();
 
         $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
@@ -529,7 +572,24 @@ class ProyectosEnEstudioController extends Controller
         $pdf->SetFillColor(255, 255, 255);
         $pdf->Cell($expW + 4, 10, 'EXP No. ' . $numeroExp, 1, 1, 'C', true);
 
-        $pdf->Ln(5);
+        $pdf->Ln(2);
+
+        if ($proyecto->usar_documento_padre && $proyecto->documentoPadre) {
+            $padre = $proyecto->documentoPadre;
+            $letraPadre = match ($padre->camara) {
+                'Diputados' => 'D',
+                'Senado' => 'S',
+                'Congreso' => 'C',
+                default => 'X',
+            };
+            $anhoPadre = substr($padre->anho, -2);
+            $expPadre = $letraPadre . '-' . $anhoPadre . $padre->nro_expediente;
+            $pdf->SetFont('Times', '', 10);
+            $pdf->Cell(0, 6, 'REFERENCIA: Documento Padre - (Exp. No. ' . $expPadre . ')', 0, 1, 'R');
+            $pdf->Ln(3);
+        }
+
+        $pdf->Ln(3);
 
         $contenido = $proyecto->contenido;
         if (!empty(trim($contenido))) {
@@ -580,9 +640,141 @@ class ProyectosEnEstudioController extends Controller
         $pdf->Output('proyecto_' . $proyecto->nro_expediente . '.pdf', 'I');
     }
 
+    public function downloadPDFConPadre($id)
+    {
+        $proyecto = ProyectosEnEstudio::with('mesaEntrada')->findOrFail($id);
+        if (!$proyecto->usar_documento_padre || !$proyecto->documento_padre_id) {
+            abort(404, 'Este documento no tiene un documento padre.');
+        }
+        $proyecto->load('documentoPadre');
+        $padre = $proyecto->documentoPadre;
+        $config = ProyectosConfiguracion::first();
+
+        $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
+        $pdf->SetPrintHeader(false);
+        $pdf->SetPrintFooter(false);
+        $pdf->SetMargins(20, 15, 20);
+        $pdf->SetAutoPageBreak(true, 30);
+        $pdf->setFontSubsetting(true);
+        $pdf->AddPage();
+
+        $pdf->SetAlpha(0.15);
+        $watermark = public_path('vendor/adminlte/dist/img/icono camara.png');
+        if (file_exists($watermark)) {
+            $pdf->Image($watermark, 15, 50, 180, '', 'PNG', '', '', false, 330, '', false, false, 0);
+        }
+        $pdf->SetAlpha(1);
+
+        if ($config && $config->leyenda) {
+            $pdf->SetFont('Times', 'I', 11);
+            $pdf->Cell(0, 8, '"' . strtoupper($config->leyenda) . '"', 0, 1, 'C');
+            $pdf->Ln(3);
+        }
+
+        if ($config && $config->membrete && file_exists(public_path($config->membrete))) {
+            $imgPath = public_path($config->membrete);
+            $imgData = base64_encode(file_get_contents($imgPath));
+            $imgHtml = '<div style="text-align: center;"><img src="@' . $imgData . '" width="70" /></div>';
+            $pdf->writeHTML($imgHtml, true, false, true, false, '');
+        }
+
+        $pdf->SetFont('Times', 'B', 13);
+        $pdf->Cell(0, 8, 'CONGRESO DE LA NACIÓN', 0, 1, 'C');
+        $pdf->SetFont('Times', 'B', 12);
+        $pdf->Cell(0, 8, 'HONORABLE CÁMARA DE DIPUTADOS', 0, 1, 'C');
+
+        $pdf->Ln(3);
+
+        $letraPadre = match ($padre->camara) {
+            'Diputados' => 'D',
+            'Senado' => 'S',
+            'Congreso' => 'C',
+            default => 'X',
+        };
+        $anhoPadre = substr($padre->anho, -2);
+        $numeroExpPadre = $letraPadre . '-' . $anhoPadre . $padre->nro_expediente;
+
+        $pdf->SetFont('Times', 'B', 16);
+        $margins = $pdf->getMargins();
+        $expW = $pdf->GetStringWidth('EXP No. ' . $numeroExpPadre) + 10;
+        $pdf->SetX($pdf->getPageWidth() - $margins['right'] - $expW - 4);
+        $pdf->SetLineStyle(['width' => 0.5, 'color' => [0, 0, 0]]);
+        $pdf->SetFillColor(255, 255, 255);
+        $pdf->Cell($expW + 4, 10, 'EXP No. ' . $numeroExpPadre, 1, 1, 'C', true);
+
+        $pdf->Ln(2);
+
+        if ($proyecto->usar_documento_padre && $proyecto->documentoPadre) {
+            $letra = match ($proyecto->camara) {
+                'Diputados' => 'D',
+                'Senado' => 'S',
+                'Congreso' => 'C',
+                default => 'X',
+            };
+            $anhoCorto = substr($proyecto->anho, -2);
+            $exp = $letra . '-' . $anhoCorto . $proyecto->nro_expediente;
+            $pdf->SetFont('Times', '', 10);
+            $pdf->Cell(0, 6, 'REFERENCIA: Documento Hijo - (Exp. No. ' . $exp . ')', 0, 1, 'R');
+            $pdf->Ln(3);
+        }
+
+        $pdf->Ln(3);
+
+        $contenido = $proyecto->contenido;
+        if (!empty(trim($contenido))) {
+            $pdf->SetFont('Times', '', 11);
+
+            if (strpos($contenido, 'obs-tramites-table') !== false) {
+                $tablePattern = '/<table[^>]*class="[^"]*obs-tramites-table[^"]*"[^>]*>.*?<\/table>/is';
+                if (preg_match($tablePattern, $contenido, $matches, PREG_OFFSET_CAPTURE)) {
+                    $beforeTable = substr($contenido, 0, $matches[0][1]);
+                    $tableHtml = $matches[0][0];
+                    $afterTable = substr($contenido, $matches[0][1] + strlen($matches[0][0]));
+
+                    if (!empty(trim($beforeTable))) {
+                        $html = '<div style="text-align: justify; font-family: Times, serif; font-size: 12pt;">' . $beforeTable . '</div>';
+                        $pdf->writeHTML($html, true, false, true, false, '');
+                    }
+
+                    $cleanHtml = preg_replace('/\bborder="[^"]*"/i', '', $tableHtml);
+                    $cleanHtml = preg_replace('/\bcellpadding="[^"]*"/i', '', $cleanHtml);
+                    $cleanHtml = preg_replace('/\bcellspacing="[^"]*"/i', '', $cleanHtml);
+                    $cleanHtml = preg_replace('/style="[^"]*"/i', '', $cleanHtml);
+                    $cleanHtml = preg_replace('/<table\b/', '<table border="0" cellpadding="4" cellspacing="0"', $cleanHtml, 1);
+                    $cleanHtml = preg_replace('/<th\b/', '<th border="0"', $cleanHtml);
+                    $cleanHtml = preg_replace('/<td\b/', '<td border="0"', $cleanHtml);
+
+                    $margins = $pdf->getMargins();
+                    $tableWidth = $pdf->getPageWidth() - $margins['left'] - $margins['right'];
+
+                    $yBefore = $pdf->GetY();
+                    $html = '<div style="font-family: Times, serif; font-size: 12pt;">' . $cleanHtml . '</div>';
+                    $pdf->writeHTML($html, true, false, true, false, '');
+                    $yAfter = $pdf->GetY();
+
+                    $pdf->SetLineStyle(['width' => 0.5, 'color' => [0, 0, 0], 'cap' => 'butt', 'join' => 'miter']);
+                    $pdf->Rect($margins['left'], $yBefore, $tableWidth, $yAfter - $yBefore, 'D');
+
+                    if (!empty(trim($afterTable))) {
+                        $html = '<div style="text-align: justify; font-family: Times, serif; font-size: 12pt;">' . $afterTable . '</div>';
+                        $pdf->writeHTML($html, true, false, true, false, '');
+                    }
+                }
+            } else {
+                $html = '<div style="text-align: justify; font-family: Times, serif; font-size: 12pt;">' . $contenido . '</div>';
+                $pdf->writeHTML($html, true, false, true, false, '');
+            }
+        }
+
+        $pdf->Output('proyecto_' . $proyecto->nro_expediente . '_padre.pdf', 'I');
+    }
+
     public function downloadWord($id)
     {
         $proyecto = ProyectosEnEstudio::with('mesaEntrada')->findOrFail($id);
+        if ($proyecto->usar_documento_padre && $proyecto->documento_padre_id) {
+            $proyecto->load('documentoPadre');
+        }
         $config = ProyectosConfiguracion::first();
 
         $phpWord = new PhpWord();
@@ -701,6 +893,22 @@ class ProyectosEnEstudioController extends Controller
         $table->addRow();
         $cell = $table->addCell(3000);
         $cell->addText('EXP No. ' . $numeroExp, ['bold' => true, 'size' => 16]);
+
+        $section->addTextBreak(1);
+
+        if ($proyecto->usar_documento_padre && $proyecto->documentoPadre) {
+            $padre = $proyecto->documentoPadre;
+            $letraPadre = match ($padre->camara) {
+                'Diputados' => 'D',
+                'Senado' => 'S',
+                'Congreso' => 'C',
+                default => 'X',
+            };
+            $anhoPadre = substr($padre->anho, -2);
+            $expPadre = $letraPadre . '-' . $anhoPadre . $padre->nro_expediente;
+            $section->addText('REFERENCIA: Documento Padre - (Exp. No. ' . $expPadre . ')', ['size' => 10], ['align' => 'right']);
+            $section->addTextBreak(1);
+        }
 
         $section->addTextBreak(1);
 
@@ -847,6 +1055,296 @@ class ProyectosEnEstudioController extends Controller
         }
 
         $filename = 'proyecto_' . $proyecto->nro_expediente . '.docx';
+        return response($content, 200, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
+    }
+
+    public function downloadWordConPadre($id)
+    {
+        $proyecto = ProyectosEnEstudio::with('mesaEntrada')->findOrFail($id);
+        if (!$proyecto->usar_documento_padre || !$proyecto->documento_padre_id) {
+            abort(404, 'Este documento no tiene un documento padre.');
+        }
+        $proyecto->load('documentoPadre');
+        $padre = $proyecto->documentoPadre;
+        $config = ProyectosConfiguracion::first();
+
+        $phpWord = new PhpWord();
+        $section = $phpWord->addSection();
+        $header = $section->addHeader();
+
+        $watermarkPath = public_path('vendor/adminlte/dist/img/icono camara.png');
+        $tempWm = null;
+
+        if (file_exists($watermarkPath)) {
+            $original = imagecreatefrompng($watermarkPath);
+            if ($original) {
+                $origW = imagesx($original);
+                $origH = imagesy($original);
+                $targetW = 450;
+                $targetH = (int)($origH * ($targetW / $origW));
+
+                $img = imagecreatetruecolor($targetW, $targetH);
+                imagesavealpha($img, true);
+
+                $bg = imagecolorallocatealpha($img, 0, 0, 0, 127);
+                imagefill($img, 0, 0, $bg);
+
+                imagecopyresampled(
+                    $img,
+                    $original,
+                    0,
+                    0,
+                    0,
+                    0,
+                    $targetW,
+                    $targetH,
+                    $origW,
+                    $origH
+                );
+
+                imagedestroy($original);
+
+                for ($x = 0; $x < $targetW; $x++) {
+                    for ($y = 0; $y < $targetH; $y++) {
+
+                        $rgba = imagecolorat($img, $x, $y);
+
+                        $a = ($rgba >> 24) & 0x7F;
+                        $r = ($rgba >> 16) & 0xFF;
+                        $g = ($rgba >> 8) & 0xFF;
+                        $b = $rgba & 0xFF;
+
+                        $r = (int)($r + (255 - $r) * 0.80);
+                        $g = (int)($g + (255 - $g) * 0.80);
+                        $b = (int)($b + (255 - $b) * 0.80);
+
+                        $newA = min(127, $a + 118);
+
+                        $color = imagecolorallocatealpha(
+                            $img,
+                            $r,
+                            $g,
+                            $b,
+                            $newA
+                        );
+
+                        imagesetpixel($img, $x, $y, $color);
+                    }
+                }
+
+                $tempWm = tempnam(sys_get_temp_dir(), 'wm_') . '.png';
+                imagepng($img, $tempWm);
+                imagedestroy($img);
+
+                $header->addWatermark($tempWm, [
+                    'width' => 450,
+                    'height' => $targetH,
+                    'posHorizontal' => 'center',
+                    'posHorizontalRel' => 'page',
+                    'posVertical' => 'center',
+                    'posVerticalRel' => 'page',
+                    'wrap' => 'behind',
+                ]);
+            }
+        }
+
+        if ($config && $config->leyenda) {
+            $header->addText('"' . strtoupper($config->leyenda) . '"', ['italic' => true, 'size' => 11], ['align' => 'center']);
+        }
+
+        if ($config && $config->membrete && file_exists(public_path($config->membrete))) {
+            $header->addImage(public_path($config->membrete), [
+                'width' => 80,
+                'align' => 'center',
+            ]);
+        }
+
+        $header->addText('CONGRESO DE LA NACIÓN', ['bold' => true, 'size' => 13], ['align' => 'center']);
+        $header->addText('Honorable Cámara de Diputados', ['bold' => true, 'size' => 12], ['align' => 'center']);
+
+        $section->addTextBreak(1);
+
+        $letraPadre = match ($padre->camara) {
+            'Diputados' => 'D',
+            'Senado' => 'S',
+            'Congreso' => 'C',
+            default => 'X',
+        };
+        $anhoPadre = substr($padre->anho, -2);
+        $numeroExpPadre = $letraPadre . '-' . $anhoPadre . $padre->nro_expediente;
+
+        $table = $section->addTable([
+            'borderSize' => 16,
+            'borderColor' => '000000',
+            'align' => 'right',
+        ]);
+        $table->addRow();
+        $cell = $table->addCell(3000);
+        $cell->addText('EXP No. ' . $numeroExpPadre, ['bold' => true, 'size' => 16]);
+
+        $section->addTextBreak(1);
+
+        if ($proyecto->usar_documento_padre && $proyecto->documentoPadre) {
+            $letra = match ($proyecto->camara) {
+                'Diputados' => 'D',
+                'Senado' => 'S',
+                'Congreso' => 'C',
+                default => 'X',
+            };
+            $anhoCorto = substr($proyecto->anho, -2);
+            $exp = $letra . '-' . $anhoCorto . $proyecto->nro_expediente;
+            $section->addText('REFERENCIA: Documento Hijo - (Exp. No. ' . $exp . ')', ['size' => 10], ['align' => 'right']);
+            $section->addTextBreak(1);
+        }
+
+        $section->addTextBreak(1);
+
+        $contenido = $proyecto->contenido;
+        if (!empty(trim($contenido))) {
+            if (strpos($contenido, 'obs-tramites-table') !== false) {
+                $tablePattern = '/<table[^>]*class="[^"]*obs-tramites-table[^"]*"[^>]*>.*?<\/table>/is';
+                if (preg_match($tablePattern, $contenido, $matches, PREG_OFFSET_CAPTURE)) {
+                    $beforeTable = substr($contenido, 0, $matches[0][1]);
+                    $tableHtml = $matches[0][0];
+                    $afterTable = substr($contenido, $matches[0][1] + strlen($matches[0][0]));
+
+                    if (!empty(trim($beforeTable))) {
+                        $beforeTable = preg_replace('/<br\s*\/?>/i', '<br/>', $beforeTable);
+                        $beforeTable = preg_replace('/<img([^>]+)>/i', '<img$1/>', $beforeTable);
+                        $beforeTable = preg_replace('/<hr(\s*)>/i', '<hr$1/>', $beforeTable);
+                        $beforeTable = preg_replace('/&(?![a-zA-Z0-9#]+;)/', '&amp;', $beforeTable);
+                        $beforeTable = preg_replace('/<\/?(?:html|head|body)[^>]*>/i', '', $beforeTable);
+                        Html::addHtml($section, '<div style="text-align: justify;">' . $beforeTable . '</div>', false, false);
+                    }
+
+                    $tableDom = new DOMDocument();
+                    $tableDom->loadHTML('<?xml encoding="UTF-8">' . $tableHtml, LIBXML_NOERROR | LIBXML_NOWARNING);
+                    $tableNode = $tableDom->getElementsByTagName('table')->item(0);
+
+                    $colWidths = [];
+                    $thNodes = $tableDom->getElementsByTagName('th');
+                    if ($thNodes->length > 0) {
+                        foreach ($thNodes as $th) {
+                            $w = $th->getAttribute('width');
+                            $colWidths[] = !empty($w) ? (int) $w : 25;
+                        }
+                    }
+
+                    $rows = $tableNode->getElementsByTagName('tr');
+                    $rowCount = $rows->length;
+
+                    $margins = $section->getSettings();
+                    $pageWidth = $margins['pageSizeW'] ?? 11906;
+                    $marginLeft = $margins['marginLeft'] ?? 1440;
+                    $marginRight = $margins['marginRight'] ?? 1440;
+                    $usableWidth = $pageWidth - $marginLeft - $marginRight;
+
+                    $table = $section->addTable([
+                        'borderSize' => 0,
+                        'width' => $usableWidth,
+                        'unit' => \PhpOffice\PhpWord\SimpleType\TblWidth::TWIP,
+                    ]);
+
+                    foreach ($rows as $rowIndex => $row) {
+                        $table->addRow();
+                        $tdNodes = [];
+                        foreach ($row->childNodes as $child) {
+                            if ($child->nodeName === 'td' || $child->nodeName === 'th') {
+                                $tdNodes[] = $child;
+                            }
+                        }
+                        $colCount = count($tdNodes);
+                        foreach ($tdNodes as $colIndex => $td) {
+                            $pct = isset($colWidths[$colIndex]) ? $colWidths[$colIndex] : (100 / $colCount);
+                            $cellWidth = (int) ($usableWidth * $pct / 100);
+
+                            $noBorder = [
+                                'borderTopSize' => 0,
+                                'borderTopColor' => 'FFFFFF',
+                                'borderTopStyle' => 'nil',
+                                'borderBottomSize' => 0,
+                                'borderBottomColor' => 'FFFFFF',
+                                'borderBottomStyle' => 'nil',
+                                'borderLeftSize' => 0,
+                                'borderLeftColor' => 'FFFFFF',
+                                'borderLeftStyle' => 'nil',
+                                'borderRightSize' => 0,
+                                'borderRightColor' => 'FFFFFF',
+                                'borderRightStyle' => 'nil',
+                            ];
+                            if ($rowIndex === 0) {
+                                $noBorder['borderTopSize'] = 16;
+                                $noBorder['borderTopColor'] = '000000';
+                                $noBorder['borderTopStyle'] = 'single';
+                            }
+                            if ($rowIndex === $rowCount - 1) {
+                                $noBorder['borderBottomSize'] = 16;
+                                $noBorder['borderBottomColor'] = '000000';
+                                $noBorder['borderBottomStyle'] = 'single';
+                            }
+                            if ($colIndex === 0) {
+                                $noBorder['borderLeftSize'] = 16;
+                                $noBorder['borderLeftColor'] = '000000';
+                                $noBorder['borderLeftStyle'] = 'single';
+                            }
+                            if ($colIndex === $colCount - 1) {
+                                $noBorder['borderRightSize'] = 16;
+                                $noBorder['borderRightColor'] = '000000';
+                                $noBorder['borderRightStyle'] = 'single';
+                            }
+
+                            $cellStyle = array_merge([
+                                'width' => $cellWidth,
+                                'unit' => \PhpOffice\PhpWord\SimpleType\TblWidth::TWIP,
+                            ], $noBorder);
+
+                            $cell = $table->addCell($cellWidth, $cellStyle);
+                            $text = trim($td->textContent);
+                            $isHeader = ($td->nodeName === 'th');
+                            $runs = $td->getElementsByTagName('strong') ?: $td->getElementsByTagName('b');
+                            if ($runs->length > 0) {
+                                $text = trim($runs->item(0)->textContent);
+                            }
+                            $fontOpts = ['size' => 11];
+                            if ($isHeader || $runs->length > 0) {
+                                $fontOpts['bold'] = true;
+                            }
+                            $cell->addText($text, $fontOpts);
+                        }
+                    }
+
+                    if (!empty(trim($afterTable))) {
+                        $afterTable = preg_replace('/<br\s*\/?>/i', '<br/>', $afterTable);
+                        $afterTable = preg_replace('/<img([^>]+)>/i', '<img$1/>', $afterTable);
+                        $afterTable = preg_replace('/<hr(\s*)>/i', '<hr$1/>', $afterTable);
+                        $afterTable = preg_replace('/&(?![a-zA-Z0-9#]+;)/', '&amp;', $afterTable);
+                        $afterTable = preg_replace('/<\/?(?:html|head|body)[^>]*>/i', '', $afterTable);
+                        Html::addHtml($section, '<div style="text-align: justify;">' . $afterTable . '</div>', false, false);
+                    }
+                }
+            } else {
+                $contenidoLimpio = preg_replace('/<br\s*\/?>/i', '<br/>', $contenido);
+                $contenidoLimpio = preg_replace('/<img([^>]+)>/i', '<img$1/>', $contenidoLimpio);
+                $contenidoLimpio = preg_replace('/<hr(\s*)>/i', '<hr$1/>', $contenidoLimpio);
+                $contenidoLimpio = preg_replace('/&(?![a-zA-Z0-9#]+;)/', '&amp;', $contenidoLimpio);
+                $contenidoLimpio = preg_replace('/<\/?(?:html|head|body)[^>]*>/i', '', $contenidoLimpio);
+                Html::addHtml($section, $contenidoLimpio, false, false);
+            }
+        }
+
+        $objWriter = IOFactory::createWriter($phpWord, 'Word2007');
+        ob_start();
+        $objWriter->save('php://output');
+        $content = ob_get_clean();
+
+        if ($tempWm && file_exists($tempWm)) {
+            @unlink($tempWm);
+        }
+
+        $filename = 'proyecto_' . $proyecto->nro_expediente . '_padre.docx';
         return response($content, 200, [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
             'Content-Disposition' => 'attachment; filename="' . $filename . '"',

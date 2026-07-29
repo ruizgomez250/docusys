@@ -14,6 +14,8 @@ class ProyectosEnEstudio extends Model
     protected $fillable = [
         'id_mentrada',
         'sesion_id',
+        'usar_documento_padre',
+        'documento_padre_id',
         'nro_expediente',
         'anho',
         'camara',
@@ -35,6 +37,11 @@ class ProyectosEnEstudio extends Model
     public function sesion()
     {
         return $this->belongsTo(Sesion::class, 'sesion_id');
+    }
+
+    public function documentoPadre()
+    {
+        return $this->belongsTo(ProyectosEnEstudio::class, 'documento_padre_id');
     }
 
     public function observaciones()
