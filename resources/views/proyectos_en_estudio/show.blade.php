@@ -16,7 +16,7 @@
                     elseif ($expediente->camara == 'Congreso') $letra = 'C';
                     $aa = substr($expediente->anho, -2);
                 @endphp
-                {{ $letra }}-{{ $aa }}{{ $expediente->nro_expediente }}
+                {{ $letra }}-{{ $aa }}{{ $expediente->nro_expediente_silpy ?? $expediente->nro_expediente }}
             </h1>
         </div>
         <div class="col-6">
@@ -63,9 +63,14 @@
     <script src="{{ asset('vendor/jquery-ui-1.13.2/jquery-ui.min.js') }}"></script>
     <script>
         function insertarEnEditor(tipo) {
+            var $editor = $(tipo === 'observacion' ? '#acapite' : '#contenido');
+            if (!$editor.data('summernote')) return;
             var fn = function() {
                 var html = '';
                 switch (tipo) {
+                    case 'acapite':
+                        html = $('#acapite').data('summernote') ? $('#acapite').summernote('code') : $('#acapite-lectura').html();
+                        break;
                     case 'observacion':
                         var texto = $('#insert_observacion').val();
                         if (texto) {
@@ -98,10 +103,10 @@
                         break;
                 }
                 if (html) {
-                    $('#contenido').summernote('pasteHTML', html);
+                    $editor.summernote('pasteHTML', html);
                 }
             };
-            if ($('#contenido').data('summernote')) {
+            if ($editor.data('summernote')) {
                 fn();
             } else {
                 setTimeout(fn, 500);
@@ -289,7 +294,7 @@
                 $('input[name="fecha_recepcion_texto"]').val($(this).val());
             });
 
-            @if ($puedeContenido)
+            @if ($puedeContenido && $proyecto->nro_expediente > 0)
             $('#contenido').summernote({
                 height: 500,
                 toolbar: [
@@ -332,13 +337,6 @@
                     case 'd': e.preventDefault(); if ($('#usar_documento_padre').is(':checked')) { abrirModalDocumentoPadre(); } break;
                 }
             });
-
-            @if ($puedeCabecera)
-            @if ($proyecto->destino)
-            var option = new Option('{{ $proyecto->destino }}', '{{ $proyecto->destino }}', true, true);
-            $('#destino').append(option).trigger('change');
-            @endif
-            @endif
 
             $('#usar_documento_padre').on('change', function() {
                 var checked = $(this).is(':checked');
@@ -423,7 +421,7 @@
             }
 
             $.ajax({
-                url: "{{ route('destino.store-ajax') }}",
+                url: "{{ route('proyectos-en-estudio.destinos.store') }}",
                 type: 'POST',
                 data: {
                     _token: '{{ csrf_token() }}',
@@ -476,7 +474,7 @@
                                 elseif ($expediente->camara == 'Congreso') $letra = 'C';
                                 $aa = substr($expediente->anho, -2);
                             @endphp
-                            Expediente N° {{ $letra }}-{{ $aa }}{{ $expediente->nro_expediente }}
+                            Expediente N° {{ $letra }}-{{ $aa }}{{ $expediente->nro_expediente_silpy ?? $expediente->nro_expediente }}
                         @else
                             <span class="text-warning"><em>Pendiente</em></span>
                         @endif
@@ -492,6 +490,18 @@
                         @csrf
                         @method('PUT')
 
+                        <div class="row">
+                            <div class="col-md-6 form-group">
+                                <label>Número de asuntos entrados</label>
+                                <input class="form-control" value="{{ $proyecto->nro_expediente ?: 'Se asignará al guardar' }}" readonly>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label for="nro_expediente_silpy">Número de expediente SILPY</label>
+                                <input type="text" inputmode="numeric" pattern="[0-9]{1,20}" maxlength="20" class="form-control" id="nro_expediente_silpy" name="nro_expediente_silpy" value="{{ old('nro_expediente_silpy', $proyecto->nro_expediente_silpy ?? ($proyecto->nro_expediente ?: '')) }}" {{ ($proyecto->nro_expediente == 0 || !($puedeCabecera || $puedeContenido)) ? 'disabled' : '' }}>
+                                <small class="form-text text-muted">Se genera automáticamente al guardar el acápite. Después puede editar solo el número; se conserva el prefijo de cámara y año.</small>
+                                @error('nro_expediente_silpy') <span class="text-danger">{{ $message }}</span> @enderror
+                            </div>
+                        </div>
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
@@ -519,6 +529,9 @@
                                     <x-adminlte-select2 name="destino" id="destino"
                                         fgroup-class="col-md-12" :disabled="!$puedeCabecera">
                                         <option value="">Seleccionar...</option>
+                                        @if ($proyecto->destino && !$destinos->contains('nombre', $proyecto->destino))
+                                            <option value="{{ $proyecto->destino }}" selected>{{ $proyecto->destino }}</option>
+                                        @endif
                                         @foreach ($destinos as $dest)
                                             <option value="{{ $dest->nombre }}" {{ $proyecto->destino == $dest->nombre ? 'selected' : '' }}>{{ $dest->nombre }}</option>
                                         @endforeach
@@ -529,11 +542,16 @@
                         <div class="row">
                             <div class="col-md-12">
                                 <div class="form-group">
-                                    <label for="acapite">Acapite</label>
+                                    <label for="acapite">Acápite</label>
+                                    @if ($puedeCabecera)
+                                <button type="button" class="btn btn-sm btn-info" onclick="insertarEnEditor('observacion')" title="Observación (Ctrl+Alt+O)">
+                                    <i class="fas fa-sticky-note"></i> Obs <small class="text-white">Ctrl+Alt+O</small>
+                                </button>
+                                    @endif
                                     @if ($puedeCabecera)
                                     <textarea name="acapite" id="acapite" class="form-control">{{ old('acapite', $proyecto->acapite) }}</textarea>
                                     @else
-                                        <div class="form-control" style="min-height:120px; background-color:#e9ecef; cursor:default; overflow:auto;">{!! $proyecto->acapite !!}</div>
+                                        <div id="acapite-lectura" class="form-control" style="min-height:120px; background-color:#e9ecef; cursor:default; overflow:auto;">{!! $proyecto->acapite !!}</div>
                                     @endif
                                 </div>
                             </div>
@@ -561,7 +579,7 @@
                                 @endphp
                                 <input type="text" id="insert_expediente" value="EXP No {{ $letra }} - {{ $aa }}{{ $proyecto->nro_expediente }}">
                             @endif
-                            <input type="text" id="documento_padre_formato" value="@if($proyecto->documento_padre_id && $proyecto->documentoPadre)({{ 'Exp. No. ' . (($proyecto->documentoPadre->camara == 'Senado') ? 'S' : (($proyecto->documentoPadre->camara == 'Diputados') ? 'D' : 'C')) . '-' . substr($proyecto->documentoPadre->anho, -2) . $proyecto->documentoPadre->nro_expediente }})@endif">
+                            <input type="text" id="documento_padre_formato" value="@if($proyecto->documento_padre_id && $proyecto->documentoPadre)({{ 'EXP SILPY No. ' . (($proyecto->documentoPadre->camara == 'Senado') ? 'S' : (($proyecto->documentoPadre->camara == 'Diputados') ? 'D' : 'C')) . '-' . substr($proyecto->documentoPadre->anho, -2) . ($proyecto->documentoPadre->nro_expediente_silpy ?? $proyecto->documentoPadre->nro_expediente) }})@endif">
                             <p class="text-muted mb-0" id="sin-tramites">Sin trámites. Click en "Obs".</p>
                             <table id="tabla-tramites" class="table table-sm mb-0" border="0" cellpadding="4" cellspacing="0" style="display: none; border-collapse: collapse;">
                                 <thead>
@@ -578,8 +596,12 @@
 
                         <div class="form-group">
                             <label for="contenido">Contenido del Documento</label>
-                            @if ($puedeContenido)
+                            @if ($proyecto->nro_expediente == 0)
+                                <div class="alert alert-info">Complete y guarde primero el acápite para habilitar el contenido. Ambos números se asignarán automáticamente.</div>
+                            @endif
+                            @if ($puedeContenido && $proyecto->nro_expediente > 0)
                             <div style="float: right; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; justify-content: flex-end;">
+                                <button type="button" class="btn btn-sm btn-info" onclick="insertarEnEditor('acapite')" title="Insertar el acápite con su formato">Acápite</button>
                                 <div style="display: inline-flex; align-items: center; gap: 3px; background: #dc3545; border-radius: 4px; padding: 2px 6px;">
                                     <input type="checkbox" id="usar_documento_padre" name="usar_documento_padre" value="1" {{ old('usar_documento_padre', $proyecto->usar_documento_padre) ? 'checked' : '' }} style="margin: 0; cursor: pointer;">
                                     <label for="usar_documento_padre" style="color: #fff; font-size: 0.8rem; margin: 0; cursor: pointer; white-space: nowrap;">Doc. Padre</label>
@@ -590,9 +612,7 @@
                                 <button type="button" class="btn btn-sm btn-outline-info" onclick="formatearContenido()" title="Formatear selección o todo el contenido">
                                     <i class="fas fa-magic"></i> Formatear
                                 </button>
-                                <button type="button" class="btn btn-sm btn-info" onclick="insertarEnEditor('observacion')" title="Observación (Ctrl+Alt+O)">
-                                    <i class="fas fa-sticky-note"></i> Obs <small class="text-white">Ctrl+Alt+O</small>
-                                </button>
+
                                 <button type="button" class="btn btn-sm btn-success" onclick="insertarEnEditor('presentado_por')" title="Presentado Por (Ctrl+Alt+P)">
                                     <i class="fas fa-user"></i> Presentado por <small class="text-white">Ctrl+Alt+P</small>
                                 </button>
@@ -608,7 +628,7 @@
                             </div>
                             <div style="clear: both;"></div>
                             @endif
-                            @if ($puedeContenido)
+                            @if ($puedeContenido && $proyecto->nro_expediente > 0)
                             <textarea name="contenido" id="contenido" class="form-control">{{ old('contenido', $proyecto->contenido) }}</textarea>
                             @else
                                 <div class="form-control" style="min-height:500px; background-color:#e9ecef; cursor:default; overflow:auto;">{!! $proyecto->contenido !!}</div>
@@ -621,7 +641,7 @@
                             <div class="col-12">
                                 @if ($puedeCabecera || $puedeContenido)
                                 <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-save"></i> Guardar Cambios
+                                    <i class="fas fa-save"></i> {{ $proyecto->nro_expediente > 0 ? 'Guardar Cambios' : 'Guardar Acápite' }}
                                 </button>
                                 @endif
 
@@ -689,7 +709,7 @@
     </div>
     @endif
 
-    @if ($puedeContenido)
+    @if ($puedeContenido && $proyecto->nro_expediente > 0)
     <div class="modal fade" id="modalDocumentoPadre" tabindex="-1" role="dialog" aria-labelledby="modalDocumentoPadreLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content">

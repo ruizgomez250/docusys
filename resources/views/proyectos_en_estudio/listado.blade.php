@@ -62,17 +62,17 @@
                     { targets: 0, orderable: false },
                     { targets: 5, orderable: false },
                     { targets: 6, orderable: false, searchable: false },
-                    { targets: 7, visible: false }
+                    { targets: 7, orderable: true }
                 ],
                 columns: [
-                    { data: 'expediente', title: 'Expediente' },
+                    { data: 'expediente', name: 'nro_expediente_silpy', title: 'Expediente SILPY' },
                     { data: 'presentado_por', name: 'presentado_por', title: 'Presentado Por' },
                     { data: 'fecha_recepcion_texto', name: 'fecha_recepcion_texto', title: 'Fecha Recepción' },
                     { data: 'camara', name: 'camara', title: 'Cámara' },
                     { data: 'recepcion_nro', title: 'N° Recepción' },
                     { data: 'contenido', name: 'contenido', title: 'Contenido' },
                     { data: 'acciones', title: 'Acciones' },
-                    { data: 'nro_expediente', name: 'nro_expediente', title: '' }
+                    { data: 'nro_expediente', name: 'nro_expediente', title: 'N° Asuntos Entrados' }
                 ],
                 language: { url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json' },
                 order: [[7, 'desc']]
@@ -151,13 +151,14 @@
                     <table id="proyectos-table" class="table table-bordered table-striped">
                         <thead>
                             <tr>
-                                <th>Expediente</th>
+                                <th>Expediente SILPY</th>
                                 <th>Presentado Por</th>
                                 <th>Fecha Recepción</th>
                                 <th>Cámara</th>
                                 <th>N° Recepción</th>
                                 <th>Contenido</th>
                                 <th>Acciones</th>
+                                <th>N° Asuntos Entrados</th>
                             </tr>
                         </thead>
                     </table>

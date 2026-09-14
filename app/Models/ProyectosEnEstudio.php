@@ -17,6 +17,7 @@ class ProyectosEnEstudio extends Model
         'usar_documento_padre',
         'documento_padre_id',
         'nro_expediente',
+        'nro_expediente_silpy',
         'anho',
         'camara',
         'acapite',

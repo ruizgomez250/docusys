@@ -7,6 +7,7 @@ use App\Models\MesaEntrada;
 use App\Models\MesaEntradaFirmante;
 use App\Models\NumeracionExpediente;
 use App\Models\ProyectosConfiguracion;
+use App\Models\ProyectoDestino;
 use App\Models\ProyectosEnEstudio;
 use App\Models\Sesion;
 use App\Models\UserDestino;
@@ -30,7 +31,7 @@ class ProyectosEnEstudioController extends Controller
     {
         $this->middleware('permission:Proyectos en Estudio', ['only' => ['index', 'listado', 'show', 'configuracion', 'listSesiones', 'listAsuntosEntrados', 'editSesion']]);
         $this->middleware('permission:Proyectos en Estudio', ['only' => ['store', 'create']]);
-        $this->middleware('permission:Proyectos en Estudio', ['only' => ['update', 'edit']]);
+        $this->middleware('permission:Proyectos en Estudio', ['only' => ['update', 'edit', 'storeDestino']]);
         $this->middleware('permission:Proyectos en Estudio', ['only' => ['destroy']]);
     }
 
@@ -58,7 +59,7 @@ class ProyectosEnEstudioController extends Controller
                 elseif ($row->camara == 'Diputados') $letra = 'D';
                 elseif ($row->camara == 'Congreso') $letra = 'C';
                 $aa = substr($row->anho, -2);
-                return $letra . '-' . $aa . $row->nro_expediente;
+                return $row->nro_expediente > 0 ? $letra . '-' . $aa . ($row->nro_expediente_silpy ?? $row->nro_expediente) : 'Pendiente';
             })
             ->addColumn('recepcion_nro', function ($row) {
                 return $row->mesaEntrada->nro_mentrada . '/' . $row->mesaEntrada->anho;
@@ -110,7 +111,7 @@ class ProyectosEnEstudioController extends Controller
                 elseif ($row->camara == 'Diputados') $letra = 'D';
                 elseif ($row->camara == 'Congreso') $letra = 'C';
                 $aa = substr($row->anho, -2);
-                return '(Exp. No. ' . $letra . '-' . $aa . $row->nro_expediente . ')';
+                return '(EXP SILPY No. ' . $letra . '-' . $aa . ($row->nro_expediente_silpy ?? $row->nro_expediente) . ')';
             })
             ->addColumn('acciones', function ($row) {
                 $letra = '';
@@ -118,7 +119,7 @@ class ProyectosEnEstudioController extends Controller
                 elseif ($row->camara == 'Diputados') $letra = 'D';
                 elseif ($row->camara == 'Congreso') $letra = 'C';
                 $aa = substr($row->anho, -2);
-                $formato = '(Exp. No. ' . $letra . '-' . $aa . $row->nro_expediente . ')';
+                $formato = '(EXP SILPY No. ' . $letra . '-' . $aa . ($row->nro_expediente_silpy ?? $row->nro_expediente) . ')';
                 return '<button type="button" class="btn btn-sm btn-primary btn-seleccionar-padre" data-id="' . $row->id . '" data-expediente="' . e($formato) . '"><i class="fas fa-check"></i> Seleccionar</button>';
             })
             ->rawColumns(['acciones'])
@@ -266,14 +267,30 @@ class ProyectosEnEstudioController extends Controller
         ]);
 
         return redirect()->route('proyectos-en-estudio.show', $proyecto->id)
-            ->with('success', 'Proyecto creado. Complete el contenido y guarde para asignar el N° de expediente.');
+            ->with('success', 'Proyecto creado. Complete el acápite y guarde para asignar ambos números. Luego podrá cargar el contenido.');
     }
 
     public function show($id)
     {
         $proyecto = ProyectosEnEstudio::with(['mesaEntrada.firmantes', 'mesaEntrada.origen', 'mesaEntrada.tipoDoc'])->findOrFail($id);
-        $destinos = Destino::orderBy('nombre')->get();
+        $destinos = ProyectoDestino::orderBy('nombre')->get();
         return view('proyectos_en_estudio.show', compact('proyecto', 'destinos'));
+    }
+
+    public function storeDestino(Request $request)
+    {
+        $request->merge(['nombre' => trim((string) $request->input('nombre'))]);
+
+        $data = $request->validate([
+            'nombre' => 'required|string|max:255|unique:proyectos_destinos,nombre',
+        ]);
+
+        $destino = ProyectoDestino::create($data);
+
+        return response()->json([
+            'id' => $destino->id,
+            'nombre' => $destino->nombre,
+        ], 201);
     }
 
     public function update(Request $request, $id)
@@ -300,20 +317,43 @@ class ProyectosEnEstudioController extends Controller
             'documento_padre_id' => $request->input('documento_padre_id'),
         ];
 
+        if ($proyecto->nro_expediente > 0) {
+            $request->validate(['nro_expediente_silpy' => 'nullable|regex:/^[0-9]{1,20}$/']);
+            $data['nro_expediente_silpy'] = $request->input('nro_expediente_silpy') ?: ($proyecto->nro_expediente_silpy ?? (string) $proyecto->nro_expediente);
+        } else {
+            abort_unless($puedeCabecera, 403, 'Debe guardar primero el acápite.');
+            $request->validate([
+                'camara' => 'required|in:Senado,Diputados,Congreso',
+                'acapite' => ['required', 'string', function ($attribute, $value, $fail) {
+                    $texto = html_entity_decode(strip_tags($value), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                    if (preg_replace('/[\s\x{00A0}]+/u', '', $texto) === '') {
+                        $fail('Debe completar el acápite antes de guardar.');
+                    }
+                }],
+            ]);
+        }
+
         if ($puedeCabecera) {
+            $request->validate([
+                'destino' => 'nullable|string|max:255|exists:proyectos_destinos,nombre',
+            ]);
             $data['camara'] = $request->input('camara', $proyecto->camara);
             $data['destino'] = $request->input('destino', $proyecto->destino);
             $data['acapite'] = $request->input('acapite', $proyecto->acapite);
         }
 
-        if ($puedeContenido) {
+        if (!$puedeContenido || $proyecto->nro_expediente == 0) {
+            unset($data['usar_documento_padre'], $data['documento_padre_id']);
+        }
+
+        if ($puedeContenido && $proyecto->nro_expediente > 0) {
             $data['contenido'] = $request->input('contenido');
         }
 
         DB::beginTransaction();
 
         try {
-            if ($proyecto->nro_expediente == 0 && $puedeContenido) {
+            if ($proyecto->nro_expediente == 0 && ($puedeCabecera || $puedeContenido)) {
                 $config = ProyectosConfiguracion::firstOrCreate([], [
                     'membrete' => null,
                     'leyenda' => '',
@@ -329,7 +369,9 @@ class ProyectosEnEstudioController extends Controller
                 ]);
 
                 $data['nro_expediente'] = $nro_expediente;
-                $mensaje = 'Proyecto guardado. N° Expediente asignado: ' . $nro_expediente;
+                $data['nro_expediente_silpy'] = (string) $nro_expediente;
+                $data['anho'] = $anho;
+                $mensaje = 'Acápite guardado. Ya puede cargar el contenido. N° de asuntos entrados asignado: ' . $nro_expediente;
             }
 
             if (!$proyecto->update($data)) {
@@ -562,15 +604,17 @@ class ProyectosEnEstudioController extends Controller
             default => 'X',
         };
         $anhoCorto = substr($proyecto->anho, -2);
-        $numeroExp = $letra . '-' . $anhoCorto . $proyecto->nro_expediente;
+        $numeroExp = $letra . '-' . $anhoCorto . ($proyecto->nro_expediente_silpy ?? $proyecto->nro_expediente);
 
         $pdf->SetFont('Times', 'B', 16);
         $margins = $pdf->getMargins();
-        $expW = $pdf->GetStringWidth('EXP No. ' . $numeroExp) + 10;
+        $expW = $pdf->GetStringWidth('EXP SILPY No. ' . $numeroExp) + 10;
         $pdf->SetX($pdf->getPageWidth() - $margins['right'] - $expW - 4);
         $pdf->SetLineStyle(['width' => 0.5, 'color' => [0, 0, 0]]);
         $pdf->SetFillColor(255, 255, 255);
-        $pdf->Cell($expW + 4, 10, 'EXP No. ' . $numeroExp, 1, 1, 'C', true);
+        $pdf->Cell($expW + 4, 10, 'EXP SILPY No. ' . $numeroExp, 1, 1, 'C', true);
+        $pdf->SetFont('Times', '', 10);
+        $pdf->Cell(0, 6, 'REFERENCIA: No. Doc. Entrados ' . $proyecto->nro_expediente, 0, 1, 'R');
 
         $pdf->Ln(2);
 
@@ -583,9 +627,9 @@ class ProyectosEnEstudioController extends Controller
                 default => 'X',
             };
             $anhoPadre = substr($padre->anho, -2);
-            $expPadre = $letraPadre . '-' . $anhoPadre . $padre->nro_expediente;
+            $expPadre = $letraPadre . '-' . $anhoPadre . ($padre->nro_expediente_silpy ?? $padre->nro_expediente);
             $pdf->SetFont('Times', '', 10);
-            $pdf->Cell(0, 6, 'REFERENCIA: Documento Padre - (Exp. No. ' . $expPadre . ')', 0, 1, 'R');
+            $pdf->Cell(0, 6, 'REFERENCIA: ' . $expPadre, 0, 1, 'R');
             $pdf->Ln(3);
         }
 
@@ -692,15 +736,17 @@ class ProyectosEnEstudioController extends Controller
             default => 'X',
         };
         $anhoPadre = substr($padre->anho, -2);
-        $numeroExpPadre = $letraPadre . '-' . $anhoPadre . $padre->nro_expediente;
+        $numeroExpPadre = $letraPadre . '-' . $anhoPadre . ($padre->nro_expediente_silpy ?? $padre->nro_expediente);
 
         $pdf->SetFont('Times', 'B', 16);
         $margins = $pdf->getMargins();
-        $expW = $pdf->GetStringWidth('EXP No. ' . $numeroExpPadre) + 10;
+        $expW = $pdf->GetStringWidth('EXP SILPY No. ' . $numeroExpPadre) + 10;
         $pdf->SetX($pdf->getPageWidth() - $margins['right'] - $expW - 4);
         $pdf->SetLineStyle(['width' => 0.5, 'color' => [0, 0, 0]]);
         $pdf->SetFillColor(255, 255, 255);
-        $pdf->Cell($expW + 4, 10, 'EXP No. ' . $numeroExpPadre, 1, 1, 'C', true);
+        $pdf->Cell($expW + 4, 10, 'EXP SILPY No. ' . $numeroExpPadre, 1, 1, 'C', true);
+        $pdf->SetFont('Times', '', 10);
+        $pdf->Cell(0, 6, 'REFERENCIA: No. Doc. Entrados ' . $proyecto->nro_expediente, 0, 1, 'R');
 
         $pdf->Ln(2);
 
@@ -712,9 +758,9 @@ class ProyectosEnEstudioController extends Controller
                 default => 'X',
             };
             $anhoCorto = substr($proyecto->anho, -2);
-            $exp = $letra . '-' . $anhoCorto . $proyecto->nro_expediente;
+            $exp = $letra . '-' . $anhoCorto . ($proyecto->nro_expediente_silpy ?? $proyecto->nro_expediente);
             $pdf->SetFont('Times', '', 10);
-            $pdf->Cell(0, 6, 'REFERENCIA: Documento Hijo - (Exp. No. ' . $exp . ')', 0, 1, 'R');
+            $pdf->Cell(0, 6, 'REFERENCIA: ' . $exp, 0, 1, 'R');
             $pdf->Ln(3);
         }
 
@@ -793,9 +839,11 @@ class ProyectosEnEstudioController extends Controller
                 $targetH = (int)($origH * ($targetW / $origW));
 
                 $img = imagecreatetruecolor($targetW, $targetH);
-                imagesavealpha($img, true);
+                imagealphablending($img, true);
 
-                $bg = imagecolorallocatealpha($img, 0, 0, 0, 127);
+                // Word no siempre respeta correctamente la transparencia PNG.
+                // Componer primero sobre blanco evita que la marca se oscurezca.
+                $bg = imagecolorallocate($img, 255, 255, 255);
                 imagefill($img, 0, 0, $bg);
 
                 imagecopyresampled(
@@ -824,13 +872,13 @@ class ProyectosEnEstudioController extends Controller
                         $g = ($rgba >> 8) & 0xFF;
                         $b = $rgba & 0xFF;
 
-                        // Mezclar con blanco (80%)
+                        // Aclarar los píxeles de forma permanente (80% blanco).
                         $r = (int)($r + (255 - $r) * 0.80);
                         $g = (int)($g + (255 - $g) * 0.80);
                         $b = (int)($b + (255 - $b) * 0.80);
 
-                        // Mucha transparencia
-                        $newA = min(127, $a + 118);
+                        // Imagen opaca: la claridad no depende del soporte alfa de Word.
+                        $newA = 0;
 
                         $color = imagecolorallocatealpha(
                             $img,
@@ -883,7 +931,7 @@ class ProyectosEnEstudioController extends Controller
             default => 'X',
         };
         $anhoCorto = substr($proyecto->anho, -2);
-        $numeroExp = $letra . '-' . $anhoCorto . $proyecto->nro_expediente;
+        $numeroExp = $letra . '-' . $anhoCorto . ($proyecto->nro_expediente_silpy ?? $proyecto->nro_expediente);
 
         $table = $section->addTable([
             'borderSize' => 16,
@@ -891,8 +939,9 @@ class ProyectosEnEstudioController extends Controller
             'align' => 'right',
         ]);
         $table->addRow();
-        $cell = $table->addCell(3000);
-        $cell->addText('EXP No. ' . $numeroExp, ['bold' => true, 'size' => 16]);
+        $cell = $table->addCell(4500, ['noWrap' => true]);
+        $cell->addText('EXP SILPY No. ' . $numeroExp, ['bold' => true, 'size' => 16]);
+        $section->addText('REFERENCIA: No. Doc. Entrados ' . $proyecto->nro_expediente, ['size' => 10], ['align' => 'right', 'spaceBefore' => 0, 'spaceAfter' => 0]);
 
         $section->addTextBreak(1);
 
@@ -905,8 +954,8 @@ class ProyectosEnEstudioController extends Controller
                 default => 'X',
             };
             $anhoPadre = substr($padre->anho, -2);
-            $expPadre = $letraPadre . '-' . $anhoPadre . $padre->nro_expediente;
-            $section->addText('REFERENCIA: Documento Padre - (Exp. No. ' . $expPadre . ')', ['size' => 10], ['align' => 'right']);
+            $expPadre = $letraPadre . '-' . $anhoPadre . ($padre->nro_expediente_silpy ?? $padre->nro_expediente);
+            $section->addText('REFERENCIA: ' . $expPadre, ['size' => 10], ['align' => 'right']);
             $section->addTextBreak(1);
         }
 
@@ -1087,9 +1136,11 @@ class ProyectosEnEstudioController extends Controller
                 $targetH = (int)($origH * ($targetW / $origW));
 
                 $img = imagecreatetruecolor($targetW, $targetH);
-                imagesavealpha($img, true);
+                imagealphablending($img, true);
 
-                $bg = imagecolorallocatealpha($img, 0, 0, 0, 127);
+                // Word no siempre respeta correctamente la transparencia PNG.
+                // Componer primero sobre blanco evita que la marca se oscurezca.
+                $bg = imagecolorallocate($img, 255, 255, 255);
                 imagefill($img, 0, 0, $bg);
 
                 imagecopyresampled(
@@ -1117,11 +1168,13 @@ class ProyectosEnEstudioController extends Controller
                         $g = ($rgba >> 8) & 0xFF;
                         $b = $rgba & 0xFF;
 
+                        // Aclarar los píxeles de forma permanente (80% blanco).
                         $r = (int)($r + (255 - $r) * 0.80);
                         $g = (int)($g + (255 - $g) * 0.80);
                         $b = (int)($b + (255 - $b) * 0.80);
 
-                        $newA = min(127, $a + 118);
+                        // Imagen opaca: la claridad no depende del soporte alfa de Word.
+                        $newA = 0;
 
                         $color = imagecolorallocatealpha(
                             $img,
@@ -1174,7 +1227,7 @@ class ProyectosEnEstudioController extends Controller
             default => 'X',
         };
         $anhoPadre = substr($padre->anho, -2);
-        $numeroExpPadre = $letraPadre . '-' . $anhoPadre . $padre->nro_expediente;
+        $numeroExpPadre = $letraPadre . '-' . $anhoPadre . ($padre->nro_expediente_silpy ?? $padre->nro_expediente);
 
         $table = $section->addTable([
             'borderSize' => 16,
@@ -1182,8 +1235,9 @@ class ProyectosEnEstudioController extends Controller
             'align' => 'right',
         ]);
         $table->addRow();
-        $cell = $table->addCell(3000);
-        $cell->addText('EXP No. ' . $numeroExpPadre, ['bold' => true, 'size' => 16]);
+        $cell = $table->addCell(4500, ['noWrap' => true]);
+        $cell->addText('EXP SILPY No. ' . $numeroExpPadre, ['bold' => true, 'size' => 16]);
+        $section->addText('REFERENCIA: No. Doc. Entrados ' . $proyecto->nro_expediente, ['size' => 10], ['align' => 'right', 'spaceBefore' => 0, 'spaceAfter' => 0]);
 
         $section->addTextBreak(1);
 
@@ -1195,8 +1249,8 @@ class ProyectosEnEstudioController extends Controller
                 default => 'X',
             };
             $anhoCorto = substr($proyecto->anho, -2);
-            $exp = $letra . '-' . $anhoCorto . $proyecto->nro_expediente;
-            $section->addText('REFERENCIA: Documento Hijo - (Exp. No. ' . $exp . ')', ['size' => 10], ['align' => 'right']);
+            $exp = $letra . '-' . $anhoCorto . ($proyecto->nro_expediente_silpy ?? $proyecto->nro_expediente);
+            $section->addText('REFERENCIA: ' . $exp, ['size' => 10], ['align' => 'right']);
             $section->addTextBreak(1);
         }
 
