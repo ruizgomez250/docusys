@@ -95,7 +95,7 @@ class UserController extends Controller
             'name' => $request->name,
             'email' => $request->email,
         ];
-        if (!empty($request->password)) {
+        if ($request->filled('password')) {
             $data += ['password' => Hash::make($request->password),];
         }
         $user->update($data);

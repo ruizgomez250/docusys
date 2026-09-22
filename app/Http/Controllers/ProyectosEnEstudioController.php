@@ -1431,7 +1431,12 @@ class ProyectosEnEstudioController extends Controller
                 return $item;
             });
 
-        return view('proyectos_en_estudio.sesiones', compact('proyectos', 'fechas'));
+        $siguientesNumeros = Sesion::select('tipo_sesion')
+            ->selectRaw('MAX(nro_sesion) + 1 as siguiente')
+            ->groupBy('tipo_sesion')
+            ->pluck('siguiente', 'tipo_sesion');
+
+        return view('proyectos_en_estudio.sesiones', compact('proyectos', 'fechas', 'siguientesNumeros'));
     }
 
     public function generarPDFSesion(Request $request)
@@ -1573,12 +1578,22 @@ class ProyectosEnEstudioController extends Controller
 
     public function prepararSesion(Request $request)
     {
+        $request->merge(['tipo_sesion' => strtoupper(trim((string) $request->input('tipo_sesion')))]);
         $request->validate([
             'doc_ids' => 'required|string',
             'tipo_sesion' => 'required|string',
             'nro_sesion' => 'required|integer|min:1',
             'fecha_sesion' => 'required|date',
+            'confirmar_duplicado' => 'sometimes|boolean',
         ]);
+
+        if (!$request->boolean('confirmar_duplicado') && Sesion::where('tipo_sesion', $request->input('tipo_sesion'))
+            ->where('nro_sesion', $request->input('nro_sesion'))->exists()) {
+            return response()->json([
+                'requiere_confirmacion' => true,
+                'error' => 'Ya existe una sesión ' . $request->input('tipo_sesion') . ' con el número ' . $request->input('nro_sesion') . '. ¿Desea crear otra sesión con el mismo número?',
+            ], 409);
+        }
 
         $ids = array_map('intval', explode(',', $request->input('doc_ids')));
         $tipoSesion = strtoupper($request->input('tipo_sesion'));
@@ -1604,12 +1619,13 @@ class ProyectosEnEstudioController extends Controller
                 'nro_sesion' => $nroSesion,
             ]);
 
-            ProyectosEnEstudio::whereIn('id', $ids)->update(['sesion_id' => $sesion->id]);
+            ProyectosEnEstudio::whereIn('id', $proyectos->modelKeys())->update(['sesion_id' => $sesion->id]);
 
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['error' => 'Error al guardar la sesión: ' . $e->getMessage()], 500);
+            report($e);
+            return response()->json(['error' => 'No se pudo guardar la sesión. Intente nuevamente.'], 500);
         }
 
         return response()->json(['success' => true, 'sesion_id' => $sesion->id]);

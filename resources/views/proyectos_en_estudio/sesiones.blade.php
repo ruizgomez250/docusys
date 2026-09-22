@@ -85,6 +85,14 @@
                 $('#btnGenerar').prop('disabled', total === 0);
             }
 
+            var siguientesNumeros = @json($siguientesNumeros);
+            function sugerirNumeroSesion() {
+                var siguiente = siguientesNumeros[$('#modal_tipo_sesion').val()] || 1;
+                $('#modal_nro_sesion').val(siguiente);
+                $('#nroSesionHint').text('Siguiente número disponible: ' + siguiente);
+            }
+            $('#modal_tipo_sesion').on('change', sugerirNumeroSesion);
+
             $('#btnGenerar').on('click', function() {
                 var selected = [];
                 $('tr.doc-row .doc-check:checked').each(function() {
@@ -101,6 +109,7 @@
                     $('#modal_fecha_sesion').val(primeraFecha);
                 }
 
+                sugerirNumeroSesion();
                 $('#modalSesion').modal('show');
             });
 
@@ -115,33 +124,58 @@
                     return;
                 }
 
-                Swal.fire({
-                    title: 'Preparando sesión...',
-                    text: 'Por favor espere',
-                    allowOutsideClick: false,
-                    allowEscapeKey: false,
-                    showConfirmButton: false,
-                    didOpen: function() { Swal.showLoading(); }
-                });
+                function prepararSesion(confirmado) {
+                    Swal.fire({
+                        title: 'Preparando sesión...',
+                        text: 'Por favor espere',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        showConfirmButton: false,
+                        didOpen: function() { Swal.showLoading(); }
+                    });
 
-                $.ajax({
-                    url: '{{ route("proyectos-en-estudio.sesiones.preparar") }}',
-                    type: 'POST',
-                    data: {
-                        _token: '{{ csrf_token() }}',
-                        doc_ids: ids,
-                        tipo_sesion: tipo,
-                        nro_sesion: nro,
-                        fecha_sesion: fecha
-                    },
-                    success: function(response) {
-                        Swal.close();
-                        window.location.href = '{{ route("proyectos-en-estudio.asuntos-entrados") }}';
-                    },
-                    error: function() {
-                        Swal.fire('Error', 'No se pudo preparar la sesión.', 'error');
-                    }
-                });
+                    $.ajax({
+                        url: '{{ route("proyectos-en-estudio.sesiones.preparar") }}',
+                        type: 'POST',
+                        dataType: 'json',
+                        headers: { Accept: 'application/json' },
+                        data: {
+                            _token: '{{ csrf_token() }}',
+                            doc_ids: ids,
+                            tipo_sesion: tipo,
+                            nro_sesion: nro,
+                            fecha_sesion: fecha,
+                            confirmar_duplicado: confirmado ? 1 : 0
+                        },
+                        success: function(response) {
+                            Swal.close();
+                            window.location.href = '{{ route("proyectos-en-estudio.asuntos-entrados") }}';
+                        },
+                        error: function(xhr) {
+                            var response = xhr.responseJSON || {};
+                            if (xhr.status === 409 && response.requiere_confirmacion) {
+                                Swal.fire({
+                                    title: 'El número de sesión ya existe',
+                                    text: response.error,
+                                    icon: 'warning',
+                                    showCancelButton: true,
+                                    confirmButtonText: 'Crear de todas formas',
+                                    cancelButtonText: 'Cancelar',
+                                    focusCancel: true
+                                }).then(function(result) {
+                                    if (result.isConfirmed) prepararSesion(true);
+                                });
+                                return;
+                            }
+                            var mensaje = response.error || 'No se pudo preparar la sesión. Intente nuevamente.';
+                            if (response.errors) {
+                                mensaje = Object.values(response.errors).flat().join('\n');
+                            }
+                            Swal.fire({ title: 'No se pudo preparar la sesión', text: mensaje, icon: 'error' });
+                        }
+                    });
+                }
+                prepararSesion(false);
             });
         });
     </script>

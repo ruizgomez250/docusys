@@ -30,8 +30,13 @@
                                     @enderror
                                 </div>
                                 <div class="mb-3">
-                                    <label for="">Password</label>
-                                    <input type="text" name="password" class="form-control">
+                                    <label for="password">Nueva contraseña (opcional)</label>
+                                    <input type="password" id="password" name="password" class="form-control"
+                                        autocomplete="new-password" minlength="8" maxlength="20"
+                                        aria-describedby="password-help">
+                                    <small id="password-help" class="form-text text-muted">
+                                        Deje este campo vacío para conservar la contraseña actual. Puede cambiar solo el rol sin modificarla.
+                                    </small>
                                     @error('password')
                                         <span class="text-danger">{{ $message }}</span>
                                     @enderror
