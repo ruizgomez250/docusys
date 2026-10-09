@@ -86,6 +86,8 @@ Route::get('/autocomplete/observacion',  [AutocompleteController::class, 'getObs
     Route::get('/proyectos-en-estudio/asuntos-entrados/{id}/pdf', [App\Http\Controllers\ProyectosEnEstudioController::class, 'downloadPDFSesion'])->name('proyectos-en-estudio.asuntos-entrados.pdf');
     Route::get('/proyectos-en-estudio/asuntos-entrados/{id}/editar', [App\Http\Controllers\ProyectosEnEstudioController::class, 'editSesion'])->name('proyectos-en-estudio.edit-sesion');
     Route::put('/proyectos-en-estudio/asuntos-entrados/{id}', [App\Http\Controllers\ProyectosEnEstudioController::class, 'updateSesion'])->name('proyectos-en-estudio.update-sesion');
+    Route::patch('/proyectos-en-estudio/asuntos-entrados/{id}/finalizar', [App\Http\Controllers\ProyectosEnEstudioController::class, 'finalizarSesion'])->name('proyectos-en-estudio.finalizar-sesion');
+    Route::post('/proyectos-en-estudio/asuntos-entrados/{id}/duplicar', [App\Http\Controllers\ProyectosEnEstudioController::class, 'duplicarSesion'])->name('proyectos-en-estudio.duplicar-sesion');
     Route::delete('/proyectos-en-estudio/sesiones/{id}', [App\Http\Controllers\ProyectosEnEstudioController::class, 'destroySesion'])->name('proyectos-en-estudio.destroy-sesion');
     Route::get('/proyectos-en-estudio/{id}/pdf', [App\Http\Controllers\ProyectosEnEstudioController::class, 'downloadPDF'])->name('proyectos-en-estudio.pdf');
     Route::get('/proyectos-en-estudio/{id}/word', [App\Http\Controllers\ProyectosEnEstudioController::class, 'downloadWord'])->name('proyectos-en-estudio.word');

@@ -113,6 +113,28 @@
             }
         }
 
+        function agregarDestinoAEditor(selector, destino, destinosAgregados) {
+            var $editor = $(selector);
+            if (!$editor.data('summernote') || !destino) return;
+
+            var clave = destino.toLocaleLowerCase();
+            if (destinosAgregados.has(clave)) return;
+
+            var htmlActual = $editor.summernote('code') || '';
+            var textoActual = $('<div>').html(htmlActual).text().replace(/\u00a0/g, ' ').trim();
+            var separador = textoActual === '' ? '' : (destinosAgregados.size > 0 ? ', ' : '. ');
+            var destinoSeguro = $('<div>').text(destino).html();
+
+            if (/<\/p>\s*$/i.test(htmlActual)) {
+                htmlActual = htmlActual.replace(/<\/p>\s*$/i, separador + destinoSeguro + '</p>');
+            } else {
+                htmlActual += separador + destinoSeguro;
+            }
+
+            $editor.summernote('code', htmlActual);
+            destinosAgregados.add(clave);
+        }
+
         var obsCounter = 0;
 
         function getTramiteLabel(i) {
@@ -310,6 +332,16 @@
                 fontNamesIgnoreCheck: ['Times New Roman'],
                 defaultFontName: 'Times New Roman',
             });
+
+            var destinosContenidoAgregados = new Set();
+            $('#destino_contenido').select2({
+                width: '260px',
+                placeholder: 'Agregar destino al contenido',
+                allowClear: true
+            }).on('change', function() {
+                var destino = String($(this).val() || '').trim();
+                agregarDestinoAEditor('#contenido', destino, destinosContenidoAgregados);
+            });
             @endif
 
             @if ($puedeCabecera)
@@ -323,6 +355,20 @@
                 fontNamesIgnoreCheck: ['Times New Roman'],
                 defaultFontName: 'Times New Roman',
                 placeholder: 'Escriba el acapite con formato...',
+            });
+
+            var destinosAgregados = new Set();
+            var destinoGuardado = @json($proyecto->destino ?? '');
+            var textoInicialAcapite = $('<div>').html($('#acapite').summernote('code')).text().toLocaleLowerCase();
+
+            if (destinoGuardado && textoInicialAcapite.includes(destinoGuardado.toLocaleLowerCase())) {
+                destinosAgregados.add(destinoGuardado.toLocaleLowerCase());
+            }
+
+            $('#destino').on('change', function() {
+                var destino = String($(this).val() || '').trim();
+                if (!destino) return;
+                agregarDestinoAEditor('#acapite', destino, destinosAgregados);
             });
             @endif
 
@@ -536,6 +582,11 @@
                                             <option value="{{ $dest->nombre }}" {{ $proyecto->destino == $dest->nombre ? 'selected' : '' }}>{{ $dest->nombre }}</option>
                                         @endforeach
                                     </x-adminlte-select2>
+                                    @if ($puedeCabecera)
+                                        <small class="form-text text-muted">
+                                            Cada destino seleccionado se agrega al final del acápite. Los siguientes se separan con comas y pueden editarse directamente en el acápite.
+                                        </small>
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -602,13 +653,12 @@
                             @if ($puedeContenido && $proyecto->nro_expediente > 0)
                             <div style="float: right; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; justify-content: flex-end;">
                                 <button type="button" class="btn btn-sm btn-info" onclick="insertarEnEditor('acapite')" title="Insertar el acápite con su formato">Acápite</button>
-                                <div style="display: inline-flex; align-items: center; gap: 3px; background: #dc3545; border-radius: 4px; padding: 2px 6px;">
-                                    <input type="checkbox" id="usar_documento_padre" name="usar_documento_padre" value="1" {{ old('usar_documento_padre', $proyecto->usar_documento_padre) ? 'checked' : '' }} style="margin: 0; cursor: pointer;">
-                                    <label for="usar_documento_padre" style="color: #fff; font-size: 0.8rem; margin: 0; cursor: pointer; white-space: nowrap;">Doc. Padre</label>
-                                </div>
-                                <button type="button" class="btn btn-sm btn-outline-danger" id="btnDocumentoPadre" onclick="abrirModalDocumentoPadre()" title="Documento Padre" disabled>
-                                    <i class="fas fa-sitemap"></i>
-                                </button>
+                                <select id="destino_contenido" class="form-control form-control-sm" style="min-width: 260px;">
+                                    <option value=""></option>
+                                    @foreach ($destinos as $dest)
+                                        <option value="{{ $dest->nombre }}">{{ $dest->nombre }}</option>
+                                    @endforeach
+                                </select>
                                 <button type="button" class="btn btn-sm btn-outline-info" onclick="formatearContenido()" title="Formatear selección o todo el contenido">
                                     <i class="fas fa-magic"></i> Formatear
                                 </button>

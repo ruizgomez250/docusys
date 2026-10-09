@@ -77,6 +77,44 @@
                     }
                 });
             });
+
+            $('.form-finalizar-sesion').on('submit', function(e) {
+                e.preventDefault();
+                var form = this;
+                Swal.fire({
+                    title: '¿Finalizar Asuntos Entrados?',
+                    text: 'Una vez finalizado ya no podrá editar ni eliminar esta sesión.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#28a745',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Sí, finalizar',
+                    cancelButtonText: 'Cancelar'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        form.submit();
+                    }
+                });
+            });
+
+            $('.form-duplicar-sesion').on('submit', function(e) {
+                e.preventDefault();
+                var form = this;
+                Swal.fire({
+                    title: '¿Crear otra sesión?',
+                    text: 'Se creará un nuevo borrador con exactamente los mismos asuntos entrados.',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#17a2b8',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Sí, crear borrador',
+                    cancelButtonText: 'Cancelar'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        form.submit();
+                    }
+                });
+            });
         });
     </script>
 @endpush
@@ -136,20 +174,43 @@
                             <span class="text-muted" style="margin-left: 10px; font-size: 0.85em;">
                                 | {{ $fechaTexto }} | {{ $sesion->proyectos->count() }} documento(s)
                             </span>
+                            @if ($sesion->estaFinalizada())
+                                <span class="badge badge-success ml-2"><i class="fas fa-lock"></i> FINALIZADO</span>
+                            @else
+                                <span class="badge badge-warning ml-2"><i class="fas fa-pencil-alt"></i> BORRADOR</span>
+                            @endif
                         </h3>
                         <div class="card-tools">
                             <a href="{{ route('proyectos-en-estudio.asuntos-entrados.pdf', $sesion->id) }}"
                                class="btn btn-danger btn-sm" target="_blank" title="Descargar PDF">
                                 <i class="fas fa-file-pdf"></i> PDF
                             </a>
-                            <a href="{{ route('proyectos-en-estudio.edit-sesion', $sesion->id) }}"
-                               class="btn btn-info btn-sm" title="Editar">
-                                <i class="fas fa-edit"></i> Editar
-                            </a>
-                            <button type="button" class="btn btn-outline-danger btn-sm btn-delete-sesion"
-                                    data-id="{{ $sesion->id }}" title="Desasignar y eliminar sesión">
-                                <i class="fas fa-trash"></i>
-                            </button>
+                            @if (!$sesion->estaFinalizada())
+                                <a href="{{ route('proyectos-en-estudio.edit-sesion', $sesion->id) }}"
+                                   class="btn btn-info btn-sm" title="Editar">
+                                    <i class="fas fa-edit"></i> Editar
+                                </a>
+                                <form action="{{ route('proyectos-en-estudio.finalizar-sesion', $sesion->id) }}"
+                                      method="POST" class="d-inline form-finalizar-sesion">
+                                    @csrf
+                                    @method('PATCH')
+                                    <button type="submit" class="btn btn-success btn-sm" title="Finalizar y bloquear edición">
+                                        <i class="fas fa-check-circle"></i> Finalizar
+                                    </button>
+                                </form>
+                                <button type="button" class="btn btn-outline-danger btn-sm btn-delete-sesion"
+                                        data-id="{{ $sesion->id }}" title="Desasignar y eliminar sesión">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            @else
+                                <form action="{{ route('proyectos-en-estudio.duplicar-sesion', $sesion->id) }}"
+                                      method="POST" class="d-inline form-duplicar-sesion">
+                                    @csrf
+                                    <button type="submit" class="btn btn-info btn-sm" title="Crear otra sesión con los mismos asuntos">
+                                        <i class="fas fa-copy"></i> Crear otra sesión
+                                    </button>
+                                </form>
+                            @endif
                         </div>
                     </div>
                     <div class="card-body p-0">

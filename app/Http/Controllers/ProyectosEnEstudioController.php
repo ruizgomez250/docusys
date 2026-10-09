@@ -1473,6 +1473,7 @@ class ProyectosEnEstudioController extends Controller
             ]);
 
             ProyectosEnEstudio::whereIn('id', $ids)->update(['sesion_id' => $sesion->id]);
+            $sesion->proyectos()->syncWithoutDetaching($proyectos->modelKeys());
 
             DB::commit();
         } catch (\Exception $e) {
@@ -1557,15 +1558,9 @@ class ProyectosEnEstudioController extends Controller
                 $acapiteLimpio = '';
             }
 
-            $destino = trim($proyecto->destino ?? '');
-            if (!empty($destino)) {
-                $destino = '. ' . $destino;
-            }
-
             $html = '<p style="text-align: justify; font-family: Times, serif; font-size: 12pt;">'
                 . '<strong>' . $nroReal . '</strong>. '
                 . $acapiteLimpio
-                . $destino
                 . '</p>';
 
             $pdf->writeHTML($html, true, false, true, false, '');
@@ -1620,6 +1615,7 @@ class ProyectosEnEstudioController extends Controller
             ]);
 
             ProyectosEnEstudio::whereIn('id', $proyectos->modelKeys())->update(['sesion_id' => $sesion->id]);
+            $sesion->proyectos()->syncWithoutDetaching($proyectos->modelKeys());
 
             DB::commit();
         } catch (\Exception $e) {
@@ -1653,31 +1649,131 @@ class ProyectosEnEstudioController extends Controller
     {
         $sesion = Sesion::with('proyectos.mesaEntrada')->findOrFail($id);
 
+        if ($sesion->estaFinalizada()) {
+            return redirect()->route('proyectos-en-estudio.asuntos-entrados')
+                ->with('error', 'La sesión está finalizada y ya no puede editarse.');
+        }
+
         $dias = [0 => 'DOMINGO', 1 => 'LUNES', 2 => 'MARTES', 3 => 'MIERCOLES', 4 => 'JUEVES', 5 => 'VIERNES', 6 => 'SABADO'];
         $meses = [1 => 'ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
         $carbon = $sesion->fecha_sesion;
         $sesion->fecha_texto = $dias[$carbon->dayOfWeek] . ', ' . $carbon->format('d') . ' DE ' . $meses[$carbon->month] . ' DE ' . $carbon->format('Y');
 
-        return view('proyectos_en_estudio.edit_sesion', compact('sesion'));
+        $proyectosDisponibles = ProyectosEnEstudio::with('mesaEntrada')
+            ->where('nro_expediente', '>', 0)
+            ->whereNull('sesion_id')
+            ->orderBy('nro_expediente')
+            ->get();
+
+        return view('proyectos_en_estudio.edit_sesion', compact('sesion', 'proyectosDisponibles'));
     }
 
     public function updateSesion(Request $request, $id)
     {
+        $sesion = Sesion::findOrFail($id);
+
+        if ($sesion->estaFinalizada()) {
+            return redirect()->route('proyectos-en-estudio.asuntos-entrados')
+                ->with('error', 'La sesión está finalizada y ya no puede editarse.');
+        }
+
         $request->validate([
             'tipo_sesion' => 'required|string',
             'nro_sesion' => 'required|integer|min:1',
             'fecha_sesion' => 'required|date',
+            'nuevos_documentos' => 'nullable|array',
+            'nuevos_documentos.*' => 'integer|distinct|exists:proyectos_en_estudio,id',
         ]);
 
+        $nuevosDocumentos = array_values(array_unique($request->input('nuevos_documentos', [])));
+
+        DB::transaction(function () use ($sesion, $request, $nuevosDocumentos) {
+            $sesionBloqueada = Sesion::lockForUpdate()->findOrFail($sesion->id);
+
+            if ($sesionBloqueada->estaFinalizada()) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'estado' => 'La sesión fue finalizada y ya no puede editarse.',
+                ]);
+            }
+
+            if ($nuevosDocumentos !== []) {
+                $disponibles = ProyectosEnEstudio::whereIn('id', $nuevosDocumentos)
+                    ->where('nro_expediente', '>', 0)
+                    ->whereNull('sesion_id')
+                    ->lockForUpdate()
+                    ->pluck('id');
+
+                if ($disponibles->count() !== count($nuevosDocumentos)) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'nuevos_documentos' => 'Uno o más documentos seleccionados ya fueron agregados a otra sesión. Actualice la página e intente nuevamente.',
+                    ]);
+                }
+
+                ProyectosEnEstudio::whereIn('id', $disponibles)
+                    ->update(['sesion_id' => $sesionBloqueada->id]);
+                $sesionBloqueada->proyectos()->syncWithoutDetaching($disponibles->all());
+            }
+
+            $sesionBloqueada->update([
+                'tipo_sesion' => strtoupper($request->input('tipo_sesion')),
+                'nro_sesion' => $request->input('nro_sesion'),
+                'fecha_sesion' => $request->input('fecha_sesion'),
+            ]);
+        });
+
+        return redirect()->route('proyectos-en-estudio.asuntos-entrados')
+            ->with('success', count($nuevosDocumentos) > 0
+                ? 'Sesión actualizada y documentos agregados exitosamente.'
+                : 'Sesión actualizada exitosamente.');
+    }
+
+    public function finalizarSesion($id)
+    {
         $sesion = Sesion::findOrFail($id);
+
+        if ($sesion->estaFinalizada()) {
+            return redirect()->route('proyectos-en-estudio.asuntos-entrados')
+                ->with('error', 'La sesión ya estaba finalizada.');
+        }
+
         $sesion->update([
-            'tipo_sesion' => strtoupper($request->input('tipo_sesion')),
-            'nro_sesion' => $request->input('nro_sesion'),
-            'fecha_sesion' => $request->input('fecha_sesion'),
+            'estado' => Sesion::ESTADO_FINALIZADO,
+            'finalizado_at' => now(),
         ]);
 
         return redirect()->route('proyectos-en-estudio.asuntos-entrados')
-            ->with('success', 'Sesión actualizada exitosamente.');
+            ->with('success', 'Asuntos Entrados finalizado. Ya no puede editarse.');
+    }
+
+    public function duplicarSesion($id)
+    {
+        $nuevaSesion = DB::transaction(function () use ($id) {
+            $sesionOrigen = Sesion::with('proyectos')->lockForUpdate()->findOrFail($id);
+
+            if (! $sesionOrigen->estaFinalizada()) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'estado' => 'Solamente puede crear otra sesión a partir de una sesión finalizada.',
+                ]);
+            }
+
+            $siguienteNumero = (int) Sesion::where('tipo_sesion', $sesionOrigen->tipo_sesion)
+                ->max('nro_sesion') + 1;
+
+            $nuevaSesion = Sesion::create([
+                'fecha_sesion' => today(),
+                'tipo_sesion' => $sesionOrigen->tipo_sesion,
+                'nro_sesion' => max(1, $siguienteNumero),
+                'estado' => Sesion::ESTADO_BORRADOR,
+                'finalizado_at' => null,
+            ]);
+
+            $nuevaSesion->proyectos()->attach($sesionOrigen->proyectos->modelKeys());
+
+            return $nuevaSesion;
+        });
+
+        return redirect()->route('proyectos-en-estudio.edit-sesion', $nuevaSesion->id)
+            ->with('success', 'Se creó un nuevo borrador con los mismos asuntos entrados. Revise los datos de la sesión y guarde los cambios.');
     }
 
     public function downloadPDFSesion($id)
@@ -1752,14 +1848,9 @@ class ProyectosEnEstudioController extends Controller
                 $acapiteLimpio = '';
             }
 
-            $destino = trim($proyecto->destino ?? '');
-
             $linea = '<strong>' . $proyecto->nro_expediente . '</strong>';
             if (!empty($acapiteLimpio)) {
                 $linea .= '. ' . $acapiteLimpio;
-            }
-            if (!empty($destino)) {
-                $linea .= '. ' . $destino;
             }
             $linea .= '.';
 
@@ -1778,6 +1869,12 @@ class ProyectosEnEstudioController extends Controller
     public function destroySesion($id)
     {
         $sesion = Sesion::findOrFail($id);
+
+        if ($sesion->estaFinalizada()) {
+            return response()->json([
+                'message' => 'La sesión está finalizada y no puede eliminarse.',
+            ], 409);
+        }
 
         ProyectosEnEstudio::where('sesion_id', $sesion->id)->update(['sesion_id' => null]);
 

@@ -35,13 +35,32 @@
                     text: '{{ session('success') }}',
                 });
             @endif
+
+            function actualizarSeleccionados() {
+                $('#cantidadSeleccionados').text($('.nuevo-documento-check:checked').length);
+            }
+
+            $('#buscarDocumento').on('input', function() {
+                var termino = $(this).val().toLocaleLowerCase().trim();
+                $('.documento-disponible-row').each(function() {
+                    $(this).toggle($(this).text().toLocaleLowerCase().includes(termino));
+                });
+            });
+
+            $('#seleccionarTodosDisponibles').on('change', function() {
+                $('.documento-disponible-row:visible .nuevo-documento-check').prop('checked', this.checked);
+                actualizarSeleccionados();
+            });
+
+            $('.nuevo-documento-check').on('change', actualizarSeleccionados);
+            actualizarSeleccionados();
         });
     </script>
 @endpush
 
 @section('content')
     <div class="row">
-        <div class="col-md-8 mx-auto">
+        <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
                     <h3 class="card-title">
@@ -49,6 +68,16 @@
                     </h3>
                 </div>
                 <div class="card-body">
+                    @if ($errors->any())
+                        <div class="alert alert-danger">
+                            <ul class="mb-0">
+                                @foreach ($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+
                     <form action="{{ route('proyectos-en-estudio.update-sesion', $sesion->id) }}" method="POST">
                         @csrf
                         @method('PUT')
@@ -119,6 +148,80 @@
                                 @endforeach
                             </tbody>
                         </table>
+
+                        <hr>
+
+                        <div class="d-flex justify-content-between align-items-center flex-wrap mb-2">
+                            <h5 class="mb-2">
+                                <i class="fas fa-plus-circle text-success"></i>
+                                Agregar documentos disponibles
+                            </h5>
+                            <span class="badge badge-primary p-2">
+                                Seleccionados: <span id="cantidadSeleccionados">0</span>
+                            </span>
+                        </div>
+
+                        @if ($proyectosDisponibles->isEmpty())
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i>
+                                No hay documentos disponibles para agregar en este momento.
+                            </div>
+                        @else
+                            <div class="row mb-2">
+                                <div class="col-md-7">
+                                    <input type="text" id="buscarDocumento" class="form-control"
+                                        placeholder="Buscar por expediente, acápite, destino o fecha...">
+                                </div>
+                                <div class="col-md-5 d-flex align-items-center justify-content-end">
+                                    <label class="mb-0">
+                                        <input type="checkbox" id="seleccionarTodosDisponibles">
+                                        <strong>Seleccionar todos los visibles</strong>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="table-responsive" style="max-height: 420px; overflow-y: auto;">
+                                <table class="table table-sm table-bordered table-hover">
+                                    <thead class="thead-light" style="position: sticky; top: 0; z-index: 1;">
+                                        <tr>
+                                            <th style="width: 35px;"></th>
+                                            <th>Expediente</th>
+                                            <th>Acápite</th>
+                                            <th>Destino</th>
+                                            <th>Fecha de recepción</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach ($proyectosDisponibles as $proyectoDisponible)
+                                            @php
+                                                $letraDisponible = '';
+                                                if ($proyectoDisponible->camara == 'Senado') $letraDisponible = 'S';
+                                                elseif ($proyectoDisponible->camara == 'Diputados') $letraDisponible = 'D';
+                                                elseif ($proyectoDisponible->camara == 'Congreso') $letraDisponible = 'C';
+                                                $expedienteDisponible = $letraDisponible . '-' . substr($proyectoDisponible->anho, -2) . $proyectoDisponible->nro_expediente;
+                                                $acapiteDisponible = html_entity_decode(strip_tags($proyectoDisponible->acapite ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                                                $acapiteDisponible = preg_replace('/\s+/', ' ', trim($acapiteDisponible));
+                                                if (mb_strlen($acapiteDisponible) > 100) {
+                                                    $acapiteDisponible = mb_substr($acapiteDisponible, 0, 100) . '...';
+                                                }
+                                                $fechaDisponible = optional($proyectoDisponible->mesaEntrada)->fecha_recepcion ?? '-';
+                                            @endphp
+                                            <tr class="documento-disponible-row">
+                                                <td class="text-center">
+                                                    <input type="checkbox" class="nuevo-documento-check"
+                                                        name="nuevos_documentos[]" value="{{ $proyectoDisponible->id }}"
+                                                        {{ in_array($proyectoDisponible->id, old('nuevos_documentos', [])) ? 'checked' : '' }}>
+                                                </td>
+                                                <td><strong>{{ $expedienteDisponible }}</strong></td>
+                                                <td>{{ $acapiteDisponible }}</td>
+                                                <td>{{ $proyectoDisponible->destino ?: '-' }}</td>
+                                                <td>{{ $fechaDisponible }}</td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
 
                         <hr>
 

@@ -40,6 +40,16 @@ class ProyectosEnEstudio extends Model
         return $this->belongsTo(Sesion::class, 'sesion_id');
     }
 
+    public function sesiones()
+    {
+        return $this->belongsToMany(
+            Sesion::class,
+            'sesion_proyecto',
+            'proyecto_id',
+            'sesion_id'
+        )->withTimestamps();
+    }
+
     public function documentoPadre()
     {
         return $this->belongsTo(ProyectosEnEstudio::class, 'documento_padre_id');
