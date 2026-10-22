@@ -12,22 +12,15 @@
 
 @push('js')
     <script>
-        function abrirModalCrear(id) {
+        function abrirModalCrear(id, nro, anho) {
             $('#id_mentrada_crear').val(id);
+            $('#texto_mentrada_crear').text('N° ' + nro + '/' + anho);
             $('#modalCrearProyecto').modal('show');
         }
 
         function confirmarCrear() {
             var id = $('#id_mentrada_crear').val();
-            var camara = $('input[name="camara"]:checked').val();
-            if (!camara) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Seleccione una cámara',
-                    text: 'Debe elegir Senado, Diputados o Congreso para continuar.'
-                });
-                return;
-            }
+            var camara = $('#camara_crear').val();
             window.location.href = '{{ route('proyectos-en-estudio.create', '') }}/' + id + '?camara=' + encodeURIComponent(
             camara);
         }
@@ -147,26 +140,13 @@
         <div class="modal-dialog modal-dialog-centered" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h4 class="modal-title">Seleccionar Cámara de Origen</h4>
+                    <h4 class="modal-title">Crear Proyecto</h4>
                     <button type="button" class="close" data-dismiss="modal">&times;</button>
                 </div>
                 <div class="modal-body">
                     <input type="hidden" id="id_mentrada_crear" value="">
-                    <p>Seleccione la cámara de origen para el proyecto:</p>
-                    <div class="form-group">
-                        <div class="custom-control custom-radio mb-2">
-                            <input type="radio" id="camara_senado" name="camara" value="Senado" class="custom-control-input">
-                            <label class="custom-control-label" for="camara_senado">Senado</label>
-                        </div>
-                        <div class="custom-control custom-radio mb-2">
-                            <input type="radio" id="camara_diputados" name="camara" value="Diputados" class="custom-control-input">
-                            <label class="custom-control-label" for="camara_diputados">Diputados</label>
-                        </div>
-                        <div class="custom-control custom-radio mb-2">
-                            <input type="radio" id="camara_congreso" name="camara" value="Congreso" class="custom-control-input">
-                            <label class="custom-control-label" for="camara_congreso">Congreso</label>
-                        </div>
-                    </div>
+                    <input type="hidden" id="camara_crear" value="Diputados">
+                    <p class="mb-0">¿Desea crear el proyecto del documento entrado <strong id="texto_mentrada_crear">N°</strong>?</p>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>

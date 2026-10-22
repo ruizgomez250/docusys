@@ -38,6 +38,7 @@
 @push('css')
     <link href="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-bs4.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('vendor/jquery-ui-1.13.2/jquery-ui.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('vendor/select2/select2.css') }}">
     <style>
         .note-editor.note-frame .note-editing-area .note-editable {
             font-family: 'Times New Roman', Times, serif;
@@ -54,6 +55,142 @@
         .obs-tramites-table {
             border: 2px solid #adb5bd;
             border-collapse: collapse;
+        }
+        .project-fields-row {
+            margin-left: -6px;
+            margin-right: -6px;
+        }
+        .project-fields-row > [class*="col-"] {
+            padding-left: 6px;
+            padding-right: 6px;
+            margin-bottom: 12px;
+        }
+        .project-field {
+            height: 100%;
+            padding: 14px;
+            border: 1px solid #dbe3ec;
+            border-radius: 7px;
+            background: #f8fafc;
+        }
+        .project-field .form-group {
+            margin-bottom: 0;
+        }
+        .project-field label {
+            display: flex;
+            align-items: center;
+            min-height: 24px;
+            margin-bottom: 7px;
+            color: #263238;
+        }
+        .project-field .select2-container {
+            width: 100% !important;
+        }
+        .project-field .select2-selection {
+            border: 1px solid #ced4da !important;
+            border-radius: 4px !important;
+            background-color: #fff !important;
+        }
+        .project-field .select2-selection--single {
+            height: 38px !important;
+        }
+        .project-field .select2-selection--single .select2-selection__rendered {
+            line-height: 36px !important;
+            padding-left: 12px !important;
+        }
+        .project-field .select2-selection--single .select2-selection__arrow {
+            height: 36px !important;
+        }
+        .project-field .select2-selection--multiple {
+            min-height: 42px !important;
+            padding: 4px 8px !important;
+        }
+        .project-field .select2-selection--multiple .select2-selection__rendered {
+            display: flex !important;
+            flex-wrap: wrap !important;
+            align-items: center !important;
+            gap: 5px !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            list-style: none !important;
+        }
+        .project-field .select2-selection--multiple .select2-selection__choice {
+            display: inline-flex !important;
+            align-items: center !important;
+            max-width: 100%;
+            margin: 0 !important;
+            padding: 4px 9px !important;
+            border: 1px solid #b8c3ce !important;
+            border-radius: 14px !important;
+            background: #e9f2fb !important;
+            color: #263238 !important;
+            line-height: 1.2 !important;
+            white-space: normal !important;
+        }
+        .project-field .select2-selection--multiple .select2-selection__choice__remove {
+            order: 2;
+            margin-right: 0 !important;
+            margin-left: 7px !important;
+            color: #dc3545 !important;
+            font-weight: 700 !important;
+        }
+        .project-field .select2-selection--multiple .select2-search--inline {
+            flex: 1 1 150px;
+            float: none !important;
+            margin: 0 !important;
+            list-style: none !important;
+        }
+        .project-field .select2-selection--multiple .select2-search__field {
+            width: 100% !important;
+            min-width: 140px;
+            height: 28px !important;
+            margin: 0 !important;
+            padding: 2px 4px !important;
+            border: 0 !important;
+            outline: 0 !important;
+            box-shadow: none !important;
+        }
+        select.select2-hidden-accessible {
+            position: absolute !important;
+            width: 1px !important;
+            height: 1px !important;
+            padding: 0 !important;
+            margin: -1px !important;
+            overflow: hidden !important;
+            clip: rect(0, 0, 0, 0) !important;
+            white-space: nowrap !important;
+            border: 0 !important;
+        }
+        .project-field-help {
+            display: block;
+            margin-top: 7px;
+            line-height: 1.35;
+        }
+        .field-add-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            margin-left: 7px;
+            border: 1px solid #6c757d;
+            border-radius: 50%;
+            color: #6c757d;
+            font-size: 14px;
+            font-weight: 700;
+            line-height: 1;
+            text-decoration: none !important;
+            transition: background-color .2s, border-color .2s, color .2s;
+        }
+        .field-add-button:hover {
+            border-color: #007bff;
+            background: #007bff;
+            color: #fff;
+        }
+        .acapite-section {
+            margin-top: 4px;
+            padding-top: 16px;
+            border-top: 1px solid #e3e8ee;
         }
     </style>
 @endpush
@@ -113,26 +250,26 @@
             }
         }
 
-        function agregarDestinoAEditor(selector, destino, destinosAgregados) {
+        function agregarTextoAEditor(selector, texto, agregados) {
             var $editor = $(selector);
-            if (!$editor.data('summernote') || !destino) return;
+            if (!$editor.data('summernote') || !texto) return;
 
-            var clave = destino.toLocaleLowerCase();
-            if (destinosAgregados.has(clave)) return;
+            var clave = texto.toLocaleLowerCase();
+            if (agregados.has(clave)) return;
 
             var htmlActual = $editor.summernote('code') || '';
             var textoActual = $('<div>').html(htmlActual).text().replace(/\u00a0/g, ' ').trim();
-            var separador = textoActual === '' ? '' : (destinosAgregados.size > 0 ? ', ' : '. ');
-            var destinoSeguro = $('<div>').text(destino).html();
+            var separador = textoActual === '' ? '' : (agregados.size > 0 ? ', ' : '. ');
+            var textoSeguro = $('<div>').text(texto).html();
 
             if (/<\/p>\s*$/i.test(htmlActual)) {
-                htmlActual = htmlActual.replace(/<\/p>\s*$/i, separador + destinoSeguro + '</p>');
+                htmlActual = htmlActual.replace(/<\/p>\s*$/i, separador + textoSeguro + '</p>');
             } else {
-                htmlActual += separador + destinoSeguro;
+                htmlActual += separador + textoSeguro;
             }
 
             $editor.summernote('code', htmlActual);
-            destinosAgregados.add(clave);
+            agregados.add(clave);
         }
 
         var obsCounter = 0;
@@ -333,14 +470,14 @@
                 defaultFontName: 'Times New Roman',
             });
 
-            var destinosContenidoAgregados = new Set();
+            var agregadosContenido = new Set();
             $('#destino_contenido').select2({
                 width: '260px',
                 placeholder: 'Agregar destino al contenido',
                 allowClear: true
             }).on('change', function() {
                 var destino = String($(this).val() || '').trim();
-                agregarDestinoAEditor('#contenido', destino, destinosContenidoAgregados);
+                agregarTextoAEditor('#contenido', destino, agregadosContenido);
             });
             @endif
 
@@ -357,18 +494,45 @@
                 placeholder: 'Escriba el acapite con formato...',
             });
 
-            var destinosAgregados = new Set();
+            var agregadosAcapite = new Set();
             var destinoGuardado = @json($proyecto->destino ?? '');
+            var iniciativaGuardada = @json($proyecto->iniciativa ?? '');
+            var diputadosGuardados = @json($proyecto->diputados ?? '');
             var textoInicialAcapite = $('<div>').html($('#acapite').summernote('code')).text().toLocaleLowerCase();
 
-            if (destinoGuardado && textoInicialAcapite.includes(destinoGuardado.toLocaleLowerCase())) {
-                destinosAgregados.add(destinoGuardado.toLocaleLowerCase());
+            function marcarEnAcapite(valor) {
+                if (!valor) return;
+                var texto = String(valor).toLocaleLowerCase();
+                texto.split(',').forEach(function(item) {
+                    var limpio = item.trim();
+                    if (limpio && textoInicialAcapite.includes(limpio)) {
+                        agregadosAcapite.add(limpio);
+                    }
+                });
             }
+
+            marcarEnAcapite(destinoGuardado);
+            marcarEnAcapite(iniciativaGuardada);
+            marcarEnAcapite(diputadosGuardados);
 
             $('#destino').on('change', function() {
                 var destino = String($(this).val() || '').trim();
                 if (!destino) return;
-                agregarDestinoAEditor('#acapite', destino, destinosAgregados);
+                agregarTextoAEditor('#acapite', destino, agregadosAcapite);
+            });
+
+            $('#iniciativa').on('change', function() {
+                var iniciativa = String($(this).val() || '').trim();
+                if (!iniciativa) return;
+                agregarTextoAEditor('#acapite', iniciativa, agregadosAcapite);
+            });
+
+            $('#diputados').on('change', function() {
+                var valores = $(this).val() || [];
+                if (!Array.isArray(valores)) valores = [valores];
+                valores.forEach(function(nombre) {
+                    agregarTextoAEditor('#acapite', String(nombre).trim(), agregadosAcapite);
+                });
             });
             @endif
 
@@ -495,6 +659,200 @@
                 $('#btnGuardarDestino').click();
             }
         });
+
+        function abrirModalIniciativa() {
+            $('#nueva_iniciativa').val('');
+            $('#modalIniciativa').modal('show');
+            setTimeout(function() { $('#nueva_iniciativa').focus(); }, 300);
+        }
+
+        $(document).on('click', '#btnGuardarIniciativa', function() {
+            var nombre = $('#nueva_iniciativa').val().trim();
+            if (!nombre) {
+                Swal.fire('Atención', 'Debe escribir el nombre de la institución.', 'warning');
+                return;
+            }
+
+            $.ajax({
+                url: "{{ route('proyectos-en-estudio.iniciativas.store') }}",
+                type: 'POST',
+                data: {
+                    _token: '{{ csrf_token() }}',
+                    nombre: nombre
+                },
+                success: function(data) {
+                    var newOption = new Option(data.nombre, data.nombre, true, true);
+                    $('#iniciativa').append(newOption).trigger('change');
+                    $('#modalIniciativa').modal('hide');
+                    Swal.fire('Éxito', 'Institución agregada correctamente.', 'success');
+                },
+                error: function(xhr) {
+                    var msg = 'Error al guardar.';
+                    if (xhr.responseJSON && xhr.responseJSON.errors && xhr.responseJSON.errors.nombre) {
+                        msg = xhr.responseJSON.errors.nombre[0];
+                    }
+                    Swal.fire('Error', msg, 'error');
+                }
+            });
+        });
+
+        $('#nueva_iniciativa').on('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                $('#btnGuardarIniciativa').click();
+            }
+        });
+
+        var tablaDiputados = null;
+        var diputadoEnEdicion = null;
+
+        function abrirModalDiputados() {
+            $('#modalDiputados').modal('show');
+
+            if (tablaDiputados) {
+                tablaDiputados.ajax.reload();
+                return;
+            }
+
+            tablaDiputados = $('#tabla-diputados').DataTable({
+                processing: true,
+                serverSide: true,
+                ajax: {
+                    url: '{{ route('proyectos-en-estudio.diputados.data') }}',
+                    type: 'GET'
+                },
+                responsive: true,
+                autoWidth: false,
+                columns: [
+                    { data: 'numero' },
+                    { data: 'nombre' },
+                    { data: 'agrupacion' },
+                    { data: 'acciones', orderable: false, searchable: false }
+                ],
+                columnDefs: [
+                    { orderable: false, searchable: false, targets: [3] },
+                    { className: 'text-center', targets: [3] }
+                ],
+                language: { url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json' },
+                order: [[0, 'asc']]
+            });
+        }
+
+        function limpiarFormularioDiputado() {
+            diputadoEnEdicion = null;
+            $('#diputado_nombre').val('');
+            $('#diputado_agrupacion').val('');
+            $('#btnGuardarDiputado').html('<i class="fas fa-save"></i> Agregar');
+            $('#contenedorCancelarEdicion').hide();
+        }
+
+        $(document).on('click', '.btn-editar-diputado', function() {
+            var fila = tablaDiputados.row($(this).closest('tr')).data();
+            diputadoEnEdicion = { id: fila.id, nombre: fila.nombre };
+            $('#diputado_nombre').val(fila.nombre);
+            $('#diputado_agrupacion').val(fila.agrupacion || '');
+            $('#btnGuardarDiputado').html('<i class="fas fa-save"></i> Actualizar');
+            $('#contenedorCancelarEdicion').show();
+            $('#diputado_nombre').focus();
+        });
+
+        $(document).on('click', '.btn-eliminar-diputado', function() {
+            var id = $(this).data('id');
+            var fila = tablaDiputados.row($(this).closest('tr')).data();
+            var nombre = fila.nombre;
+            Swal.fire({
+                title: 'Confirmar eliminación',
+                text: '¿Está seguro de eliminar este diputado?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar'
+            }).then(function(result) {
+                if (!result.isConfirmed) return;
+
+                $.ajax({
+                    url: "{{ url('proyectos-en-estudio/diputados') }}/" + id,
+                    type: 'POST',
+                    data: { _token: '{{ csrf_token() }}', _method: 'DELETE' },
+                    success: function() {
+                        $('#diputados option').each(function() {
+                            if ($(this).val() === nombre) {
+                                $(this).remove();
+                            }
+                        });
+                        tablaDiputados.ajax.reload();
+                        Swal.fire('Éxito', 'Diputado eliminado.', 'success');
+                    },
+                    error: function() {
+                        Swal.fire('Error', 'No se pudo eliminar el diputado.', 'error');
+                    }
+                });
+            });
+        });
+
+        $(document).on('click', '#btnGuardarDiputado', function() {
+            var nombre = $('#diputado_nombre').val().trim();
+            var agrupacion = $('#diputado_agrupacion').val().trim();
+
+            if (!nombre) {
+                Swal.fire('Atención', 'Debe escribir el nombre del diputado.', 'warning');
+                return;
+            }
+
+            var esEdicion = !!diputadoEnEdicion;
+            var url = esEdicion
+                ? "{{ url('proyectos-en-estudio/diputados') }}/" + diputadoEnEdicion.id
+                : "{{ url('proyectos-en-estudio/diputados') }}";
+            var data = {
+                _token: '{{ csrf_token() }}',
+                nombre: nombre,
+                agrupacion: agrupacion
+            };
+            if (esEdicion) {
+                data._method = 'PUT';
+            }
+
+            $.ajax({
+                url: url,
+                type: 'POST',
+                data: data,
+                success: function(resp) {
+                    var opcion = $('#diputados option[value="' + resp.nombre.replace(/"/g, '\\"') + '"]');
+                    if (opcion.length) {
+                        opcion.text(resp.nombre + (resp.agrupacion ? ' (' + resp.agrupacion + ')' : ''));
+                    } else {
+                        var nueva = new Option(
+                            resp.nombre + (resp.agrupacion ? ' (' + resp.agrupacion + ')' : ''),
+                            resp.nombre, false, false);
+                        $('#diputados').append(nueva);
+                    }
+
+                    tablaDiputados.ajax.reload();
+                    limpiarFormularioDiputado();
+                    Swal.fire('Éxito', esEdicion ? 'Diputado actualizado correctamente.' : 'Diputado agregado correctamente.', 'success');
+                },
+                error: function(xhr) {
+                    var msg = 'Error al guardar.';
+                    if (xhr.responseJSON && xhr.responseJSON.errors && xhr.responseJSON.errors.nombre) {
+                        msg = xhr.responseJSON.errors.nombre[0];
+                    }
+                    Swal.fire('Error', msg, 'error');
+                }
+            });
+        });
+
+        $(document).on('click', '#btnCancelarEdicionDiputado', function() {
+            limpiarFormularioDiputado();
+        });
+
+        $('#diputado_nombre').on('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                $('#btnGuardarDiputado').click();
+            }
+        });
     </script>
 @endpush
 
@@ -536,61 +894,122 @@
                         @csrf
                         @method('PUT')
 
-                        <div class="row">
-                            <div class="col-md-6 form-group">
-                                <label>Número de asuntos entrados</label>
-                                <input class="form-control" value="{{ $proyecto->nro_expediente ?: 'Se asignará al guardar' }}" readonly>
-                            </div>
-                            <div class="col-md-6 form-group">
-                                <label for="nro_expediente_silpy">Número de expediente SILPY</label>
-                                <input type="text" inputmode="numeric" pattern="[0-9]{1,20}" maxlength="20" class="form-control" id="nro_expediente_silpy" name="nro_expediente_silpy" value="{{ old('nro_expediente_silpy', $proyecto->nro_expediente_silpy ?? ($proyecto->nro_expediente ?: '')) }}" {{ ($proyecto->nro_expediente == 0 || !($puedeCabecera || $puedeContenido)) ? 'disabled' : '' }}>
-                                <small class="form-text text-muted">Se genera automáticamente al guardar el acápite. Después puede editar solo el número; se conserva el prefijo de cámara y año.</small>
-                                @error('nro_expediente_silpy') <span class="text-danger">{{ $message }}</span> @enderror
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="camara">Cámara de Origen</label>
-                                    <select name="camara" id="camara" class="form-control" {{ !$puedeCabecera ? 'disabled' : '' }}>
-                                        <option value="">Seleccionar...</option>
-                                        <option value="Senado" {{ $proyecto->camara == 'Senado' ? 'selected' : '' }}>Senado</option>
-                                        <option value="Diputados" {{ $proyecto->camara == 'Diputados' ? 'selected' : '' }}>Diputados</option>
-                                        <option value="Congreso" {{ $proyecto->camara == 'Congreso' ? 'selected' : '' }}>Congreso</option>
-                                    </select>
+                        <div class="row project-fields-row">
+                            <div class="col-lg-4 col-md-6">
+                                <div class="project-field">
+                                    <div class="form-group">
+                                        <label>Número de asuntos entrados</label>
+                                        <input class="form-control" value="{{ $proyecto->nro_expediente ?: 'Se asignará al guardar' }}" readonly>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="destino">Destino
+                            <div class="col-lg-4 col-md-6">
+                                <div class="project-field">
+                                    <div class="form-group">
+                                        <label for="nro_expediente_silpy">Número de expediente SILPY</label>
+                                        <input type="text" inputmode="numeric" pattern="[0-9]{1,20}" maxlength="20" class="form-control" id="nro_expediente_silpy" name="nro_expediente_silpy" value="{{ old('nro_expediente_silpy', $proyecto->nro_expediente_silpy ?? ($proyecto->nro_expediente ?: '')) }}" {{ ($proyecto->nro_expediente == 0 || !($puedeCabecera || $puedeContenido)) ? 'disabled' : '' }}>
+                                        <small class="form-text text-muted project-field-help">Editable después de generar el expediente.</small>
+                                        @error('nro_expediente_silpy') <span class="text-danger">{{ $message }}</span> @enderror
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-4 col-md-12">
+                                <div class="project-field">
+                                    <div class="form-group">
+                                        <label for="camara">Identificación SILPY</label>
                                         @if ($puedeCabecera)
-                                        <a href="javascript:void(0)" onclick="abrirModalDestino()" title="Agregar nuevo destino"
-                                            style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; border:1px solid #6c757d; color:#6c757d; font-size:14px; font-weight:bold; margin-left:6px; vertical-align:middle; line-height:1; cursor:pointer; transition: all 0.2s;"
-                                            onmouseover="this.style.backgroundColor='#007bff'; this.style.borderColor='#007bff'; this.style.color='#fff';"
-                                            onmouseout="this.style.backgroundColor=''; this.style.borderColor='#6c757d'; this.style.color='#6c757d';">
-                                            +
-                                        </a>
+                                            <select name="camara" id="camara" class="form-control">
+                                                <option value="">Seleccionar...</option>
+                                                <option value="Senado" {{ $proyecto->camara == 'Senado' ? 'selected' : '' }}>Senado</option>
+                                                <option value="Diputados" {{ $proyecto->camara == 'Diputados' ? 'selected' : '' }}>Diputados</option>
+                                                <option value="Congreso" {{ $proyecto->camara == 'Congreso' ? 'selected' : '' }}>Congreso</option>
+                                            </select>
+                                        @else
+                                            <input type="hidden" name="camara" value="{{ old('camara', $proyecto->camara ?: 'Diputados') }}">
+                                            <input type="text" class="form-control" value="{{ old('camara', $proyecto->camara ?: 'Diputados') }}" disabled>
                                         @endif
-                                    </label>
-                                    <x-adminlte-select2 name="destino" id="destino"
-                                        fgroup-class="col-md-12" :disabled="!$puedeCabecera">
-                                        <option value="">Seleccionar...</option>
-                                        @if ($proyecto->destino && !$destinos->contains('nombre', $proyecto->destino))
-                                            <option value="{{ $proyecto->destino }}" selected>{{ $proyecto->destino }}</option>
-                                        @endif
-                                        @foreach ($destinos as $dest)
-                                            <option value="{{ $dest->nombre }}" {{ $proyecto->destino == $dest->nombre ? 'selected' : '' }}>{{ $dest->nombre }}</option>
-                                        @endforeach
-                                    </x-adminlte-select2>
-                                    @if ($puedeCabecera)
-                                        <small class="form-text text-muted">
-                                            Cada destino seleccionado se agrega al final del acápite. Los siguientes se separan con comas y pueden editarse directamente en el acápite.
-                                        </small>
-                                    @endif
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="row">
+
+                        <div class="row project-fields-row">
+                            <div class="col-lg-4 col-md-6">
+                                <div class="project-field">
+                                    <div class="form-group">
+                                        <label for="destino">Destino
+                                            @if ($puedeCabecera)
+                                                <a href="javascript:void(0)" class="field-add-button" onclick="abrirModalDestino()" title="Agregar nuevo destino">+</a>
+                                            @endif
+                                        </label>
+                                        <x-adminlte-select2 name="destino" id="destino" fgroup-class="mb-0" :disabled="!$puedeCabecera">
+                                            <option value="">Seleccionar...</option>
+                                            @if ($proyecto->destino && !$destinos->contains('nombre', $proyecto->destino))
+                                                <option value="{{ $proyecto->destino }}" selected>{{ $proyecto->destino }}</option>
+                                            @endif
+                                            @foreach ($destinos as $dest)
+                                                <option value="{{ $dest->nombre }}" {{ $proyecto->destino == $dest->nombre ? 'selected' : '' }}>{{ $dest->nombre }}</option>
+                                            @endforeach
+                                        </x-adminlte-select2>
+                                        @if ($puedeCabecera)
+                                            <small class="form-text text-muted project-field-help">Se agrega al acápite; los siguientes se separan con comas.</small>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-4 col-md-6">
+                                <div class="project-field">
+                                    <div class="form-group">
+                                        <label for="iniciativa">Iniciativa Legislativa
+                                            @if ($puedeCabecera)
+                                                <a href="javascript:void(0)" class="field-add-button" onclick="abrirModalIniciativa()" title="Agregar nueva institución">+</a>
+                                            @endif
+                                        </label>
+                                        <x-adminlte-select2 name="iniciativa" id="iniciativa" fgroup-class="mb-0" :disabled="!$puedeCabecera">
+                                            <option value="">Seleccionar...</option>
+                                            @if ($proyecto->iniciativa && !$iniciativas->contains('nombre', $proyecto->iniciativa))
+                                                <option value="{{ $proyecto->iniciativa }}" selected>{{ $proyecto->iniciativa }}</option>
+                                            @endif
+                                            @foreach ($iniciativas as $ini)
+                                                <option value="{{ $ini->nombre }}" {{ $proyecto->iniciativa == $ini->nombre ? 'selected' : '' }}>{{ $ini->nombre }}</option>
+                                            @endforeach
+                                        </x-adminlte-select2>
+                                        @if ($puedeCabecera)
+                                            <small class="form-text text-muted project-field-help">Se agrega al final del acápite.</small>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-4 col-md-12">
+                                <div class="project-field">
+                                    <div class="form-group">
+                                        <label for="diputados">Diputados
+                                            @if ($puedeCabecera)
+                                                <a href="javascript:void(0)" class="field-add-button" onclick="abrirModalDiputados()" title="Agregar o modificar diputados">+</a>
+                                            @endif
+                                        </label>
+                                        @php
+                                            $diputadosSeleccionados = collect(explode(', ', (string) $proyecto->diputados))
+                                                ->map(fn ($nombre) => trim($nombre))
+                                                ->filter()
+                                                ->values();
+                                        @endphp
+                                        <x-adminlte-select2 name="diputados[]" id="diputados"
+                                            fgroup-class="mb-0" :disabled="!$puedeCabecera" multiple
+                                            :config="['multiple' => true, 'placeholder' => 'Seleccionar diputados...', 'allowClear' => true]">
+                                            @foreach ($diputados as $dip)
+                                                <option value="{{ $dip->nombre }}" {{ $diputadosSeleccionados->contains($dip->nombre) ? 'selected' : '' }}>{{ $dip->nombre }}{{ $dip->agrupacion ? ' (' . $dip->agrupacion . ')' : '' }}</option>
+                                            @endforeach
+                                        </x-adminlte-select2>
+                                        @if ($puedeCabecera)
+                                            <small class="form-text text-muted project-field-help">Cada selección se agrega al acápite y permanece editable.</small>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row acapite-section">
                             <div class="col-md-12">
                                 <div class="form-group">
                                     <label for="acapite">Acápite</label>
@@ -753,6 +1172,85 @@
                     <button type="button" class="btn btn-primary" id="btnGuardarDestino">
                         <i class="fas fa-save"></i> Guardar
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalIniciativa" tabindex="-1" role="dialog" aria-labelledby="modalIniciativaLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalIniciativaLabel">Agregar Nueva Institución</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="nueva_iniciativa">Nombre de la Institución</label>
+                        <input type="text" class="form-control" id="nueva_iniciativa" placeholder="Escriba el nombre de la institución...">
+                        <small class="form-text text-muted">
+                            Instituciones con facultad de iniciativa legislativa (Art. 203 de la Constitución Nacional).
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="btnGuardarIniciativa">
+                        <i class="fas fa-save"></i> Guardar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalDiputados" tabindex="-1" role="dialog" aria-labelledby="modalDiputadosLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalDiputadosLabel"><i class="fas fa-users"></i> Diputados</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="form-diputado" onsubmit="return false;">
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="diputado_nombre">Nombre</label>
+                                <input type="text" class="form-control" id="diputado_nombre" placeholder="Escriba el nombre del diputado...">
+                            </div>
+                            <div class="form-group col-md-4">
+                                <label for="diputado_agrupacion">Agrupación</label>
+                                <input type="text" class="form-control" id="diputado_agrupacion" placeholder="Ej.: ANR">
+                            </div>
+                            <div class="form-group col-md-2 d-flex align-items-end">
+                                <button type="button" class="btn btn-primary btn-block" id="btnGuardarDiputado">
+                                    <i class="fas fa-save"></i> Agregar
+                                </button>
+                            </div>
+                        </div>
+                        <div class="form-group" id="contenedorCancelarEdicion" style="display:none;">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="btnCancelarEdicionDiputado">
+                                <i class="fas fa-times"></i> Cancelar edición
+                            </button>
+                        </div>
+                    </form>
+
+                    <table id="tabla-diputados" class="table table-bordered table-striped table-sm" style="width:100%">
+                        <thead>
+                            <tr>
+                                <th>N°</th>
+                                <th>Nombre</th>
+                                <th>Agrupación</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
                 </div>
             </div>
         </div>

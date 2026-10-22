@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Destino;
+use App\Models\Diputado;
 use App\Models\MesaEntrada;
 use App\Models\MesaEntradaFirmante;
 use App\Models\NumeracionExpediente;
 use App\Models\ProyectosConfiguracion;
 use App\Models\ProyectoDestino;
+use App\Models\ProyectoIniciativa;
 use App\Models\ProyectosEnEstudio;
 use App\Models\Sesion;
 use App\Models\UserDestino;
@@ -31,8 +33,10 @@ class ProyectosEnEstudioController extends Controller
     {
         $this->middleware('permission:Proyectos en Estudio', ['only' => ['index', 'listado', 'show', 'configuracion', 'listSesiones', 'listAsuntosEntrados', 'editSesion']]);
         $this->middleware('permission:Proyectos en Estudio', ['only' => ['store', 'create']]);
-        $this->middleware('permission:Proyectos en Estudio', ['only' => ['update', 'edit', 'storeDestino']]);
+        $this->middleware('permission:Proyectos en Estudio', ['only' => ['update', 'edit', 'storeDestino', 'storeIniciativa']]);
+        $this->middleware('permission:Proyectos en Estudio', ['only' => ['diputadosData', 'storeDiputado', 'updateDiputado', 'destroyDiputado']]);
         $this->middleware('permission:Proyectos en Estudio', ['only' => ['destroy']]);
+        $this->middleware('permission:Desbloquear Proyectos Finalizados', ['only' => ['alternarBloqueoProyecto']]);
     }
 
     public function index()
@@ -49,8 +53,10 @@ class ProyectosEnEstudioController extends Controller
 
     public function listadoData()
     {
-        $proyectos = ProyectosEnEstudio::with('mesaEntrada', 'documentoPadre')
+        $proyectos = ProyectosEnEstudio::with(['mesaEntrada', 'documentoPadre', 'sesiones:id,estado'])
             ->select('proyectos_en_estudio.*');
+
+        $puedeDesbloquear = Auth::user()->can('Desbloquear Proyectos Finalizados');
 
         return DataTables::of($proyectos)
             ->addColumn('expediente', function ($row) {
@@ -70,18 +76,37 @@ class ProyectosEnEstudioController extends Controller
                 $texto = preg_replace('/\s+/', ' ', $texto);
                 return mb_substr($texto, 0, 200) . (mb_strlen($texto) > 200 ? '...' : '');
             })
-            ->addColumn('acciones', function ($row) {
+            ->addColumn('acciones', function ($row) use ($puedeDesbloquear) {
                 $btn = '';
+                $perteneceAFinalizada = $row->perteneceASesionFinalizada();
+                $bloqueado = $row->estaBloqueadoPorFinalizacion();
+
                 if ($row->usar_documento_padre && $row->documentoPadre) {
                     $btn .= '<a href="' . route('proyectos-en-estudio.pdf-padre', $row->id) . '" class="btn btn-sm btn-outline-danger mr-1" title="PDF (Doc. Padre)" target="_blank"><i class="fas fa-file-pdf"></i><sup>P</sup></a>';
                     $btn .= '<a href="' . route('proyectos-en-estudio.word-padre', $row->id) . '" class="btn btn-sm btn-outline-success mr-1" title="Word (Doc. Padre)"><i class="fas fa-file-word"></i><sup>P</sup></a>';
                 }
-                $btn .= '<a href="' . route('proyectos-en-estudio.show', $row->id) . '" class="btn btn-sm btn-info mr-1" title="Editar"><i class="fas fa-edit"></i></a>';
+                if (! $bloqueado) {
+                    $btn .= '<a href="' . route('proyectos-en-estudio.show', $row->id) . '" class="btn btn-sm btn-info mr-1" title="Editar"><i class="fas fa-edit"></i></a>';
+                }
+
+                if ($perteneceAFinalizada) {
+                    if ($puedeDesbloquear) {
+                        $icono = $bloqueado ? 'fa-lock' : 'fa-lock-open';
+                        $clase = $bloqueado ? 'btn-outline-warning' : 'btn-warning';
+                        $titulo = $bloqueado ? 'Habilitar nuevamente la edición' : 'Bloquear nuevamente la edición';
+                        $btn .= '<button type="button" class="btn btn-sm ' . $clase . ' mr-1 toggle-lock-btn" data-id="' . $row->id . '" data-bloqueado="' . ($bloqueado ? '1' : '0') . '" title="' . $titulo . '"><i class="fas ' . $icono . '"></i></button>';
+                    } elseif ($bloqueado) {
+                        $btn .= '<button type="button" class="btn btn-sm btn-secondary mr-1" disabled title="Proyecto bloqueado por sesión finalizada"><i class="fas fa-lock"></i></button>';
+                    }
+                }
+
                 $btn .= '<a href="' . route('proyectos-en-estudio.pdf', $row->id) . '" class="btn btn-sm btn-danger mr-1" title="PDF" target="_blank"><i class="fas fa-file-pdf"></i></a>';
                 $btn .= '<a href="' . route('proyectos-en-estudio.word', $row->id) . '" class="btn btn-sm btn-success mr-1" title="Word"><i class="fas fa-file-word"></i></a>';
 
                 $ultimo = ProyectosEnEstudio::max('nro_expediente');
-                if ($row->nro_expediente == $ultimo) {
+                if ($perteneceAFinalizada) {
+                    $btn .= '<button type="button" class="btn btn-sm btn-secondary" disabled title="No se puede eliminar: pertenece a una sesión finalizada"><i class="fas fa-trash"></i></button>';
+                } elseif ($row->nro_expediente == $ultimo) {
                     $btn .= '<button type="button" class="btn btn-sm btn-outline-danger delete-btn" data-id="' . $row->id . '" title="Eliminar (último de la lista)"><i class="fas fa-trash"></i></button>';
                 } else {
                     $btn .= '<button type="button" class="btn btn-sm btn-secondary" disabled title="No se puede eliminar (no es el último)"><i class="fas fa-trash"></i></button>';
@@ -222,7 +247,7 @@ class ProyectosEnEstudioController extends Controller
                     $aa = substr($row->proyecto_anho, -2);
                     $btn .= '<a href="' . route('proyectos-en-estudio.show', $row->proyecto_id) . '" class="btn btn-sm btn-success mr-1" title="Editar Proyecto"><i class="fas fa-file-alt"></i> Proyecto N° ' . $letra . '-' . $aa . $row->nro_expediente . '</a>';
                 } else {
-                    $btn .= '<button type="button" class="btn btn-sm btn-primary" title="Crear Proyecto" onclick="abrirModalCrear(' . $row->id . ')"><i class="fas fa-plus"></i> Crear Proyecto</button>';
+                    $btn .= '<button type="button" class="btn btn-sm btn-primary" title="Crear Proyecto" onclick="abrirModalCrear(' . (int) $row->id . ', ' . (int) $row->nro_mentrada . ', ' . (int) $row->anho . ')"><i class="fas fa-plus"></i> Crear Proyecto</button>';
                 }
                 return $btn;
             })
@@ -243,7 +268,10 @@ class ProyectosEnEstudioController extends Controller
             'ultimo_nro_expediente' => 0,
         ]);
 
-        $camara = $request->input('camara', '');
+        $camara = $request->input('camara', 'Diputados');
+        if (!in_array($camara, ['Senado', 'Diputados', 'Congreso'], true)) {
+            $camara = 'Diputados';
+        }
         $firmantes = MesaEntradaFirmante::obtenerFirmantesPorMesaEntrada($id_mentrada);
 
         $fechaCarbon = Carbon::parse($mesaEntrada->fecha_recepcion);
@@ -259,6 +287,8 @@ class ProyectosEnEstudioController extends Controller
             'camara' => $camara,
             'acapite' => '',
             'destino' => '',
+            'iniciativa' => '',
+            'diputados' => '',
             'presentado_por' => $firmantes,
             'fecha_recepcion_texto' => $fechaTexto,
             'leyenda' => $config ? $config->leyenda : '',
@@ -272,9 +302,16 @@ class ProyectosEnEstudioController extends Controller
 
     public function show($id)
     {
-        $proyecto = ProyectosEnEstudio::with(['mesaEntrada.firmantes', 'mesaEntrada.origen', 'mesaEntrada.tipoDoc'])->findOrFail($id);
-        $destinos = ProyectoDestino::orderBy('nombre')->get();
-        return view('proyectos_en_estudio.show', compact('proyecto', 'destinos'));
+        $proyecto = ProyectosEnEstudio::with(['mesaEntrada.firmantes', 'mesaEntrada.origen', 'mesaEntrada.tipoDoc', 'sesiones'])->findOrFail($id);
+
+        if ($proyecto->estaBloqueadoPorFinalizacion()) {
+            return redirect()->route('proyectos-en-estudio.listado')
+                ->with('error', 'El proyecto pertenece a Asuntos Entrados finalizado y se encuentra bloqueado para edición.');
+        }
+        $destinos = ProyectoDestino::orderByRaw('orden IS NULL')->orderBy('orden')->orderBy('nombre')->get();
+        $iniciativas = ProyectoIniciativa::orderBy('nombre')->get();
+        $diputados = Diputado::ordenados()->get();
+        return view('proyectos_en_estudio.show', compact('proyecto', 'destinos', 'iniciativas', 'diputados'));
     }
 
     public function storeDestino(Request $request)
@@ -293,9 +330,108 @@ class ProyectosEnEstudioController extends Controller
         ], 201);
     }
 
+    public function storeIniciativa(Request $request)
+    {
+        $request->merge(['nombre' => trim((string) $request->input('nombre'))]);
+
+        $data = $request->validate([
+            'nombre' => 'required|string|max:255|unique:proyectos_iniciativas,nombre',
+        ]);
+
+        $iniciativa = ProyectoIniciativa::create($data);
+
+        return response()->json([
+            'id' => $iniciativa->id,
+            'nombre' => $iniciativa->nombre,
+        ], 201);
+    }
+
+    public function diputadosData(Request $request)
+    {
+        $diputados = Diputado::ordenados()->select('id', 'nombre', 'agrupacion', 'orden');
+
+        return DataTables::of($diputados)
+            ->addColumn('numero', function ($row) {
+                return $row->orden ?: '';
+            })
+            ->addColumn('acciones', function ($row) {
+                return '<button type="button" class="btn btn-sm btn-info btn-editar-diputado" data-id="' . $row->id . '" title="Editar"><i class="fas fa-edit"></i></button>'
+                    . '<button type="button" class="btn btn-sm btn-danger btn-eliminar-diputado" data-id="' . $row->id . '" title="Eliminar"><i class="fas fa-trash"></i></button>';
+            })
+            ->rawColumns(['acciones'])
+            ->make(true);
+    }
+
+    public function storeDiputado(Request $request)
+    {
+        $request->merge([
+            'nombre' => trim((string) $request->input('nombre')),
+            'agrupacion' => trim((string) $request->input('agrupacion')),
+        ]);
+
+        $data = $request->validate([
+            'nombre' => 'required|string|max:255|unique:diputados,nombre',
+            'agrupacion' => 'nullable|string|max:255',
+            'orden' => 'nullable|integer',
+        ]);
+
+        if (empty($data['agrupacion'])) {
+            $data['agrupacion'] = null;
+        }
+
+        $diputado = Diputado::create($data);
+
+        return response()->json([
+            'id' => $diputado->id,
+            'nombre' => $diputado->nombre,
+            'agrupacion' => $diputado->agrupacion,
+        ], 201);
+    }
+
+    public function updateDiputado(Request $request, $id)
+    {
+        $diputado = Diputado::findOrFail($id);
+
+        $request->merge([
+            'nombre' => trim((string) $request->input('nombre')),
+            'agrupacion' => trim((string) $request->input('agrupacion')),
+        ]);
+
+        $data = $request->validate([
+            'nombre' => 'required|string|max:255|unique:diputados,nombre,' . $diputado->id,
+            'agrupacion' => 'nullable|string|max:255',
+            'orden' => 'nullable|integer',
+        ]);
+
+        if (empty($data['agrupacion'])) {
+            $data['agrupacion'] = null;
+        }
+
+        $diputado->update($data);
+
+        return response()->json([
+            'id' => $diputado->id,
+            'nombre' => $diputado->nombre,
+            'agrupacion' => $diputado->agrupacion,
+        ]);
+    }
+
+    public function destroyDiputado($id)
+    {
+        $diputado = Diputado::findOrFail($id);
+        $diputado->delete();
+
+        return response()->json(['ok' => true]);
+    }
+
     public function update(Request $request, $id)
     {
-        $proyecto = ProyectosEnEstudio::findOrFail($id);
+        $proyecto = ProyectosEnEstudio::with('sesiones')->findOrFail($id);
+
+        if ($proyecto->estaBloqueadoPorFinalizacion()) {
+            return redirect()->route('proyectos-en-estudio.listado')
+                ->with('error', 'El proyecto pertenece a Asuntos Entrados finalizado y no puede editarse.');
+        }
         $user = Auth::user();
 
         $puedeCabecera = $user->can('Editar Cabecera Proyectos');
@@ -336,9 +472,15 @@ class ProyectosEnEstudioController extends Controller
         if ($puedeCabecera) {
             $request->validate([
                 'destino' => 'nullable|string|max:255|exists:proyectos_destinos,nombre',
+                'iniciativa' => 'nullable|string|max:255|exists:proyectos_iniciativas,nombre',
+                'diputados' => 'nullable|array',
+                'diputados.*' => 'string|max:255|exists:diputados,nombre',
             ]);
             $data['camara'] = $request->input('camara', $proyecto->camara);
             $data['destino'] = $request->input('destino', $proyecto->destino);
+            $data['iniciativa'] = $request->input('iniciativa', $proyecto->iniciativa);
+            $diputados = $request->input('diputados', []);
+            $data['diputados'] = implode(', ', is_array($diputados) ? $diputados : []);
             $data['acapite'] = $request->input('acapite', $proyecto->acapite);
         }
 
@@ -1729,20 +1871,53 @@ class ProyectosEnEstudioController extends Controller
 
     public function finalizarSesion($id)
     {
-        $sesion = Sesion::findOrFail($id);
+        $sesion = Sesion::with('proyectos')->findOrFail($id);
 
         if ($sesion->estaFinalizada()) {
             return redirect()->route('proyectos-en-estudio.asuntos-entrados')
                 ->with('error', 'La sesión ya estaba finalizada.');
         }
 
-        $sesion->update([
-            'estado' => Sesion::ESTADO_FINALIZADO,
-            'finalizado_at' => now(),
-        ]);
+        DB::transaction(function () use ($sesion) {
+            $sesion->update([
+                'estado' => Sesion::ESTADO_FINALIZADO,
+                'finalizado_at' => now(),
+            ]);
+
+            ProyectosEnEstudio::whereIn('id', $sesion->proyectos->modelKeys())->update([
+                'edicion_habilitada' => false,
+                'edicion_habilitada_at' => null,
+                'edicion_habilitada_por' => null,
+            ]);
+        });
 
         return redirect()->route('proyectos-en-estudio.asuntos-entrados')
             ->with('success', 'Asuntos Entrados finalizado. Ya no puede editarse.');
+    }
+
+    public function alternarBloqueoProyecto($id)
+    {
+        $proyecto = ProyectosEnEstudio::with('sesiones')->findOrFail($id);
+
+        if (! $proyecto->perteneceASesionFinalizada()) {
+            return response()->json([
+                'message' => 'El proyecto no pertenece a una sesión finalizada.',
+            ], 409);
+        }
+
+        $habilitar = ! $proyecto->edicion_habilitada;
+        $proyecto->update([
+            'edicion_habilitada' => $habilitar,
+            'edicion_habilitada_at' => $habilitar ? now() : null,
+            'edicion_habilitada_por' => $habilitar ? Auth::id() : null,
+        ]);
+
+        return response()->json([
+            'message' => $habilitar
+                ? 'La edición del proyecto fue habilitada nuevamente.'
+                : 'El proyecto fue bloqueado nuevamente.',
+            'edicion_habilitada' => $habilitar,
+        ]);
     }
 
     public function duplicarSesion($id)
@@ -1886,7 +2061,13 @@ class ProyectosEnEstudioController extends Controller
 
     public function destroy($id)
     {
-        $proyecto = ProyectosEnEstudio::findOrFail($id);
+        $proyecto = ProyectosEnEstudio::with('sesiones')->findOrFail($id);
+
+        if ($proyecto->perteneceASesionFinalizada()) {
+            return response()->json([
+                'message' => 'No se puede eliminar un proyecto que pertenece a Asuntos Entrados finalizado.',
+            ], 409);
+        }
         $ultimo = ProyectosEnEstudio::max('nro_expediente');
 
         if ($proyecto->nro_expediente != $ultimo) {

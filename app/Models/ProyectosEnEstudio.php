@@ -14,6 +14,9 @@ class ProyectosEnEstudio extends Model
     protected $fillable = [
         'id_mentrada',
         'sesion_id',
+        'edicion_habilitada',
+        'edicion_habilitada_at',
+        'edicion_habilitada_por',
         'usar_documento_padre',
         'documento_padre_id',
         'nro_expediente',
@@ -22,12 +25,19 @@ class ProyectosEnEstudio extends Model
         'camara',
         'acapite',
         'destino',
+        'iniciativa',
+        'diputados',
         'presentado_por',
         'fecha_recepcion_texto',
         'membrete',
         'leyenda',
         'cantidad_observaciones',
         'contenido',
+    ];
+
+    protected $casts = [
+        'edicion_habilitada' => 'boolean',
+        'edicion_habilitada_at' => 'datetime',
     ];
 
     public function mesaEntrada()
@@ -48,6 +58,24 @@ class ProyectosEnEstudio extends Model
             'proyecto_id',
             'sesion_id'
         )->withTimestamps();
+    }
+
+    public function perteneceASesionFinalizada(): bool
+    {
+        if ($this->relationLoaded('sesiones')) {
+            return $this->sesiones->contains(
+                fn (Sesion $sesion) => $sesion->estado === Sesion::ESTADO_FINALIZADO
+            );
+        }
+
+        return $this->sesiones()
+            ->where('sesiones.estado', Sesion::ESTADO_FINALIZADO)
+            ->exists();
+    }
+
+    public function estaBloqueadoPorFinalizacion(): bool
+    {
+        return $this->perteneceASesionFinalizada() && ! $this->edicion_habilitada;
     }
 
     public function documentoPadre()

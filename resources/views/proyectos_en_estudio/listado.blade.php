@@ -134,6 +134,47 @@
                     }
                 });
             });
+
+            $(document).on('click', '.toggle-lock-btn', function() {
+                var id = $(this).data('id');
+                var bloqueado = String($(this).data('bloqueado')) === '1';
+
+                Swal.fire({
+                    title: bloqueado ? '¿Habilitar la edición?' : '¿Bloquear nuevamente?',
+                    text: bloqueado
+                        ? 'El botón Editar volverá a estar disponible para este proyecto.'
+                        : 'El proyecto volverá a quedar protegido contra modificaciones.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: bloqueado ? '#f0ad4e' : '#6c757d',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: bloqueado ? 'Sí, abrir candado' : 'Sí, bloquear',
+                    cancelButtonText: 'Cancelar'
+                }).then((result) => {
+                    if (!result.isConfirmed) return;
+
+                    $.ajax({
+                        url: '{{ url('proyectos-en-estudio') }}/' + id + '/alternar-bloqueo',
+                        type: 'POST',
+                        data: { _token: '{{ csrf_token() }}' },
+                        success: function(response) {
+                            table.ajax.reload(null, false);
+                            Toast.fire({
+                                icon: 'success',
+                                title: '<label style="font-size: 1.6rem !important;">Actualizado</label>',
+                                text: response.message
+                            });
+                        },
+                        error: function(xhr) {
+                            Toast.fire({
+                                icon: 'error',
+                                title: '<label style="font-size: 1.6rem !important;">Error</label>',
+                                text: xhr.responseJSON?.message || 'No se pudo cambiar el bloqueo.'
+                            });
+                        }
+                    });
+                });
+            });
         });
     </script>
 @endpush

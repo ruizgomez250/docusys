@@ -452,7 +452,7 @@ return [
                     'url'  => '/proyectos-en-estudio',
                 ],
                 [
-                    'text' => 'Proyectos Creados',
+                    'text' => 'Asuntos Entrados Creados',
                     'url'  => '/proyectos-en-estudio/listado',
                 ],
                 [
